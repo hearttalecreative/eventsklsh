@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import EventDetail from "./pages/EventDetail";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/admin/Login";
+import AdminEvents from "./pages/admin/Events";
+import AdminRoute from "./routes/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +24,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/event/:id" element={<EventDetail />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/events" element={<AdminEvents />} />
+            <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
