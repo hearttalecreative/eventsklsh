@@ -6,6 +6,7 @@ import MapLeaflet from '@/components/MapLeaflet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Helmet } from 'react-helmet-async';
 
@@ -39,7 +40,6 @@ const EventDetail = () => {
   const participantsCount = quantityTickets * participantsPerTicket;
 
   const [addonsQty, setAddonsQty] = useState<Record<string, number>>({});
-  const addonsSum = Object.values(addonsQty).reduce((a, b) => a + b, 0);
 
   const [participants, setParticipants] = useState(
     Array.from({ length: participantsCount }, () => ({ fullName: '', email: '', phone: '' }))
@@ -240,29 +240,44 @@ const EventDetail = () => {
           </section>
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
-            <h2 className="text-xl font-semibold mb-4">3. Participants</h2>
+            <h2 className="text-xl font-semibold mb-4">3. Participantes</h2>
             <div className="space-y-4 max-h-80 overflow-auto pr-2">
               {participants.map((p, i) => (
-                <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Input
-                    placeholder={`Full name #${i + 1}`}
-                    value={p.fullName}
-                    onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
-                    required
-                  />
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={p.email}
-                    onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
-                    required
-                  />
-                  <Input
-                    placeholder="Phone"
-                    value={p.phone}
-                    onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
-                    required
-                  />
+                <div key={i} className="p-4 rounded-lg border bg-muted/30">
+                  <div className="text-sm font-medium mb-2">Participante #{i + 1}</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor={`p-${i}-name`}>Nombre completo</Label>
+                      <Input
+                        id={`p-${i}-name`}
+                        placeholder={`Nombre y apellido`}
+                        value={p.fullName}
+                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`p-${i}-email`}>Email</Label>
+                      <Input
+                        id={`p-${i}-email`}
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={p.email}
+                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`p-${i}-phone`}>Teléfono</Label>
+                      <Input
+                        id={`p-${i}-phone`}
+                        placeholder="Ej: +54 9 11 5555-5555"
+                        value={p.phone}
+                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
