@@ -24,6 +24,7 @@ export interface Addon {
   id: string;
   name: string;
   unitAmountCents: number;
+  description?: string;
 }
 
 export interface EventItem {

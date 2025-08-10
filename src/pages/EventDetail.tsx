@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Helmet } from 'react-helmet-async';
+import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
@@ -31,13 +32,19 @@ const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min)
 
 const EventDetail = () => {
   const { id } = useParams();
-  const event: EventItem | undefined = useMemo(() => events.find((e) => e.id === id), [id]);
+  const { data: dbEvent } = useSupabaseEventDetail(id);
+  const mockEvent: EventItem | undefined = useMemo(() => events.find((e) => e.id === id), [id]);
+  const event: EventItem | undefined = dbEvent ?? mockEvent;
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(event?.tickets[0]?.id);
   const selectedTicket = useMemo(() => event?.tickets.find((t) => t.id === selectedTicketId), [event, selectedTicketId]);
   const [quantityTickets, setQuantityTickets] = useState<number>(1);
   const participantsPerTicket = selectedTicket?.participantsPerTicket ?? 1;
   const participantsCount = quantityTickets * participantsPerTicket;
+
+  useEffect(() => {
+    if (event?.tickets?.[0]?.id) setSelectedTicketId(event.tickets[0].id);
+  }, [event?.id]);
 
   const [addonsQty, setAddonsQty] = useState<Record<string, number>>({});
 
@@ -225,12 +232,15 @@ const EventDetail = () => {
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
             <h2 className="text-xl font-semibold mb-4">2. Add-ons (max {participantsCount} per add-on)</h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {event.addons.map((a: Addon) => (
-                <div key={a.id} className="flex items-center justify-between gap-3">
-                  <div>
+                <div key={a.id} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="font-medium">{a.name}</div>
-                    <div className="text-sm text-muted-foreground">{formatCurrency(a.unitAmountCents, currency)}</div>
+                    {a.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
+                    )}
+                    <div className="text-sm text-muted-foreground mt-1">{formatCurrency(a.unitAmountCents, currency)}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button type="button" variant="outline" size="icon" aria-label={`Decrease ${a.name}`}
@@ -257,7 +267,7 @@ const EventDetail = () => {
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
             <h2 className="text-xl font-semibold mb-4">3. Participants</h2>
-            <div className="max-h-80 overflow-auto pr-2 divide-y">
+            <div className="divide-y">
               {participants.map((p, i) => (
                 <div key={i} className="py-4">
                   <div className="text-sm font-medium mb-2">Participant #{i + 1}</div>
@@ -305,10 +315,12 @@ const EventDetail = () => {
               <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(Boolean(v))} />
               <label htmlFor="terms" className="text-sm">I accept the <a href="#" className="underline">Terms and Conditions</a></label>
             </div>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-2">
               <Input placeholder="Coupon code" value={coupon} onChange={(e) => setCoupon(e.target.value)} className="max-w-xs" />
-              <Button variant="secondary" type="button" onClick={() => toast.info('Coupon applied (demo)')}>Apply</Button>
             </div>
+            {discount > 0 && (
+              <p className="text-xs text-accent-foreground mb-3">You saved {formatCurrency(discount, currency)} with coupon {coupon.toUpperCase()}.</p>
+            )}
             <p className="text-xs text-muted-foreground -mt-3 mb-3">Coupons apply only to ticket value. Add-ons are not discounted.</p>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Tickets</span><span>{formatCurrency(ticketsSubtotal, currency)}</span></div>

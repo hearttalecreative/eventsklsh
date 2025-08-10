@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { events } from "@/data/events";
+import { events as mockEvents } from "@/data/events";
 import { EventItem, TicketType } from "@/types/events";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useSupabaseEventsList } from "@/hooks/useSupabaseEvents";
 import {
   Select,
   SelectContent,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ResponsiveContainer,
   BarChart,
@@ -51,8 +53,12 @@ const Dashboard = () => {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
 
+  const { data: supa } = useSupabaseEventsList();
+
+  const source = useMemo(() => (supa && supa.length ? supa : mockEvents), [supa]);
+
   const filtered = useMemo(() => {
-    return events.filter((ev) => {
+    return source.filter((ev) => {
       const matchesQ = q
         ? ev.title.toLowerCase().includes(q.toLowerCase()) ||
           ev.shortDescription.toLowerCase().includes(q.toLowerCase())
@@ -63,7 +69,7 @@ const Dashboard = () => {
       const toOk = to ? start <= new Date(to).getTime() : true;
       return matchesQ && matchesStatus && fromOk && toOk;
     });
-  }, [q, status, from, to]);
+  }, [source, q, status, from, to]);
 
   const kpis = useMemo(() => {
     const totalEvents = filtered.length;
