@@ -36,11 +36,12 @@ const AdminEvents = () => {
   // Form state for quick create
   const [title, setTitle] = useState("");
   const [shortDesc, setShortDesc] = useState("");
+  const [longDesc, setLongDesc] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [venueId, setVenueId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState("draft");
-  const [sku, setSku] = useState("");
+  
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -55,7 +56,29 @@ const AdminEvents = () => {
     load();
   }, []);
 
-  const createVenue = async () => {
+  function isEventPast(ev: any) {
+    const endOrStart = ev.ends_at ? new Date(ev.ends_at) : new Date(ev.starts_at);
+    return endOrStart < new Date();
+  }
+
+  const editEvent = async (ev: any) => {
+    if (isEventPast(ev)) { alert('No se puede modificar un evento pasado.'); return; }
+    const nextTitle = prompt('Nuevo título', ev.title) ?? ev.title;
+    const nextShort = prompt('Descripción corta', ev.short_description || '') ?? (ev.short_description || '');
+    const nextLong = prompt('Descripción larga (Markdown básico)', ev.description || '') ?? (ev.description || '');
+    const starts = prompt('Inicio (YYYY-MM-DDTHH:MM)', ev.starts_at?.slice(0,16)) ?? ev.starts_at;
+    const ends = prompt('Fin (YYYY-MM-DDTHH:MM, opcional)', ev.ends_at ? ev.ends_at.slice(0,16) : '') ?? ev.ends_at;
+    const payload: any = {
+      title: nextTitle,
+      short_description: nextShort,
+      description: nextLong,
+      starts_at: starts ? new Date(starts).toISOString() : null,
+      ends_at: ends ? new Date(ends).toISOString() : null,
+    };
+    const { data, error } = await supabase.from('events').update(payload).eq('id', ev.id).select('*').single();
+    if (error) return alert(error.message);
+    setEvents(arr => arr.map(e => e.id===ev.id ? { ...e, ...data } : e));
+  };
     const name = prompt("Venue name");
     if (!name) return;
     const address = prompt("Venue address (street, city)") || null;
@@ -76,18 +99,18 @@ const AdminEvents = () => {
     const payload: any = {
       title,
       short_description: shortDesc,
+      description: longDesc || null,
       starts_at: startsAt,
       ends_at: endsAt || null,
       venue_id: venueId || null,
       status: status as any,
-      sku: sku || null,
       image_url: imageUrl || null,
       created_by,
     };
     const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
     if (error) return alert(error.message);
     setEvents((arr) => [data!, ...arr]);
-    setTitle(""); setShortDesc(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setSku(""); setImageUrl("");
+    setTitle(""); setShortDesc(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
   };
 
   const openAddons = async (eventId: string) => {
@@ -147,25 +170,47 @@ const AdminEvents = () => {
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
-      .select('id,name,unit_amount_cents,capacity_total')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
     setTickets(data || []);
     setTicketsOpen(true);
   };
 
-  const addTicket = async () => {
+  const addTicketSimple = async () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ event_id: ticketsEventId, name: 'General', unit_amount_cents: 2000, capacity_total: 100, currency: 'usd', participants_per_ticket: 1 })
-      .select('id,name,unit_amount_cents,capacity_total')
+      .insert({ event_id: ticketsEventId, name: 'General', unit_amount_cents: 2000, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: null })
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [data!, ...arr]);
   };
 
-  const updateTicketField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number; capacity_total: number }>) => {
+  const addTicketCombo = async () => {
+    if (!ticketsEventId) return;
+    const { data, error } = await supabase
+      .from('tickets')
+      .insert({ event_id: ticketsEventId, name: 'Combo (2 participantes)', unit_amount_cents: 3500, capacity_total: 100, currency: 'usd', participants_per_ticket: 2, zone: null })
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
+      .single();
+    if (error) return alert(error.message);
+    setTickets(arr => [data!, ...arr]);
+  };
+
+  const addTicketByZone = async () => {
+    if (!ticketsEventId) return;
+    const { data, error } = await supabase
+      .from('tickets')
+      .insert({ event_id: ticketsEventId, name: 'Por ubicación', unit_amount_cents: 2500, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: 'General' })
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
+      .single();
+    if (error) return alert(error.message);
+    setTickets(arr => [data!, ...arr]);
+  };
+
+  const updateTicketField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number; capacity_total: number; participants_per_ticket: number; zone: string | null }>) => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
     if (error) return alert(error.message);
     setTickets(arr => arr.map(t => t.id===id ? { ...t, ...patch } : t));
@@ -222,6 +267,7 @@ const AdminEvents = () => {
             <CardContent className="space-y-3">
               <Input placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
               <Textarea placeholder="Short description" value={shortDesc} onChange={(e)=>setShortDesc(e.target.value)} />
+              <Textarea placeholder="Long description (Markdown básico permitido)" value={longDesc} onChange={(e)=>setLongDesc(e.target.value)} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input type="datetime-local" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
                 <Input type="datetime-local" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
@@ -235,7 +281,7 @@ const AdminEvents = () => {
                 </Select>
                 <Button type="button" variant="secondary" onClick={createVenue}>New venue</Button>
               </div>
-              <div className="grid sm:grid-cols-3 gap-3">
+              <div className="grid sm:grid-cols-1 gap-3">
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -244,8 +290,6 @@ const AdminEvents = () => {
                     <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input placeholder="SKU" value={sku} onChange={(e)=>setSku(e.target.value)} />
-                <Input placeholder="Image URL (optional)" value={imageUrl} onChange={(e)=>setImageUrl(e.target.value)} />
               </div>
               <div className="grid sm:grid-cols-3 gap-3 items-center">
                 <Input type="file" accept="image/*" onChange={(e)=>setImageFile(e.target.files?.[0] || null)} />
@@ -286,16 +330,17 @@ const AdminEvents = () => {
                     <td className="py-3 pr-4">{new Date(ev.starts_at).toLocaleString()}</td>
                     <td className="py-3 pr-4">{ev.venues?.name || '-'}</td>
                     <td className="py-3 pr-4 capitalize">{ev.status}</td>
-                    <td className="py-3 pr-4 flex gap-2">
+                    <td className="py-3 pr-4 flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={async ()=>{
                         const next = ev.status === 'published' ? 'draft' : 'published';
                         const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                         if (!error) setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                       }}>Toggle publish</Button>
+                      <Button size="sm" variant="outline" onClick={()=>editEvent(ev)} disabled={isEventPast(ev)}>Edit</Button>
                       <Button size="sm" variant="secondary" onClick={()=>openTickets(ev.id)}>Manage tickets</Button>
                       <Button size="sm" variant="secondary" onClick={()=>openAddons(ev.id)}>Manage add-ons</Button>
                       <Button size="sm" variant="outline" onClick={()=>openAttendees(ev.id)}>Attendees</Button>
-                      <Button size="sm" asChild><a href={`/event/${ev.id}`}>View</a></Button>
+                      <Button size="sm" asChild><a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">View</a></Button>
                     </td>
                   </tr>
                 ))}
@@ -354,13 +399,19 @@ const AdminEvents = () => {
               )}
               {tickets.map((t) => (
                 <div key={t.id} className="p-3 border rounded-md bg-card">
-                  <div className="grid sm:grid-cols-4 gap-2 items-center">
+                  <div className="grid sm:grid-cols-6 gap-2 items-center">
                     <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                     <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
                       onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
                     />
                     <Input type="number" min={0} defaultValue={t.capacity_total || 0}
                       onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
+                    />
+                    <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
+                      onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
+                    />
+                    <Input defaultValue={t.zone || ''}
+                      onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
                     />
                     <div className="flex justify-end">
                       <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
@@ -369,8 +420,10 @@ const AdminEvents = () => {
                 </div>
               ))}
             </div>
-            <DialogFooter className="flex gap-2">
-              <Button variant="secondary" onClick={addTicket}>Add ticket</Button>
+            <DialogFooter className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={addTicketSimple}>Agregar ticket simple</Button>
+              <Button variant="secondary" onClick={addTicketCombo}>Agregar combo (multi-participante)</Button>
+              <Button variant="secondary" onClick={addTicketByZone}>Agregar ticket por ubicación</Button>
               <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Close</Button>
             </DialogFooter>
           </DialogContent>

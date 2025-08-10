@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Helmet } from 'react-helmet-async';
 import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
@@ -167,7 +170,9 @@ const EventDetail = () => {
             </div>
             <MapLeaflet lat={event.venue.lat} lng={event.venue.lng} name={event.venue.name} />
             <div className="prose max-w-none">
-              <p>{(showFullDesc || !isLong) ? event.description : `${shortDesc}...`}</p>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                {(showFullDesc || !isLong) ? (event.description || '') : `${shortDesc}...`}
+              </ReactMarkdown>
               {isLong && (
                 <button type="button" className="mt-2 text-primary underline" onClick={() => setShowFullDesc((v) => !v)}>
                   {showFullDesc ? 'Show less' : 'Read more'}
