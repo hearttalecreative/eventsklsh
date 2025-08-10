@@ -29,27 +29,35 @@ export const EventCard = ({ event }: Props) => {
   return (
     <Card className="h-full flex flex-col border bg-card">
       <CardHeader className="p-0">
-        <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
+        <Link to={`/event/${event.id}`} className="block relative h-48 w-full overflow-hidden rounded-t-lg">
           <img
             src={event.imageUrl}
             alt={`${event.title} event image`}
             className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
             loading="lazy"
           />
-        </div>
+        </Link>
         <div className="p-4">
-          <CardTitle className="text-xl">{event.title}</CardTitle>
+          <CardTitle className="text-xl">
+            <Link to={`/event/${event.id}`} className="hover:underline">{event.title}</Link>
+          </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">{event.shortDescription}</p>
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 mt-auto">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">From</span>
-          <span className="font-medium">{formatCurrency(minPrice, event.tickets[0].currency)}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm mt-1">
-          <span className="text-muted-foreground">Starts</span>
-          <span className="font-medium">{new Date(event.startsAt).toLocaleString()}</span>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Starts</span>
+            <time className="font-medium" dateTime={event.startsAt}>{new Date(event.startsAt).toLocaleString()}</time>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Venue</span>
+            <span className="font-medium truncate max-w-[60%]" title={`${event.venue.name} — ${event.venue.address}`}>{event.venue.name}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">From</span>
+            <span className="font-medium">{formatCurrency(minPrice, event.tickets[0].currency)}</span>
+          </div>
         </div>
         <div className="mt-4">
           <Button asChild className="w-full">

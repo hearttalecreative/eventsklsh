@@ -88,6 +88,12 @@ const EventDetail = () => {
   const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal + addonsSubtotal) * 0.1) : 0; // 10% demo
   const total = ticketsSubtotal + addonsSubtotal - discount;
 
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  const { shortDesc, isLong } = useMemo(() => {
+    const words = (event.description || '').trim().split(/\s+/);
+    return { shortDesc: words.slice(0, 100).join(' '), isLong: words.length > 100 };
+  }, [event.description]);
+
   const eventJsonLd = {
     "@context": "https://schema.org",
     "@type": "Event",
@@ -166,7 +172,12 @@ const EventDetail = () => {
             </div>
             <MapLeaflet lat={event.venue.lat} lng={event.venue.lng} name={event.venue.name} />
             <div className="prose max-w-none">
-              <p>{event.description}</p>
+              <p>{(showFullDesc || !isLong) ? event.description : `${shortDesc}...`}</p>
+              {isLong && (
+                <button type="button" className="mt-2 text-primary underline" onClick={() => setShowFullDesc((v) => !v)}>
+                  {showFullDesc ? 'Mostrar menos' : 'Leer más'}
+                </button>
+              )}
             </div>
           </article>
         </div>
