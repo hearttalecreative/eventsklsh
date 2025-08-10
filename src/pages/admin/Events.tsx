@@ -79,6 +79,7 @@ const AdminEvents = () => {
     if (error) return alert(error.message);
     setEvents(arr => arr.map(e => e.id===ev.id ? { ...e, ...data } : e));
   };
+  const createVenue = async () => {
     const name = prompt("Venue name");
     if (!name) return;
     const address = prompt("Venue address (street, city)") || null;
