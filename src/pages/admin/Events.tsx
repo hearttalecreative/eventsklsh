@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import AdminRoute from "@/routes/AdminRoute";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
+import { useLocation } from "react-router-dom";
 
 interface Venue { id: string; name: string; address?: string | null; }
 
@@ -59,9 +63,18 @@ const AdminEvents = () => {
   // Tickets advanced fields
   const [showAdvancedTicketFields, setShowAdvancedTicketFields] = useState(false);
 
+  // Venue create dialog state
+  const [venueDialogOpen, setVenueDialogOpen] = useState(false);
+  const location = useLocation();
+
+  const handleVenueCreated = (venue: Venue) => {
+    setVenues((arr) => [...arr, venue]);
+    setVenueId(venue.id);
+  };
+
   useEffect(() => {
     const load = async () => {
-      const { data: v } = await supabase.from("venues").select("id,name").order("name");
+      const { data: v } = await supabase.from("venues").select("id,name,address").order("name");
       setVenues(v || []);
       const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("created_at", { ascending: false });
       setEvents(ev || []);
@@ -69,6 +82,18 @@ const AdminEvents = () => {
     };
     load();
   }, []);
+
+  // Auto-open edit dialog when coming from dashboard with ?edit=<id>
+  useEffect(() => {
+    if (!loading) {
+      const params = new URLSearchParams(location.search);
+      const editId = params.get('edit');
+      if (editId) {
+        const ev = events.find(e => e.id === editId);
+        if (ev) openEdit(ev);
+      }
+    }
+  }, [loading, location.search, events]);
 
   function isEventPast(ev: any) {
     const endOrStart = ev.ends_at ? new Date(ev.ends_at) : new Date(ev.starts_at);
@@ -88,17 +113,7 @@ const AdminEvents = () => {
     setEditOpen(true);
   };
   const createVenue = async () => {
-    const name = prompt("Venue name");
-    if (!name) return;
-    const address = prompt("Venue address (street, city)") || null;
-    const { data, error } = await supabase
-      .from("venues")
-      .insert({ name, address })
-      .select("id,name,address")
-      .single();
-    if (error) return alert(error.message);
-    setVenues((arr) => [...arr, data!]);
-    setVenueId(data!.id);
+    setVenueDialogOpen(true);
   };
 
   const createEvent = async () => {
@@ -197,7 +212,7 @@ const AdminEvents = () => {
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
     setTickets(data || []);
@@ -209,7 +224,7 @@ const AdminEvents = () => {
     const { data, error } = await supabase
       .from('tickets')
       .insert({ event_id: ticketsEventId, name: 'General', unit_amount_cents: 2000, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: null })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [data!, ...arr]);
@@ -220,7 +235,7 @@ const AdminEvents = () => {
     const { data, error } = await supabase
       .from('tickets')
       .insert({ event_id: ticketsEventId, name: 'Combo (2 participantes)', unit_amount_cents: 3500, capacity_total: 100, currency: 'usd', participants_per_ticket: 2, zone: null })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [data!, ...arr]);
@@ -231,13 +246,25 @@ const AdminEvents = () => {
     const { data, error } = await supabase
       .from('tickets')
       .insert({ event_id: ticketsEventId, name: 'Por ubicación', unit_amount_cents: 2500, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: 'General' })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [data!, ...arr]);
   };
 
-  const updateTicketField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number; capacity_total: number; participants_per_ticket: number; zone: string | null }>) => {
+  const updateTicketField = async (
+    id: string,
+    patch: Partial<{
+      name: string;
+      unit_amount_cents: number;
+      capacity_total: number;
+      participants_per_ticket: number;
+      zone: string | null;
+      early_bird_amount_cents: number | null;
+      early_bird_start: string | null;
+      early_bird_end: string | null;
+    }>
+  ) => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
     if (error) return alert(error.message);
     setTickets(arr => arr.map(t => t.id===id ? { ...t, ...patch } : t));
@@ -441,51 +468,118 @@ const AdminEvents = () => {
 
         {/* Tickets dialog */}
         <Dialog open={ticketsOpen} onOpenChange={setTicketsOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Manage tickets</DialogTitle>
+              <DialogTitle>Gestionar tickets</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <p className="text-sm text-muted-foreground">
+                Define tipos de tickets, precios, capacidades y opciones de early-bird. Usa “Avanzados” para zonas y participantes por ticket.
+              </p>
               <div className="flex justify-end">
                 <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
                   {showAdvancedTicketFields ? 'Ocultar avanzados' : 'Ver avanzados'}
                 </Button>
               </div>
               {tickets.length === 0 && (
-                <p className="text-sm text-muted-foreground">No tickets yet.</p>
+                <p className="text-sm text-muted-foreground">No hay tickets todavía.</p>
               )}
-              {tickets.map((t) => (
-                <div key={t.id} className="p-3 border rounded-md bg-card">
-                  <div className="grid sm:grid-cols-6 gap-2 items-center">
-                    <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
-                    <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
-                      onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
-                    />
-                    <Input type="number" min={0} defaultValue={t.capacity_total || 0}
-                      onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
-                    />
-                    {showAdvancedTicketFields && (
-                      <>
-                        <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
-                          onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
+              {tickets.map((t) => {
+                const earlyEnabled = Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end);
+                return (
+                  <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
+                    <div className="grid sm:grid-cols-6 gap-3 items-center">
+                      <div className="sm:col-span-2 space-y-1">
+                        <Label>Nombre</Label>
+                        <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Precio ({(t.currency || 'usd').toUpperCase()})</Label>
+                        <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
+                          onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
                         />
-                        <Input defaultValue={t.zone || ''}
-                          onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Capacidad</Label>
+                        <Input type="number" min={0} defaultValue={t.capacity_total || 0}
+                          onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
-                      </>
-                    )}
-                    <div className="flex justify-end">
-                      <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
+                      </div>
+                      {showAdvancedTicketFields && (
+                        <>
+                          <div className="space-y-1">
+                            <Label>Participantes</Label>
+                            <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
+                              onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Zona</Label>
+                            <Input defaultValue={t.zone || ''}
+                              onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
+                            />
+                          </div>
+                        </>
+                      )}
+                      <div className="flex justify-end">
+                        <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Eliminar</Button>
+                      </div>
+                    </div>
+
+                    {/* Early bird */}
+                    <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Early bird</Label>
+                          <p className="text-xs text-muted-foreground">Precio promocional por tiempo limitado</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Activo' : 'Inactivo'}</span>
+                          <Switch
+                            checked={earlyEnabled}
+                            onCheckedChange={(checked)=>{
+                              if (!checked) {
+                                updateTicketField(t.id, { early_bird_amount_cents: null, early_bird_start: null, early_bird_end: null });
+                              } else {
+                                const nowIso = new Date().toISOString();
+                                updateTicketField(t.id, { early_bird_amount_cents: Math.max(0, Math.round((t.unit_amount_cents * 0.8))), early_bird_start: nowIso, early_bird_end: nowIso });
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      {earlyEnabled && (
+                        <div className="grid sm:grid-cols-4 gap-3">
+                          <div className="space-y-1">
+                            <Label>Precio early</Label>
+                            <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents||0)/100).toFixed(2)}
+                              onBlur={(e)=>updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                            />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label>Inicio</Label>
+                            <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0,16) : ''}
+                              onBlur={(e)=>updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                            />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label>Fin</Label>
+                            <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0,16) : ''}
+                              onBlur={(e)=>updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <DialogFooter className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={addTicketSimple}>Agregar ticket simple</Button>
               <Button variant="secondary" onClick={addTicketCombo}>Agregar combo (multi-participante)</Button>
               <Button variant="secondary" onClick={addTicketByZone}>Agregar ticket por ubicación</Button>
-              <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Close</Button>
+              <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Cerrar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -564,6 +658,12 @@ const AdminEvents = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <VenueCreateDialog
+          open={venueDialogOpen}
+          onOpenChange={setVenueDialogOpen}
+          onCreated={handleVenueCreated}
+        />
       </main>
     </AdminRoute>
   );

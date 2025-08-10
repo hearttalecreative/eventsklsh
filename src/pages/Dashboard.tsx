@@ -90,6 +90,18 @@ const Dashboard = () => {
     [filtered]
   );
 
+  // Sort events by the nearest upcoming first; past events are listed after future ones
+  const sorted = useMemo(() => {
+    const now = Date.now();
+    const future = filtered
+      .filter((ev) => new Date(ev.startsAt).getTime() >= now)
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+    const past = filtered
+      .filter((ev) => new Date(ev.startsAt).getTime() < now)
+      .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+    return [...future, ...past];
+  }, [filtered]);
+
   function exportCsv() {
     const rows = [
       [
@@ -248,7 +260,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((ev) => {
+              {sorted.map((ev) => {
                 const min = Math.min(...ev.tickets.map((t) => effectiveUnitAmount(t)));
                 const currency = ev.tickets[0]?.currency || "usd";
                 return (
@@ -265,8 +277,8 @@ const Dashboard = () => {
                         <Button asChild size="sm">
                           <Link to={`/event/${ev.id}`}>View</Link>
                         </Button>
-                        <Button size="sm" variant="outline" disabled title="Connect Supabase to enable editing">
-                          Edit
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={`/admin/events?edit=${ev.id}`}>Edit</Link>
                         </Button>
                       </div>
                     </td>
