@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import AdminRoute from "@/routes/AdminRoute";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-interface Venue { id: string; name: string; }
+interface Venue { id: string; name: string; address?: string | null; }
 
 const AdminEvents = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -23,6 +23,16 @@ const AdminEvents = () => {
   const [addons, setAddons] = useState<any[]>([]);
   const [savingAddons, setSavingAddons] = useState(false);
 
+  // Tickets editor state
+  const [ticketsOpen, setTicketsOpen] = useState(false);
+  const [ticketsEventId, setTicketsEventId] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<any[]>([]);
+
+  // Attendees modal state
+  const [attendeesOpen, setAttendeesOpen] = useState(false);
+  const [attendeesEventId, setAttendeesEventId] = useState<string | null>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+
   // Form state for quick create
   const [title, setTitle] = useState("");
   const [shortDesc, setShortDesc] = useState("");
@@ -32,6 +42,7 @@ const AdminEvents = () => {
   const [status, setStatus] = useState("draft");
   const [sku, setSku] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -47,7 +58,12 @@ const AdminEvents = () => {
   const createVenue = async () => {
     const name = prompt("Venue name");
     if (!name) return;
-    const { data, error } = await supabase.from("venues").insert({ name }).select("id,name").single();
+    const address = prompt("Venue address (street, city)") || null;
+    const { data, error } = await supabase
+      .from("venues")
+      .insert({ name, address })
+      .select("id,name,address")
+      .single();
     if (error) return alert(error.message);
     setVenues((arr) => [...arr, data!]);
     setVenueId(data!.id);
@@ -85,6 +101,30 @@ const AdminEvents = () => {
     setAddonsOpen(true);
   };
 
+  const addAddon = async () => {
+    if (!addonsEventId) return;
+    const { data, error } = await supabase
+      .from('addons')
+      .insert({ event_id: addonsEventId, name: 'New add-on', unit_amount_cents: 500, description: '' })
+      .select('id,name,unit_amount_cents,description')
+      .single();
+    if (error) return alert(error.message);
+    setAddons((arr) => [data!, ...arr]);
+  };
+
+  const updateAddonField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number }>) => {
+    const { error } = await supabase.from('addons').update(patch).eq('id', id);
+    if (error) return alert(error.message);
+    setAddons(arr => arr.map(a => a.id===id ? { ...a, ...patch } : a));
+  };
+
+  const deleteAddon = async (id: string) => {
+    if (!confirm('Delete this add-on?')) return;
+    const { error } = await supabase.from('addons').delete().eq('id', id);
+    if (error) return alert(error.message);
+    setAddons(arr => arr.filter(a => a.id !== id));
+  };
+
   const updateAddonDesc = (id: string, description: string) => {
     setAddons((arr) => arr.map((a) => (a.id === id ? { ...a, description } : a)));
   };
@@ -102,6 +142,66 @@ const AdminEvents = () => {
     }
   };
 
+  // Tickets
+  const openTickets = async (eventId: string) => {
+    setTicketsEventId(eventId);
+    const { data } = await supabase
+      .from('tickets')
+      .select('id,name,unit_amount_cents,capacity_total')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+    setTickets(data || []);
+    setTicketsOpen(true);
+  };
+
+  const addTicket = async () => {
+    if (!ticketsEventId) return;
+    const { data, error } = await supabase
+      .from('tickets')
+      .insert({ event_id: ticketsEventId, name: 'General', unit_amount_cents: 2000, capacity_total: 100, currency: 'usd', participants_per_ticket: 1 })
+      .select('id,name,unit_amount_cents,capacity_total')
+      .single();
+    if (error) return alert(error.message);
+    setTickets(arr => [data!, ...arr]);
+  };
+
+  const updateTicketField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number; capacity_total: number }>) => {
+    const { error } = await supabase.from('tickets').update(patch).eq('id', id);
+    if (error) return alert(error.message);
+    setTickets(arr => arr.map(t => t.id===id ? { ...t, ...patch } : t));
+  };
+
+  const deleteTicket = async (id: string) => {
+    if (!confirm('Delete this ticket?')) return;
+    const { error } = await supabase.from('tickets').delete().eq('id', id);
+    if (error) return alert(error.message);
+    setTickets(arr => arr.filter(t => t.id !== id));
+  };
+
+  // Attendees
+  const openAttendees = async (eventId: string) => {
+    setAttendeesEventId(eventId);
+    const { data, error } = await supabase
+      .from('attendees')
+      .select('id,name,email,seat,zone,checked_in_at,created_at')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+    if (error) return alert(error.message);
+    setAttendees(data || []);
+    setAttendeesOpen(true);
+  };
+
+  // Image upload to Supabase Storage
+  const uploadImage = async () => {
+    if (!imageFile) return alert('Select an image first');
+    const ext = imageFile.name.split('.').pop() || 'jpg';
+    const path = `events/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('event-images').upload(path, imageFile, { upsert: false });
+    if (error) return alert(error.message);
+    const { data } = supabase.storage.from('event-images').getPublicUrl(path);
+    setImageUrl(data.publicUrl);
+    alert('Image uploaded');
+  };
   return (
     <AdminRoute>
       <main className="container mx-auto py-8 space-y-8">
@@ -145,7 +245,12 @@ const AdminEvents = () => {
                   </SelectContent>
                 </Select>
                 <Input placeholder="SKU" value={sku} onChange={(e)=>setSku(e.target.value)} />
-                <Input placeholder="Image URL" value={imageUrl} onChange={(e)=>setImageUrl(e.target.value)} />
+                <Input placeholder="Image URL (optional)" value={imageUrl} onChange={(e)=>setImageUrl(e.target.value)} />
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3 items-center">
+                <Input type="file" accept="image/*" onChange={(e)=>setImageFile(e.target.files?.[0] || null)} />
+                <Button type="button" variant="secondary" onClick={uploadImage}>Upload image</Button>
+                {imageUrl && <span className="text-xs text-muted-foreground truncate" title={imageUrl}>Uploaded ✓</span>}
               </div>
               <Button onClick={createEvent}>Create event</Button>
             </CardContent>
@@ -187,7 +292,9 @@ const AdminEvents = () => {
                         const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                         if (!error) setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                       }}>Toggle publish</Button>
+                      <Button size="sm" variant="secondary" onClick={()=>openTickets(ev.id)}>Manage tickets</Button>
                       <Button size="sm" variant="secondary" onClick={()=>openAddons(ev.id)}>Manage add-ons</Button>
+                      <Button size="sm" variant="outline" onClick={()=>openAttendees(ev.id)}>Attendees</Button>
                       <Button size="sm" asChild><a href={`/event/${ev.id}`}>View</a></Button>
                     </td>
                   </tr>
@@ -200,27 +307,107 @@ const AdminEvents = () => {
         <Dialog open={addonsOpen} onOpenChange={setAddonsOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Manage add-on descriptions</DialogTitle>
+              <DialogTitle>Manage add-ons</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               {addons.length === 0 && (
                 <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
               )}
               {addons.map((a) => (
-                <div key={a.id} className="p-3 border rounded-md bg-card">
-                  <div className="font-medium">{a.name} <span className="text-xs text-muted-foreground">({(a.unit_amount_cents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})})</span></div>
+                <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
+                  <div className="grid sm:grid-cols-3 gap-2 items-center">
+                    <Input defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
+                    <Input type="number" step="0.01" min="0" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
+                      onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                    />
+                    <div className="flex justify-end">
+                      <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
+                    </div>
+                  </div>
                   <Textarea
                     placeholder="Brief description (max ~30 words)"
                     value={a.description ?? ''}
                     onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
-                    className="mt-2"
                   />
                 </div>
               ))}
             </div>
+            <DialogFooter className="flex gap-2">
+              <Button variant="secondary" onClick={addAddon}>Add add-on</Button>
+              <div className="ml-auto flex gap-2">
+                <Button variant="secondary" onClick={()=>setAddonsOpen(false)}>Close</Button>
+                <Button onClick={saveAddonDescriptions} disabled={savingAddons || addons.length===0}>{savingAddons? 'Saving...' : 'Save descriptions'}</Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Tickets dialog */}
+        <Dialog open={ticketsOpen} onOpenChange={setTicketsOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Manage tickets</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {tickets.length === 0 && (
+                <p className="text-sm text-muted-foreground">No tickets yet.</p>
+              )}
+              {tickets.map((t) => (
+                <div key={t.id} className="p-3 border rounded-md bg-card">
+                  <div className="grid sm:grid-cols-4 gap-2 items-center">
+                    <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
+                    <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
+                      onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                    />
+                    <Input type="number" min={0} defaultValue={t.capacity_total || 0}
+                      onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
+                    />
+                    <div className="flex justify-end">
+                      <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="flex gap-2">
+              <Button variant="secondary" onClick={addTicket}>Add ticket</Button>
+              <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Attendees dialog */}
+        <Dialog open={attendeesOpen} onOpenChange={setAttendeesOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Attendees ({attendees.length})</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground border-b">
+                    <th className="py-2 pr-3">Name</th>
+                    <th className="py-2 pr-3">Email</th>
+                    <th className="py-2 pr-3">Seat</th>
+                    <th className="py-2 pr-3">Zone</th>
+                    <th className="py-2 pr-3">Checked in</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendees.map(a => (
+                    <tr key={a.id} className="border-b">
+                      <td className="py-2 pr-3">{a.name || '-'}</td>
+                      <td className="py-2 pr-3">{a.email || '-'}</td>
+                      <td className="py-2 pr-3">{a.seat || '-'}</td>
+                      <td className="py-2 pr-3">{a.zone || '-'}</td>
+                      <td className="py-2 pr-3">{a.checked_in_at ? new Date(a.checked_in_at).toLocaleString() : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <DialogFooter>
-              <Button variant="secondary" onClick={()=>setAddonsOpen(false)}>Close</Button>
-              <Button onClick={saveAddonDescriptions} disabled={savingAddons || addons.length===0}>{savingAddons? 'Saving...' : 'Save'}</Button>
+              <Button variant="secondary" onClick={()=>setAttendeesOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
