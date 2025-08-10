@@ -1,6 +1,7 @@
 import EventList from "@/components/EventList";
 import { Button } from "@/components/ui/button";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -25,10 +26,13 @@ const Index = () => {
           <div className="space-y-5 animate-enter">
             <h1 className="text-5xl font-bold tracking-tight">Explore upcoming events</h1>
             <p className="text-lg text-muted-foreground">Modern, intuitive and mobile-friendly experience. Choose tickets, add-ons and register participants in minutes.</p>
-            <div className="flex gap-3">
-              <Button size="lg">Browse events</Button>
-              <Button size="lg" variant="secondary">How it works</Button>
-            </div>
+              <div className="flex gap-3">
+                <Button size="lg">Browse events</Button>
+                <Button size="lg" variant="secondary">How it works</Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link to="/dashboard">Open dashboard</Link>
+                </Button>
+              </div>
           </div>
           <div className="rounded-xl border bg-card h-64 lg:h-80 overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-secondary to-muted" />
