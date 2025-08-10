@@ -294,6 +294,13 @@ const EventDetail = () => {
           </section>
         </aside>
       </div>
+      <footer className="py-8 mt-6 border-t">
+        <div className="container mx-auto flex items-center justify-center">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/dashboard" aria-label="Abrir panel de administración">Ir al panel de administración</Link>
+          </Button>
+        </div>
+      </footer>
     </main>
   );
 };
