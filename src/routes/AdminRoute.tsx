@@ -14,6 +14,12 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
         return;
       }
+      // Try to promote to admin if allowlisted (idempotent)
+      try {
+        await (supabase as any).rpc('promote_to_admin_if_allowlisted');
+      } catch (e) {
+        console.warn('RPC promote_to_admin_if_allowlisted not available yet');
+      }
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")

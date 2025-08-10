@@ -9,7 +9,7 @@ export const events: EventItem[] = [
     title: "Sunset Acoustic Session",
     shortDescription: "Intimate music evening with warm vibes.",
     description:
-      "Join us for a cozy acoustic night. Limited seats, handcrafted cocktails, and a laid-back atmosphere.",
+      "At golden hour we gather for a slow, intimate acoustic session designed to help you disconnect from the rush of the week. Expect warm textures, soft percussion and storytelling between songs. Our team curates a cozy lounge setting with dim lights, handcrafted cocktails and seating that invites conversation. The performance moves through familiar classics and original pieces, focusing on presence and connection rather than volume. Between sets you can meet the artists, take photos and enjoy small bites. Whether you come alone or with friends, this is an evening to unwind, breathe and let the music hold you. We recommend arriving early to settle in and pick your favorite spot. Dress comfortably, bring a light jacket for our open-air patio, and be ready to sing along to a chorus or two. This event is perfect for date nights, small celebrations and anyone seeking a calm, inspiring night out.",
     imageUrl:
       "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=1600&auto=format&fit=crop",
     startsAt: plusDays(7),
@@ -68,7 +68,7 @@ export const events: EventItem[] = [
     title: "Coffee Tasting Workshop",
     shortDescription: "Explore origins, aromas and brewing secrets.",
     description:
-      "Taste unique beans, learn proper extraction and enjoy pastries in a friendly hands-on session.",
+      "This hands-on workshop is a playful dive into the world of specialty coffee. We begin with an approachable overview of origins and processing methods, then move into aroma recognition and tasting techniques used by professionals. You will learn how grind size, water temperature and brew ratio shape flavor, and you’ll practice dialing-in a pour-over to your taste. Our roaster will share practical tips for buying beans, storing them at home and choosing gear without overspending. Expect a friendly environment where questions are welcome and mistakes are part of the learning. We finish with a mini pairing: pastries designed to highlight acidity, sweetness and body in different coffees. You’ll leave with a brewing guide, a tasting sheet and the confidence to recreate your favorite cup at home. No prior experience is needed—curiosity and a good appetite are more than enough.",
     imageUrl:
       "https://images.unsplash.com/photo-1470337458703-46ad1756a187?q=80&w=1600&auto=format&fit=crop",
     startsAt: plusDays(14),

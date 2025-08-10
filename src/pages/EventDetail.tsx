@@ -54,18 +54,6 @@ const EventDetail = () => {
       const next = Array.from({ length: participantsCount }, (_, i) => prev[i] ?? { fullName: '', email: '', phone: '' });
       return next;
     });
-    // ensure addons respect constraint: sum(addons) <= participants
-    setAddonsQty((prev) => {
-      const sum = Object.values(prev).reduce((a, b) => a + b, 0);
-      if (sum <= participantsCount) return prev;
-      // scale down proportionally
-      const factor = participantsCount / (sum || 1);
-      const next: Record<string, number> = {};
-      Object.keys(prev).forEach((k) => {
-        next[k] = Math.floor(prev[k] * factor);
-      });
-      return next;
-    });
   }, [participantsCount]);
 
   if (!event || !selectedTicket) {
@@ -85,7 +73,7 @@ const EventDetail = () => {
     return sum + (addon ? addon.unitAmountCents * qty : 0);
   }, 0);
 
-  const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal + addonsSubtotal) * 0.1) : 0; // 10% demo
+  const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal) * 0.1) : 0; // 10% demo (solo aplica a tickets)
   const total = ticketsSubtotal + addonsSubtotal - discount;
 
   const [showFullDesc, setShowFullDesc] = useState(false);
@@ -226,7 +214,7 @@ const EventDetail = () => {
           </section>
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
-            <h2 className="text-xl font-semibold mb-4">2. Add-ons (max {participantsCount})</h2>
+            <h2 className="text-xl font-semibold mb-4">2. Add-ons (máximo {participantsCount} por add-on)</h2>
             <div className="space-y-3">
               {event.addons.map((a: Addon) => (
                 <div key={a.id} className="flex items-center justify-between">
@@ -241,15 +229,13 @@ const EventDetail = () => {
                     value={addonsQty[a.id] ?? 0}
                     onChange={(e) => {
                       const v = clamp(parseInt(e.target.value || '0', 10), 0, participantsCount);
-                      const next = { ...addonsQty, [a.id]: v };
-                      const sum = Object.values(next).reduce((s, n) => s + n, 0);
-                      if (sum <= participantsCount) setAddonsQty(next);
+                      setAddonsQty((prev) => ({ ...prev, [a.id]: v }));
                     }}
                     className="w-24"
                   />
                 </div>
               ))}
-              <div className="text-xs text-muted-foreground">Total add-ons: {addonsSum}/{participantsCount}</div>
+              <div className="text-xs text-muted-foreground">Puedes seleccionar hasta {participantsCount} unidades de cada add-on.</div>
             </div>
           </section>
 
@@ -292,6 +278,7 @@ const EventDetail = () => {
               <Input placeholder="Coupon code" value={coupon} onChange={(e) => setCoupon(e.target.value)} className="max-w-xs" />
               <Button variant="secondary" type="button" onClick={() => toast.info('Coupon applied (demo)')}>Apply</Button>
             </div>
+            <p className="text-xs text-muted-foreground -mt-3 mb-3">Los cupones aplican únicamente al valor de los tickets. Los add-ons no tienen descuento.</p>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Tickets</span><span>{formatCurrency(ticketsSubtotal, currency)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>{formatCurrency(addonsSubtotal, currency)}</span></div>

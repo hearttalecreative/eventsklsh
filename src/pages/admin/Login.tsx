@@ -38,7 +38,7 @@ const AdminLogin = () => {
   const onSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/` } });
     setLoading(false);
     if (error) {
       alert(error.message);
