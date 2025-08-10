@@ -113,7 +113,7 @@ const EventDetail = () => {
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-6">
           <div className="rounded-lg overflow-hidden border">
-            <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-64 object-cover" />
+            <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-64 object-cover" loading="lazy" />
           </div>
           <article className="space-y-4">
             <h1 className="text-4xl font-bold">{event.title}</h1>
@@ -219,17 +219,20 @@ const EventDetail = () => {
                     placeholder={`Full name #${i + 1}`}
                     value={p.fullName}
                     onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
+                    required
                   />
                   <Input
                     type="email"
                     placeholder="Email"
                     value={p.email}
                     onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
+                    required
                   />
                   <Input
                     placeholder="Phone"
                     value={p.phone}
                     onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
+                    required
                   />
                 </div>
               ))}
