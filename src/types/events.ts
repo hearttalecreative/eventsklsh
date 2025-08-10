@@ -42,4 +42,7 @@ export interface EventItem {
   addons: Addon[];
   capacityTotal?: number; // optional overall capacity
   couponCode?: string; // optional code for demo UI
+  instructions?: string; // internal, not shown on frontend
+  recurrenceRule?: string; // optional iCal RRULE
+  recurrenceText?: string; // human-readable recurrence
 }

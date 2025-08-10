@@ -88,6 +88,31 @@ const EventDetail = () => {
   const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal + addonsSubtotal) * 0.1) : 0; // 10% demo
   const total = ticketsSubtotal + addonsSubtotal - discount;
 
+  const eventJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: event.title,
+    description: event.shortDescription,
+    image: [event.imageUrl],
+    startDate: event.startsAt,
+    endDate: event.endsAt,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: event.venue.name,
+      address: event.venue.address,
+    },
+    offers: event.tickets.map((t) => ({
+      "@type": "Offer",
+      url: typeof window !== 'undefined' ? window.location.href : '',
+      price: (effectiveUnitAmount(t) / 100).toFixed(2),
+      priceCurrency: t.currency.toUpperCase(),
+      availability: "https://schema.org/InStock",
+      validFrom: t.earlyBirdStart || event.startsAt,
+    })),
+  };
+
   const proceed = () => {
     // basic validation
     if (!acceptedTerms) {
@@ -108,12 +133,13 @@ const EventDetail = () => {
         <title>{`${event.title} | Events`}</title>
         <meta name="description" content={event.shortDescription} />
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
+        <script type="application/ld+json">{JSON.stringify(eventJsonLd)}</script>
       </Helmet>
 
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-6">
           <div className="rounded-lg overflow-hidden border">
-            <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-64 object-cover" loading="lazy" />
+            <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-64 object-cover" loading="lazy" decoding="async" />
           </div>
           <article className="space-y-4">
             <h1 className="text-4xl font-bold">{event.title}</h1>
@@ -131,6 +157,12 @@ const EventDetail = () => {
                 <div className="text-muted-foreground">Venue</div>
                 <div className="font-medium">{event.venue.name} — {event.venue.address}</div>
               </div>
+              {event.recurrenceText && (
+                <div className="p-4 rounded-lg border bg-card sm:col-span-2">
+                  <div className="text-muted-foreground">Recurrence</div>
+                  <div className="font-medium">{event.recurrenceText}</div>
+                </div>
+              )}
             </div>
             <MapLeaflet lat={event.venue.lat} lng={event.venue.lng} name={event.venue.name} />
             <div className="prose max-w-none">

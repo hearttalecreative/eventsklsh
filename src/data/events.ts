@@ -61,7 +61,8 @@ export const events: EventItem[] = [
     ],
     capacityTotal: 100,
     couponCode: "SAVE10",
-  },
+    instructions: "Please arrive 15 minutes early. Bring ID. No outside food or drinks.",
+   },
   {
     id: "ev-2",
     title: "Coffee Tasting Workshop",
@@ -97,5 +98,8 @@ export const events: EventItem[] = [
     addons: [{ id: "a1", name: "Premium Beans (250g)", unitAmountCents: 1200 }],
     capacityTotal: 30,
     couponCode: "COFFEE5",
-  },
+    recurrenceRule: "FREQ=WEEKLY;BYDAY=SA",
+    recurrenceText: "Every Saturday",
+    instructions: "Bring your own cup and arrive 10 minutes early.",
+   },
 ];
