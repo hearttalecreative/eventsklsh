@@ -56,6 +56,21 @@ export type Database = {
           },
         ]
       }
+      admin_allowlist: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
       attendees: {
         Row: {
           checked_in_at: string | null
@@ -484,6 +499,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      promote_to_admin_if_allowlisted: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
