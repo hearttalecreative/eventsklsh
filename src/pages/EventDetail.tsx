@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Helmet } from 'react-helmet-async';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
     ticket.earlyBirdAmountCents &&
@@ -199,16 +199,26 @@ const EventDetail = () => {
                 );
               })}
             </div>
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <label className="text-sm text-muted-foreground">Tickets</label>
-              <Input
-                type="number"
-                min={1}
-                max={selectedTicket.capacityTotal}
-                value={quantityTickets}
-                onChange={(e) => setQuantityTickets(clamp(parseInt(e.target.value || '1', 10), 1, selectedTicket.capacityTotal))}
-                className="w-24"
-              />
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="icon" aria-label="Decrease tickets"
+                  onClick={() => setQuantityTickets((v) => clamp(v - 1, 1, selectedTicket.capacityTotal))}>
+                  −
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  max={selectedTicket.capacityTotal}
+                  value={quantityTickets}
+                  onChange={(e) => setQuantityTickets(clamp(parseInt(e.target.value || '1', 10), 1, selectedTicket.capacityTotal))}
+                  className="w-20 text-center"
+                />
+                <Button type="button" variant="outline" size="icon" aria-label="Increase tickets"
+                  onClick={() => setQuantityTickets((v) => clamp(v + 1, 1, selectedTicket.capacityTotal))}>
+                  +
+                </Button>
+              </div>
               <div className="text-sm text-muted-foreground">Participants: <span className="font-medium text-foreground">{participantsCount}</span></div>
             </div>
           </section>
@@ -217,22 +227,28 @@ const EventDetail = () => {
             <h2 className="text-xl font-semibold mb-4">2. Add-ons (max {participantsCount} per add-on)</h2>
             <div className="space-y-3">
               {event.addons.map((a: Addon) => (
-                <div key={a.id} className="flex items-center justify-between">
+                <div key={a.id} className="flex items-center justify-between gap-3">
                   <div>
                     <div className="font-medium">{a.name}</div>
                     <div className="text-sm text-muted-foreground">{formatCurrency(a.unitAmountCents, currency)}</div>
                   </div>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={participantsCount}
-                    value={addonsQty[a.id] ?? 0}
-                    onChange={(e) => {
-                      const v = clamp(parseInt(e.target.value || '0', 10), 0, participantsCount);
-                      setAddonsQty((prev) => ({ ...prev, [a.id]: v }));
-                    }}
-                    className="w-24"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="icon" aria-label={`Decrease ${a.name}`}
+                      onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) - 1, 0, participantsCount) }))}>−</Button>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={participantsCount}
+                      value={addonsQty[a.id] ?? 0}
+                      onChange={(e) => {
+                        const v = clamp(parseInt(e.target.value || '0', 10), 0, participantsCount);
+                        setAddonsQty((prev) => ({ ...prev, [a.id]: v }));
+                      }}
+                      className="w-16 text-center"
+                    />
+                    <Button type="button" variant="outline" size="icon" aria-label={`Increase ${a.name}`}
+                      onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) + 1, 0, participantsCount) }))}>+</Button>
+                  </div>
                 </div>
               ))}
               <div className="text-xs text-muted-foreground">You can select up to {participantsCount} units of each add-on.</div>
@@ -241,56 +257,45 @@ const EventDetail = () => {
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
             <h2 className="text-xl font-semibold mb-4">3. Participants</h2>
-            <div className="space-y-2 max-h-80 overflow-auto pr-2">
-              <Accordion type="single" collapsible className="w-full">
-                {participants.map((p, i) => (
-                  <AccordionItem key={i} value={`participant-${i}`}>
-                    <AccordionTrigger>
-                      <div className="flex items-center justify-between w-full">
-                        <span>Participant #{i + 1}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {p.fullName && p.email && p.phone ? 'Complete' : 'Missing info'}
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                        <div className="space-y-1">
-                          <Label htmlFor={`p-${i}-name`}>Full name</Label>
-                          <Input
-                            id={`p-${i}-name`}
-                            placeholder="Name and last name"
-                            value={p.fullName}
-                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`p-${i}-email`}>Email</Label>
-                          <Input
-                            id={`p-${i}-email`}
-                            type="email"
-                            placeholder="name@example.com"
-                            value={p.email}
-                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor={`p-${i}-phone`}>Phone</Label>
-                          <Input
-                            id={`p-${i}-phone`}
-                            placeholder="e.g. +1 555 555 5555"
-                            value={p.phone}
-                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+            <div className="max-h-80 overflow-auto pr-2 divide-y">
+              {participants.map((p, i) => (
+                <div key={i} className="py-4">
+                  <div className="text-sm font-medium mb-2">Participant #{i + 1}</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor={`p-${i}-name`}>Full name</Label>
+                      <Input
+                        id={`p-${i}-name`}
+                        placeholder="Name and last name"
+                        value={p.fullName}
+                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`p-${i}-email`}>Email</Label>
+                      <Input
+                        id={`p-${i}-email`}
+                        type="email"
+                        placeholder="name@example.com"
+                        value={p.email}
+                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`p-${i}-phone`}>Phone</Label>
+                      <Input
+                        id={`p-${i}-phone`}
+                        placeholder="e.g. +1 555 555 5555"
+                        value={p.phone}
+                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 
