@@ -147,7 +147,7 @@ export type Database = {
           recurrence_rule: string | null
           recurrence_text: string | null
           short_description: string | null
-          sku: string | null
+          sku: string
           starts_at: string
           status: Database["public"]["Enums"]["event_status"]
           title: string
@@ -168,7 +168,7 @@ export type Database = {
           recurrence_rule?: string | null
           recurrence_text?: string | null
           short_description?: string | null
-          sku?: string | null
+          sku?: string
           starts_at: string
           status?: Database["public"]["Enums"]["event_status"]
           title: string
@@ -189,7 +189,7 @@ export type Database = {
           recurrence_rule?: string | null
           recurrence_text?: string | null
           short_description?: string | null
-          sku?: string | null
+          sku?: string
           starts_at?: string
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
