@@ -147,11 +147,16 @@ const Dashboard = () => {
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Events Dashboard</h1>
-          <p className="text-muted-foreground text-sm">
-            Demo analytics from sample data. Connect Supabase to enable real data, CRUD and payments.
-          </p>
+          {usingSupabase ? (
+            <p className="text-muted-foreground text-sm">Conectado a Supabase. Administra tus eventos y datos reales.</p>
+          ) : (
+            <p className="text-muted-foreground text-sm">Para crear/editar eventos, inicia sesión y conecta Supabase.</p>
+          )}
         </div>
-        <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline"><a href="/admin/events">Manage events</a></Button>
+          <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
+        </div>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
