@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import AdminRoute from "@/routes/AdminRoute";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Venue { id: string; name: string; }
 
@@ -15,6 +16,12 @@ const AdminEvents = () => {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Add-ons editor state
+  const [addonsOpen, setAddonsOpen] = useState(false);
+  const [addonsEventId, setAddonsEventId] = useState<string | null>(null);
+  const [addons, setAddons] = useState<any[]>([]);
+  const [savingAddons, setSavingAddons] = useState(false);
 
   // Form state for quick create
   const [title, setTitle] = useState("");
@@ -65,6 +72,34 @@ const AdminEvents = () => {
     if (error) return alert(error.message);
     setEvents((arr) => [data!, ...arr]);
     setTitle(""); setShortDesc(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setSku(""); setImageUrl("");
+  };
+
+  const openAddons = async (eventId: string) => {
+    setAddonsEventId(eventId);
+    const { data } = await supabase
+      .from("addons")
+      .select("id,name,unit_amount_cents,description")
+      .eq("event_id", eventId)
+      .order("name");
+    setAddons(data || []);
+    setAddonsOpen(true);
+  };
+
+  const updateAddonDesc = (id: string, description: string) => {
+    setAddons((arr) => arr.map((a) => (a.id === id ? { ...a, description } : a)));
+  };
+
+  const saveAddonDescriptions = async () => {
+    if (!addonsEventId) return;
+    setSavingAddons(true);
+    try {
+      for (const a of addons) {
+        await supabase.from("addons").update({ description: a.description ?? null }).eq("id", a.id);
+      }
+      setAddonsOpen(false);
+    } finally {
+      setSavingAddons(false);
+    }
   };
 
   return (
@@ -152,6 +187,7 @@ const AdminEvents = () => {
                         const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                         if (!error) setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                       }}>Toggle publish</Button>
+                      <Button size="sm" variant="secondary" onClick={()=>openAddons(ev.id)}>Manage add-ons</Button>
                       <Button size="sm" asChild><a href={`/event/${ev.id}`}>View</a></Button>
                     </td>
                   </tr>
@@ -160,6 +196,34 @@ const AdminEvents = () => {
             </table>
           </div>
         </section>
+
+        <Dialog open={addonsOpen} onOpenChange={setAddonsOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Manage add-on descriptions</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {addons.length === 0 && (
+                <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
+              )}
+              {addons.map((a) => (
+                <div key={a.id} className="p-3 border rounded-md bg-card">
+                  <div className="font-medium">{a.name} <span className="text-xs text-muted-foreground">({(a.unit_amount_cents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})})</span></div>
+                  <Textarea
+                    placeholder="Brief description (max ~30 words)"
+                    value={a.description ?? ''}
+                    onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={()=>setAddonsOpen(false)}>Close</Button>
+              <Button onClick={saveAddonDescriptions} disabled={savingAddons || addons.length===0}>{savingAddons? 'Saving...' : 'Save'}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </AdminRoute>
   );

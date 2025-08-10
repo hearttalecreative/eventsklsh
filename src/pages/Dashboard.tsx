@@ -56,6 +56,7 @@ const Dashboard = () => {
   const { data: supa } = useSupabaseEventsList();
 
   const source = useMemo(() => (supa && supa.length ? supa : mockEvents), [supa]);
+  const usingSupabase = Boolean(supa && supa.length);
 
   const filtered = useMemo(() => {
     return source.filter((ev) => {
@@ -272,11 +273,13 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="p-4 rounded-lg border bg-card">
-        <p className="text-sm text-muted-foreground">
-          To manage events (create/edit/archive), view real participants and revenue, and send emails, please connect Supabase.
-        </p>
-      </section>
+      {usingSupabase ? null : (
+        <section className="p-4 rounded-lg border bg-card">
+          <p className="text-sm text-muted-foreground">
+            To manage events (create/edit/archive), view real participants and revenue, and send emails, please connect Supabase.
+          </p>
+        </section>
+      )}
     </main>
   );
 };
