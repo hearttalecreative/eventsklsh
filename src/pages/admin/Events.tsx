@@ -45,6 +45,20 @@ const AdminEvents = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  // Edit event dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any|null>(null);
+  const [eTitle, setETitle] = useState('');
+  const [eShort, setEShort] = useState('');
+  const [eLong, setELong] = useState('');
+  const [eStarts, setEStarts] = useState('');
+  const [eEnds, setEEnds] = useState('');
+  const [eVenueId, setEVenueId] = useState<string | undefined>(undefined);
+  const [eStatus, setEStatus] = useState('draft');
+
+  // Tickets advanced fields
+  const [showAdvancedTicketFields, setShowAdvancedTicketFields] = useState(false);
+
   useEffect(() => {
     const load = async () => {
       const { data: v } = await supabase.from("venues").select("id,name").order("name");
@@ -61,23 +75,17 @@ const AdminEvents = () => {
     return endOrStart < new Date();
   }
 
-  const editEvent = async (ev: any) => {
+  const openEdit = (ev: any) => {
     if (isEventPast(ev)) { alert('No se puede modificar un evento pasado.'); return; }
-    const nextTitle = prompt('Nuevo título', ev.title) ?? ev.title;
-    const nextShort = prompt('Descripción corta', ev.short_description || '') ?? (ev.short_description || '');
-    const nextLong = prompt('Descripción larga (Markdown básico)', ev.description || '') ?? (ev.description || '');
-    const starts = prompt('Inicio (YYYY-MM-DDTHH:MM)', ev.starts_at?.slice(0,16)) ?? ev.starts_at;
-    const ends = prompt('Fin (YYYY-MM-DDTHH:MM, opcional)', ev.ends_at ? ev.ends_at.slice(0,16) : '') ?? ev.ends_at;
-    const payload: any = {
-      title: nextTitle,
-      short_description: nextShort,
-      description: nextLong,
-      starts_at: starts ? new Date(starts).toISOString() : null,
-      ends_at: ends ? new Date(ends).toISOString() : null,
-    };
-    const { data, error } = await supabase.from('events').update(payload).eq('id', ev.id).select('*').single();
-    if (error) return alert(error.message);
-    setEvents(arr => arr.map(e => e.id===ev.id ? { ...e, ...data } : e));
+    setEditingEvent(ev);
+    setETitle(ev.title || '');
+    setEShort(ev.short_description || '');
+    setELong(ev.description || '');
+    setEStarts(ev.starts_at ? ev.starts_at.slice(0,16) : '');
+    setEEnds(ev.ends_at ? ev.ends_at.slice(0,16) : '');
+    setEVenueId(ev.venue_id || undefined);
+    setEStatus(ev.status || 'draft');
+    setEditOpen(true);
   };
   const createVenue = async () => {
     const name = prompt("Venue name");
@@ -112,6 +120,24 @@ const AdminEvents = () => {
     if (error) return alert(error.message);
     setEvents((arr) => [data!, ...arr]);
     setTitle(""); setShortDesc(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingEvent) return;
+    const payload: any = {
+      title: eTitle,
+      short_description: eShort,
+      description: eLong || null,
+      starts_at: eStarts ? new Date(eStarts).toISOString() : null,
+      ends_at: eEnds ? new Date(eEnds).toISOString() : null,
+      venue_id: eVenueId || null,
+      status: eStatus as any,
+    };
+    const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
+    if (error) return alert(error.message);
+    setEvents(arr => arr.map(e => e.id === editingEvent.id ? { ...e, ...data } : e));
+    setEditOpen(false);
+    setEditingEvent(null);
   };
 
   const openAddons = async (eventId: string) => {
@@ -237,6 +263,31 @@ const AdminEvents = () => {
     setAttendeesOpen(true);
   };
 
+  // Export attendees as CSV
+  const exportAttendeesCsv = () => {
+    const headers = ['Name','Email','Seat','Zone','Checked in','Created at'];
+    const rows = attendees.map((a) => [
+      a.name || '',
+      a.email || '',
+      a.seat || '',
+      a.zone || '',
+      a.checked_in_at ? new Date(a.checked_in_at).toISOString() : '',
+      a.created_at ? new Date(a.created_at).toISOString() : '',
+    ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendees-${attendeesEventId || 'event'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Image upload to Supabase Storage
   const uploadImage = async () => {
     if (!imageFile) return alert('Select an image first');
@@ -337,7 +388,7 @@ const AdminEvents = () => {
                         const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                         if (!error) setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                       }}>Toggle publish</Button>
-                      <Button size="sm" variant="outline" onClick={()=>editEvent(ev)} disabled={isEventPast(ev)}>Edit</Button>
+                      <Button size="sm" variant="outline" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>Edit</Button>
                       <Button size="sm" variant="secondary" onClick={()=>openTickets(ev.id)}>Manage tickets</Button>
                       <Button size="sm" variant="secondary" onClick={()=>openAddons(ev.id)}>Manage add-ons</Button>
                       <Button size="sm" variant="outline" onClick={()=>openAttendees(ev.id)}>Attendees</Button>
@@ -395,6 +446,11 @@ const AdminEvents = () => {
               <DialogTitle>Manage tickets</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
+                  {showAdvancedTicketFields ? 'Ocultar avanzados' : 'Ver avanzados'}
+                </Button>
+              </div>
               {tickets.length === 0 && (
                 <p className="text-sm text-muted-foreground">No tickets yet.</p>
               )}
@@ -408,12 +464,16 @@ const AdminEvents = () => {
                     <Input type="number" min={0} defaultValue={t.capacity_total || 0}
                       onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                     />
-                    <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
-                      onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
-                    />
-                    <Input defaultValue={t.zone || ''}
-                      onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
-                    />
+                    {showAdvancedTicketFields && (
+                      <>
+                        <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
+                          onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
+                        />
+                        <Input defaultValue={t.zone || ''}
+                          onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
+                        />
+                      </>
+                    )}
                     <div className="flex justify-end">
                       <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
                     </div>
@@ -426,6 +486,44 @@ const AdminEvents = () => {
               <Button variant="secondary" onClick={addTicketCombo}>Agregar combo (multi-participante)</Button>
               <Button variant="secondary" onClick={addTicketByZone}>Agregar ticket por ubicación</Button>
               <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit event dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit event</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
+              <Textarea placeholder="Short description" value={eShort} onChange={(e)=>setEShort(e.target.value)} />
+              <Textarea placeholder="Long description (Markdown básico permitido)" value={eLong} onChange={(e)=>setELong(e.target.value)} />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
+                <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Select value={eVenueId} onValueChange={setEVenueId as any}>
+                  <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
+                  <SelectContent>
+                    {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={eStatus} onValueChange={setEStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={()=>setEditOpen(false)}>Cancel</Button>
+              <Button onClick={saveEdit}>Save changes</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -461,6 +559,7 @@ const AdminEvents = () => {
               </table>
             </div>
             <DialogFooter>
+              <Button variant="outline" onClick={exportAttendeesCsv}>Export CSV</Button>
               <Button variant="secondary" onClick={()=>setAttendeesOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
