@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Helmet } from 'react-helmet-async';
-
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
     ticket.earlyBirdAmountCents &&
@@ -73,7 +73,7 @@ const EventDetail = () => {
     return sum + (addon ? addon.unitAmountCents * qty : 0);
   }, 0);
 
-  const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal) * 0.1) : 0; // 10% demo (solo aplica a tickets)
+  const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal) * 0.5) : 0; // 50% demo (tickets only)
   const total = ticketsSubtotal + addonsSubtotal - discount;
 
   const [showFullDesc, setShowFullDesc] = useState(false);
@@ -163,7 +163,7 @@ const EventDetail = () => {
               <p>{(showFullDesc || !isLong) ? event.description : `${shortDesc}...`}</p>
               {isLong && (
                 <button type="button" className="mt-2 text-primary underline" onClick={() => setShowFullDesc((v) => !v)}>
-                  {showFullDesc ? 'Mostrar menos' : 'Leer más'}
+                  {showFullDesc ? 'Show less' : 'Read more'}
                 </button>
               )}
             </div>
@@ -214,7 +214,7 @@ const EventDetail = () => {
           </section>
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
-            <h2 className="text-xl font-semibold mb-4">2. Add-ons (máximo {participantsCount} por add-on)</h2>
+            <h2 className="text-xl font-semibold mb-4">2. Add-ons (max {participantsCount} per add-on)</h2>
             <div className="space-y-3">
               {event.addons.map((a: Addon) => (
                 <div key={a.id} className="flex items-center justify-between">
@@ -235,51 +235,62 @@ const EventDetail = () => {
                   />
                 </div>
               ))}
-              <div className="text-xs text-muted-foreground">Puedes seleccionar hasta {participantsCount} unidades de cada add-on.</div>
+              <div className="text-xs text-muted-foreground">You can select up to {participantsCount} units of each add-on.</div>
             </div>
           </section>
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
-            <h2 className="text-xl font-semibold mb-4">3. Participantes</h2>
-            <div className="space-y-4 max-h-80 overflow-auto pr-2">
-              {participants.map((p, i) => (
-                <div key={i} className="p-4 rounded-lg border bg-muted/30">
-                  <div className="text-sm font-medium mb-2">Participante #{i + 1}</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label htmlFor={`p-${i}-name`}>Nombre completo</Label>
-                      <Input
-                        id={`p-${i}-name`}
-                        placeholder={`Nombre y apellido`}
-                        value={p.fullName}
-                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`p-${i}-email`}>Email</Label>
-                      <Input
-                        id={`p-${i}-email`}
-                        type="email"
-                        placeholder="correo@ejemplo.com"
-                        value={p.email}
-                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`p-${i}-phone`}>Teléfono</Label>
-                      <Input
-                        id={`p-${i}-phone`}
-                        placeholder="Ej: +54 9 11 5555-5555"
-                        value={p.phone}
-                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <h2 className="text-xl font-semibold mb-4">3. Participants</h2>
+            <div className="space-y-2 max-h-80 overflow-auto pr-2">
+              <Accordion type="single" collapsible className="w-full">
+                {participants.map((p, i) => (
+                  <AccordionItem key={i} value={`participant-${i}`}>
+                    <AccordionTrigger>
+                      <div className="flex items-center justify-between w-full">
+                        <span>Participant #{i + 1}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {p.fullName && p.email && p.phone ? 'Complete' : 'Missing info'}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div className="space-y-1">
+                          <Label htmlFor={`p-${i}-name`}>Full name</Label>
+                          <Input
+                            id={`p-${i}-name`}
+                            placeholder="Name and last name"
+                            value={p.fullName}
+                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`p-${i}-email`}>Email</Label>
+                          <Input
+                            id={`p-${i}-email`}
+                            type="email"
+                            placeholder="name@example.com"
+                            value={p.email}
+                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`p-${i}-phone`}>Phone</Label>
+                          <Input
+                            id={`p-${i}-phone`}
+                            placeholder="e.g. +1 555 555 5555"
+                            value={p.phone}
+                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </div>
           </section>
 
@@ -293,7 +304,7 @@ const EventDetail = () => {
               <Input placeholder="Coupon code" value={coupon} onChange={(e) => setCoupon(e.target.value)} className="max-w-xs" />
               <Button variant="secondary" type="button" onClick={() => toast.info('Coupon applied (demo)')}>Apply</Button>
             </div>
-            <p className="text-xs text-muted-foreground -mt-3 mb-3">Los cupones aplican únicamente al valor de los tickets. Los add-ons no tienen descuento.</p>
+            <p className="text-xs text-muted-foreground -mt-3 mb-3">Coupons apply only to ticket value. Add-ons are not discounted.</p>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Tickets</span><span>{formatCurrency(ticketsSubtotal, currency)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>{formatCurrency(addonsSubtotal, currency)}</span></div>
@@ -310,7 +321,7 @@ const EventDetail = () => {
       <footer className="py-8 mt-6 border-t">
         <div className="container mx-auto flex items-center justify-center">
           <Button asChild variant="outline" size="sm">
-            <Link to="/dashboard" aria-label="Abrir panel de administración">Ir al panel de administración</Link>
+            <Link to="/dashboard" aria-label="Open admin dashboard">Go to admin dashboard</Link>
           </Button>
         </div>
       </footer>

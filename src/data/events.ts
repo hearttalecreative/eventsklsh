@@ -60,7 +60,7 @@ export const events: EventItem[] = [
       { id: "a2", name: "Merch Pack", unitAmountCents: 1500 },
     ],
     capacityTotal: 100,
-    couponCode: "SAVE10",
+    couponCode: "HALFOFF50",
     instructions: "Please arrive 15 minutes early. Bring ID. No outside food or drinks.",
    },
   {
@@ -97,7 +97,7 @@ export const events: EventItem[] = [
     ],
     addons: [{ id: "a1", name: "Premium Beans (250g)", unitAmountCents: 1200 }],
     capacityTotal: 30,
-    couponCode: "COFFEE5",
+    couponCode: "HALFOFF50",
     recurrenceRule: "FREQ=WEEKLY;BYDAY=SA",
     recurrenceText: "Every Saturday",
     instructions: "Bring your own cup and arrive 10 minutes early.",

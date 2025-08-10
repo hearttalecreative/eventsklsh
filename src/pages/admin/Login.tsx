@@ -37,14 +37,22 @@ const AdminLogin = () => {
 
   const onSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      alert('Please enter a valid email and password');
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/` } });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` }
+    });
     setLoading(false);
     if (error) {
       alert(error.message);
       return;
     }
-    alert("Account created. You can now log in.");
+    alert('Account created. Please check your email (or disable confirmation for testing) and then log in.');
   };
 
   return (

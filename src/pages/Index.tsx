@@ -13,14 +13,14 @@ const Index = () => {
   return (
     <main>
       <Helmet>
-        <title>Próximos eventos | Modern Tickets</title>
-        <meta name="description" content="Explora y reserva próximos eventos con una experiencia rápida y móvil." />
+        <title>Upcoming Events | Modern Tickets</title>
+        <meta name="description" content="Discover and book upcoming events with a clean, fast experience." />
         <link rel="canonical" href={`${baseUrl}/`} />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
       <header className="container mx-auto py-8">
-        <h1 className="text-4xl font-bold">Próximos eventos</h1>
+        <h1 className="text-4xl font-bold">Upcoming events</h1>
       </header>
 
       <section className="py-6">
