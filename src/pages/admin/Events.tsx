@@ -770,6 +770,7 @@ const deleteTicket = async (id: string) => {
               <p className="text-xs text-muted-foreground">Use these tools to define ticket types and optional add-ons for the selected event.</p>
             </CardContent>
           </Card>
+        </section>
 
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -896,7 +897,7 @@ const deleteTicket = async (id: string) => {
           </div>
         </section>
 
-        <Dialog open={addonsOpen} onOpenChange={setAddonsOpen}>
+        <Dialog open={false} onOpenChange={setAddonsOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Manage add-ons</DialogTitle>
@@ -935,7 +936,7 @@ const deleteTicket = async (id: string) => {
         </Dialog>
 
         {/* Tickets dialog */}
-        <Dialog open={ticketsOpen} onOpenChange={setTicketsOpen}>
+        <Dialog open={false} onOpenChange={setTicketsOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>Manage tickets</DialogTitle>
