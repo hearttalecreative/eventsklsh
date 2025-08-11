@@ -127,7 +127,7 @@ const Dashboard = () => {
     () =>
       filtered.map((ev) => ({
         id: ev.id,
-        name: ev.title.length > 18 ? ev.title.slice(0, 18) + "…" : ev.title,
+        name: ev.title.length > 14 ? ev.title.slice(0, 14) + "…" : ev.title,
         capacity: capacityForEvent(ev),
         attendees: attendeesMap[ev.id] || 0,
         ticketsSold: ticketsSoldMap[ev.id] || 0,
@@ -286,7 +286,7 @@ const Dashboard = () => {
             <ResponsiveContainer width="100%" height={256}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                 <YAxis />
                 <Tooltip />
                 <Bar dataKey="capacity" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
@@ -305,7 +305,7 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height={256}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                     <YAxis />
                     <Tooltip />
                     <Bar dataKey="ticketsSold" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
@@ -323,7 +323,7 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height={256}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                     <YAxis />
                     <Tooltip />
                     <Bar dataKey="attendees" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
@@ -341,7 +341,7 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height={256}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                     <YAxis />
                     <Tooltip />
                     <Bar dataKey="remaining" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
@@ -359,7 +359,7 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height={256}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                     <YAxis />
                     <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
                     <Bar dataKey="ticketRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
@@ -377,7 +377,7 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height={256}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                     <YAxis />
                     <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
                     <Bar dataKey="addonRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />

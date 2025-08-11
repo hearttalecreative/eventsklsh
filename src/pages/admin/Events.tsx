@@ -1099,6 +1099,7 @@ const deleteTicket = async (id: string) => {
                 <Label>Long description</Label>
                 <RichMarkdownEditor value={eLong} onChange={setELong} />
               </div>
+              <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={eInstructions} onChange={(e)=>setEInstructions(e.target.value)} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
                 <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />

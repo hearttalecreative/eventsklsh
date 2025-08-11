@@ -13,7 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Facebook, Mail, MessageSquare, MessageCircle, Send, Share2 } from 'lucide-react';
+import { Facebook, Mail, MessageSquare, Send, Share2 } from 'lucide-react';
+import whatsappIcon from '@/assets/whatsapp.svg';
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
@@ -250,7 +251,7 @@ const proceed = async () => {
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="WhatsApp">
               <a href={`https://wa.me/?text=${encodeURIComponent(event.title + ' - ' + (typeof window !== 'undefined' ? window.location.href : ''))}`} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="w-4 h-4" />
+                <img src={whatsappIcon} alt="WhatsApp" className="w-4 h-4" />
               </a>
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="Telegram">
