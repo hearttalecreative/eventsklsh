@@ -606,7 +606,7 @@ const deleteTicket = async (id: string) => {
 
           <Card>
             <CardHeader><CardTitle>Tickets & add-ons</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               <div className="space-y-1">
                 <Label htmlFor="manage-ev">Select event</Label>
                 <Select value={manageEventId} onValueChange={(v)=>setManageEventId(v)}>
@@ -617,13 +617,159 @@ const deleteTicket = async (id: string) => {
                 </Select>
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={()=> manageEventId && openTickets(manageEventId)} disabled={!manageEventId}>Manage tickets</Button>
-                <Button variant="outline" onClick={()=> manageEventId && openAddons(manageEventId)} disabled={!manageEventId}>Manage add-ons</Button>
+                <Button variant="secondary" onClick={()=> manageEventId && openTickets(manageEventId!)} disabled={!manageEventId}>Manage tickets</Button>
+                <Button variant="outline" onClick={()=> manageEventId && openAddons(manageEventId!)} disabled={!manageEventId}>Manage add-ons</Button>
+                {(ticketsOpen || addonsOpen) && (
+                  <Button variant="ghost" onClick={()=>{setTicketsOpen(false); setAddonsOpen(false);}}>Close</Button>
+                )}
               </div>
+
+              {/* Inline editors below – no popups */}
+              {ticketsOpen && ticketsEventId === manageEventId && (
+                <div className="space-y-4 border rounded-md p-4 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Tickets</h4>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
+                      <Button size="sm" variant="secondary" onClick={addTicketCombo}>Add combo</Button>
+                      <Button size="sm" variant="secondary" onClick={addTicketByZone}>Add by zone</Button>
+                      <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
+                        {showAdvancedTicketFields ? 'Hide advanced' : 'Show advanced'}
+                      </Button>
+                    </div>
+                  </div>
+                  {tickets.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No tickets yet.</p>
+                  )}
+                  {tickets.map((t) => {
+                    const earlyEnabled = Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end);
+                    return (
+                      <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
+                        <div className="grid sm:grid-cols-6 gap-3 items-center">
+                          <div className="sm:col-span-2 space-y-1">
+                            <Label>Name</Label>
+                            <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
+                            <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
+                              onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Capacity</Label>
+                            <Input type="number" min={0} defaultValue={t.capacity_total || 0}
+                              onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
+                            />
+                          </div>
+                          {showAdvancedTicketFields && (
+                            <>
+                              <div className="space-y-1">
+                                <Label>Participants per ticket</Label>
+                                <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
+                                  onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label>Zone</Label>
+                                <Input defaultValue={t.zone || ''}
+                                  onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
+                                />
+                              </div>
+                            </>
+                          )}
+                          <div className="flex justify-end">
+                            <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
+                          </div>
+                        </div>
+                        <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label>Early bird</Label>
+                              <p className="text-xs text-muted-foreground">Limited-time promotional price</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Active' : 'Inactive'}</span>
+                              <Switch
+                                checked={earlyEnabled}
+                                onCheckedChange={(checked)=>{
+                                  if (!checked) {
+                                    updateTicketField(t.id, { early_bird_amount_cents: null, early_bird_start: null, early_bird_end: null });
+                                  } else {
+                                    const nowIso = new Date().toISOString();
+                                    updateTicketField(t.id, { early_bird_amount_cents: Math.max(0, Math.round((t.unit_amount_cents * 0.8))), early_bird_start: nowIso, early_bird_end: nowIso });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                          {earlyEnabled && (
+                            <div className="grid sm:grid-cols-4 gap-3">
+                              <div className="space-y-1">
+                                <Label>Early price</Label>
+                                <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents||0)/100).toFixed(2)}
+                                  onBlur={(e)=>updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                                />
+                              </div>
+                              <div className="space-y-1 sm:col-span-2">
+                                <Label>Start</Label>
+                                <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0,16) : ''}
+                                  onBlur={(e)=>updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                                />
+                              </div>
+                              <div className="space-y-1 sm:col-span-2">
+                                <Label>End</Label>
+                                <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0,16) : ''}
+                                  onBlur={(e)=>updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {addonsOpen && addonsEventId === manageEventId && (
+                <div className="space-y-4 border rounded-md p-4 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Add-ons</h4>
+                    <Button size="sm" variant="secondary" onClick={addAddon}>Add add-on</Button>
+                  </div>
+                  {addons.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
+                  )}
+                  {addons.map((a) => (
+                    <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
+                      <div className="grid sm:grid-cols-3 gap-2 items-center">
+                        <Input defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
+                        <Input type="number" step="0.01" min="0" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
+                          onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                        />
+                        <div className="flex justify-end">
+                          <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        placeholder="Brief description (max ~30 words)"
+                        value={a.description ?? ''}
+                        onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                  {addons.length > 0 && (
+                    <div className="flex justify-end">
+                      <Button onClick={saveAddonDescriptions} disabled={savingAddons}>{savingAddons ? 'Saving…' : 'Save descriptions'}</Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <p className="text-xs text-muted-foreground">Use these tools to define ticket types and optional add-ons for the selected event.</p>
             </CardContent>
           </Card>
-        </section>
 
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">

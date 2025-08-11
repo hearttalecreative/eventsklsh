@@ -82,10 +82,32 @@ const EventDetail = () => {
     );
   }
 
+  const endOrStart = new Date(event.endsAt || event.startsAt);
+  const isArchived = event.status === 'archived';
+  const hasTickets = Array.isArray(event.tickets) && event.tickets.length > 0;
+  const isPast = endOrStart < new Date();
+  if (!hasTickets || isArchived || isPast) {
+    return (
+      <main className="container mx-auto py-16">
+        <Helmet>
+          <title>Evento no disponible | Events</title>
+          <meta name="robots" content="noindex,follow" />
+          <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
+        </Helmet>
+        <div className="max-w-xl mx-auto text-center space-y-4">
+          <h1 className="text-3xl font-bold">Este evento no se encuentra disponible</h1>
+          <p className="text-muted-foreground">Puede que no tenga tickets, esté archivado o ya haya pasado la fecha.</p>
+          <Button asChild>
+            <Link to="/">Ver todos los eventos</Link>
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   const currency = selectedTicket.currency;
   const ticketUnit = effectiveUnitAmount(selectedTicket);
   const ticketsSubtotal = ticketUnit * quantityTickets;
-
   const addonsSubtotal = Object.entries(addonsQty).reduce((sum, [id, qty]) => {
     const addon = event.addons.find((a) => a.id === id);
     return sum + (addon ? addon.unitAmountCents * qty : 0);
@@ -185,12 +207,7 @@ const proceed = () => {
                 <div className="text-muted-foreground">Venue</div>
                 <div className="font-medium">{event.venue.name} — {event.venue.address}</div>
               </div>
-              {event.recurrenceText && (
-                <div className="p-4 rounded-lg border bg-card sm:col-span-2">
-                  <div className="text-muted-foreground">Recurrence</div>
-                  <div className="font-medium">{event.recurrenceText}</div>
-                </div>
-              )}
+              {/* Recurrence removed as requested */}
             </div>
             <MapLeaflet lat={event.venue.lat} lng={event.venue.lng} name={event.venue.name} />
             <div className="prose max-w-none">
@@ -404,13 +421,6 @@ const proceed = () => {
           </section>
         </aside>
       </div>
-      <footer className="py-8 mt-6 border-t">
-        <div className="container mx-auto flex items-center justify-center">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/dashboard" aria-label="Open admin dashboard">Go to admin dashboard</Link>
-          </Button>
-        </div>
-      </footer>
     </main>
   );
 };
