@@ -22,17 +22,18 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <header className="border-b bg-background">
-            <div className="container mx-auto h-14 flex items-center justify-between gap-4">
-              <Link to="/" className="flex items-center gap-3" aria-label="Kyle Lam Sound Healing - Home">
-                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto" loading="lazy" />
+          <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container mx-auto h-16 flex items-center justify-between gap-6">
+              <Link to="/" className="flex items-center gap-3 hover-scale" aria-label="Kyle Lam Sound Healing - Home">
+                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto dark:hidden" loading="lazy" />
+                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Kyle Lam Sound Healing logo (dark)" className="h-8 w-auto hidden dark:block" loading="lazy" />
                 <span className="sr-only">Kyle Lam Sound Healing</span>
               </Link>
-              <nav aria-label="Primary" className="flex items-center gap-4 text-sm">
-                <Link to="/" className="hover:underline">Eventos</Link>
-                <Link to="/admin/events" className="hover:underline">Event management</Link>
-                <Link to="/dashboard" className="hover:underline">Dashboard</Link>
-                <Link to="/admin/login" className="hover:underline">Admin access</Link>
+              <nav aria-label="Primary" className="flex items-center gap-6 text-sm">
+                <Link to="/" className="story-link">Eventos</Link>
+                <Link to="/admin/events" className="story-link">Event management</Link>
+                <Link to="/dashboard" className="story-link">Dashboard</Link>
+                <Link to="/admin/login" className="story-link">Admin access</Link>
               </nav>
             </div>
           </header>
@@ -47,14 +48,15 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           <footer className="border-t mt-10">
-            <div className="container mx-auto py-8 flex flex-col items-center gap-4">
-              <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto opacity-80" loading="lazy" />
-              <nav aria-label="Footer" className="flex flex-wrap items-center gap-4 text-sm">
-                <Link to="/" className="hover:underline">Eventos</Link>
-                <Link to="/admin/events" className="hover:underline">Event management</Link>
-                <Link to="/dashboard" className="hover:underline">Dashboard</Link>
-                <Link to="/admin/login" className="hover:underline">Admin access</Link>
-                <a href="https://kylelamsoundhealing.com/" target="_blank" rel="noopener noreferrer" className="hover:underline">Main site</a>
+            <div className="container mx-auto py-10 flex flex-col items-center gap-5">
+              <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto opacity-80 dark:hidden" loading="lazy" />
+              <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Kyle Lam Sound Healing logo (dark)" className="h-8 w-auto opacity-80 hidden dark:block" loading="lazy" />
+              <nav aria-label="Footer" className="flex flex-wrap items-center gap-6 text-sm">
+                <Link to="/" className="story-link">Eventos</Link>
+                <Link to="/admin/events" className="story-link">Event management</Link>
+                <Link to="/dashboard" className="story-link">Dashboard</Link>
+                <Link to="/admin/login" className="story-link">Admin access</Link>
+                <a href="https://kylelamsoundhealing.com/" target="_blank" rel="noopener noreferrer" className="story-link">Main site</a>
               </nav>
             </div>
           </footer>

@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.validate-coupon]
 verify_jwt = false
+
+[functions.events-feed]
+verify_jwt = false

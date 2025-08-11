@@ -17,6 +17,8 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
+    const nowIso = new Date().toISOString();
+
     const { data, error } = await supabase
       .from('events')
       .select(`
@@ -29,7 +31,9 @@ serve(async (req: Request) => {
         venues:venue_id ( name, address )
       `)
       .eq('status', 'published')
-      .order('starts_at', { ascending: true });
+      .gte('starts_at', nowIso)
+      .order('starts_at', { ascending: true })
+      .limit(8);
 
     if (error) throw error;
 
