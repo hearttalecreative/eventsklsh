@@ -36,6 +36,7 @@ const AdminEvents = () => {
   const [attendeesOpen, setAttendeesOpen] = useState(false);
   const [attendeesEventId, setAttendeesEventId] = useState<string | null>(null);
   const [attendees, setAttendees] = useState<any[]>([]);
+  const [manageEventId, setManageEventId] = useState<string | undefined>(undefined);
 
   // Form state for quick create
   const [title, setTitle] = useState("");
