@@ -15,6 +15,12 @@ import { useLocation } from "react-router-dom";
 
 interface Venue { id: string; name: string; address?: string | null; }
 
+const logAdmin = async (action: string, entity_type?: string, entity_id?: string, details?: any) => {
+  const { data: session } = await supabase.auth.getSession();
+  const user_id = session.session?.user?.id || null;
+  await supabase.from('admin_activity_logs').insert({ user_id, action, entity_type, entity_id, details });
+};
+
 const AdminEvents = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -32,10 +38,16 @@ const AdminEvents = () => {
   const [ticketsEventId, setTicketsEventId] = useState<string | null>(null);
   const [tickets, setTickets] = useState<any[]>([]);
 
-  // Attendees modal state
+// Attendees modal state
   const [attendeesOpen, setAttendeesOpen] = useState(false);
   const [attendeesEventId, setAttendeesEventId] = useState<string | null>(null);
   const [attendees, setAttendees] = useState<any[]>([]);
+  const [attendeesSearch, setAttendeesSearch] = useState('');
+  const filteredAttendees = useMemo(() => {
+    const q = attendeesSearch.trim().toLowerCase();
+    if (!q) return attendees;
+    return attendees.filter((a)=> (a.name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q));
+  }, [attendees, attendeesSearch]);
   const [manageEventId, setManageEventId] = useState<string | undefined>(undefined);
 
   // Form state for quick create
@@ -79,9 +91,10 @@ const AdminEvents = () => {
   const [vAddress, setVAddress] = useState("");
 
   const location = useLocation();
-  const handleVenueCreated = (venue: Venue) => {
+const handleVenueCreated = (venue: Venue) => {
     setVenues((arr) => [...arr, venue]);
     setVenueId(venue.id);
+    logAdmin('venue_created','venue', venue.id, { name: venue.name });
   };
 
   useEffect(() => {
@@ -137,7 +150,7 @@ const AdminEvents = () => {
     setVenueEditOpen(true);
   };
 
-  const saveVenueEdit = async () => {
+const saveVenueEdit = async () => {
     if (!venueEditing) return;
     const { error } = await supabase
       .from('venues')
@@ -145,6 +158,7 @@ const AdminEvents = () => {
       .eq('id', (venueEditing as any).id);
     if (error) return alert(error.message);
     setVenues(arr => arr.map(v => v.id === (venueEditing as any).id ? { ...v, name: vName, address: vAddress } : v));
+    await logAdmin('venue_updated','venue',(venueEditing as any).id,{ name: vName, address: vAddress });
     setVenueEditOpen(false);
     setVenueEditing(null);
   };
@@ -164,9 +178,10 @@ const AdminEvents = () => {
       image_url: imageUrl || null,
       created_by,
     };
-    const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
+const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
     if (error) return alert(error.message);
     setEvents((arr) => [data!, ...arr]);
+    await logAdmin('event_created','event', data!.id, { title });
     setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
   };
 
@@ -182,9 +197,10 @@ const AdminEvents = () => {
       venue_id: eVenueId || null,
       status: eStatus as any,
     };
-    const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
+const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
     if (error) return alert(error.message);
     setEvents(arr => arr.map(e => e.id === editingEvent.id ? { ...e, ...data } : e));
+    await logAdmin('event_updated','event', editingEvent.id, payload);
     setEditOpen(false);
     setEditingEvent(null);
   };
@@ -200,7 +216,7 @@ const AdminEvents = () => {
     setAddonsOpen(true);
   };
 
-  const addAddon = async () => {
+const addAddon = async () => {
     if (!addonsEventId) return;
     const { data, error } = await supabase
       .from('addons')
@@ -209,19 +225,22 @@ const AdminEvents = () => {
       .single();
     if (error) return alert(error.message);
     setAddons((arr) => [data!, ...arr]);
+    await logAdmin('addon_created','addon', data!.id, { name: data!.name, event_id: addonsEventId });
   };
 
-  const updateAddonField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number }>) => {
+const updateAddonField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number }>) => {
     const { error } = await supabase.from('addons').update(patch).eq('id', id);
     if (error) return alert(error.message);
     setAddons(arr => arr.map(a => a.id===id ? { ...a, ...patch } : a));
+    await logAdmin('addon_updated','addon', id, patch);
   };
 
-  const deleteAddon = async (id: string) => {
+const deleteAddon = async (id: string) => {
     if (!confirm('Delete this add-on?')) return;
     const { error } = await supabase.from('addons').delete().eq('id', id);
     if (error) return alert(error.message);
     setAddons(arr => arr.filter(a => a.id !== id));
+    await logAdmin('addon_deleted','addon', id);
   };
 
   const updateAddonDesc = (id: string, description: string) => {
@@ -253,7 +272,7 @@ const AdminEvents = () => {
     setTicketsOpen(true);
   };
 
-  const addTicketSimple = async () => {
+const addTicketSimple = async () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
       .from('tickets')
@@ -262,9 +281,10 @@ const AdminEvents = () => {
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [data!, ...arr]);
+    await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
-  const addTicketCombo = async () => {
+const addTicketCombo = async () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
       .from('tickets')
@@ -273,9 +293,10 @@ const AdminEvents = () => {
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [data!, ...arr]);
+    await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
-  const addTicketByZone = async () => {
+const addTicketByZone = async () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
       .from('tickets')
@@ -284,9 +305,10 @@ const AdminEvents = () => {
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [data!, ...arr]);
+    await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
-  const updateTicketField = async (
+const updateTicketField = async (
     id: string,
     patch: Partial<{
       name: string;
@@ -302,13 +324,15 @@ const AdminEvents = () => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
     if (error) return alert(error.message);
     setTickets(arr => arr.map(t => t.id===id ? { ...t, ...patch } : t));
+    await logAdmin('ticket_updated','ticket', id, patch);
   };
 
-  const deleteTicket = async (id: string) => {
+const deleteTicket = async (id: string) => {
     if (!confirm('Delete this ticket?')) return;
     const { error } = await supabase.from('tickets').delete().eq('id', id);
     if (error) return alert(error.message);
     setTickets(arr => arr.filter(t => t.id !== id));
+    await logAdmin('ticket_deleted','ticket', id);
   };
 
   // Attendees
@@ -500,7 +524,10 @@ const AdminEvents = () => {
                       <Button size="sm" variant="outline" onClick={async ()=>{
                         const next = ev.status === 'published' ? 'draft' : 'published';
                         const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                        if (!error) setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                        if (!error) {
+                          setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                          await logAdmin('event_status_toggled','event', ev.id, { from: ev.status, to: next });
+                        }
                       }}>Toggle publish</Button>
                       <Button size="sm" variant="outline" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>Edit</Button>
                       <Button size="sm" variant="secondary" onClick={()=>openTickets(ev.id)}>Manage tickets</Button>
@@ -715,6 +742,9 @@ const AdminEvents = () => {
             <DialogHeader>
               <DialogTitle>Attendees ({attendees.length})</DialogTitle>
             </DialogHeader>
+            <div className="mb-3">
+              <Input placeholder="Search by name or email" value={attendeesSearch} onChange={(e)=>setAttendeesSearch(e.target.value)} />
+            </div>
             <div className="max-h-[60vh] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -727,7 +757,7 @@ const AdminEvents = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {attendees.map(a => (
+                  {filteredAttendees.map(a => (
                     <tr key={a.id} className="border-b">
                       <td className="py-2 pr-3">{a.name || '-'}</td>
                       <td className="py-2 pr-3">{a.email || '-'}</td>

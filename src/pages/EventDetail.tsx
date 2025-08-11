@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Helmet } from 'react-helmet-async';
+import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -118,7 +119,7 @@ const EventDetail = () => {
     })),
   };
 
-  const proceed = () => {
+const proceed = () => {
     // basic validation
     if (!acceptedTerms) {
       toast.error('Please accept Terms and Conditions');
@@ -132,7 +133,27 @@ const EventDetail = () => {
     toast.success('Great! The payment step will be enabled when we add Stripe.');
   };
 
-  return (
+  const testPurchase = async () => {
+    if (!acceptedTerms) {
+      toast.error('Please accept Terms and Conditions');
+      return;
+    }
+    const invalid = participants.findIndex((p) => !p.fullName || !p.email || !p.phone);
+    if (invalid !== -1) {
+      toast.error(`Please complete participant #${invalid + 1}`);
+      return;
+    }
+    const primary = participants[0];
+    try {
+      const { error } = await supabase.functions.invoke('send-confirmation', {
+        body: { name: primary.fullName, email: primary.email, eventTitle: event.title },
+      });
+      if (error) throw error as any;
+      toast.success('Test email sent. Please check your inbox.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to send test email');
+    }
+  };
     <main className="container mx-auto py-10 space-y-10">
       <Helmet>
         <title>{`${event.title} | Events`}</title>
@@ -362,6 +383,7 @@ const EventDetail = () => {
               </div>
             </div>
             <Button className="w-full mt-4" onClick={proceed}>Proceed to payment</Button>
+            <Button className="w-full mt-2" variant="secondary" onClick={testPurchase}>Test purchase (send email)</Button>
             <p className="text-xs text-muted-foreground mt-2">Stripe will be integrated at the final step.</p>
           </section>
         </aside>
