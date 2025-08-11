@@ -654,6 +654,26 @@ export type Database = {
       }
     }
     Functions: {
+      get_event_sales_summary_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          event_id: string | null
+          orders_paid: number | null
+          orders_total: number | null
+          title: string | null
+          total_amount_cents: number | null
+          venue_id: string | null
+        }[]
+      }
+      get_venue_sales_summary_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          name: string | null
+          orders_paid: number | null
+          total_amount_cents: number | null
+          venue_id: string | null
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
