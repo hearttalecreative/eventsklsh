@@ -26,6 +26,10 @@ function truncateWords(text: string, maxWords: number) {
   return words.length > maxWords ? words.slice(0, maxWords).join(' ') + '…' : text;
 }
 
+function slugify(text: string) {
+  return text.toLowerCase().trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+}
+
 interface Props {
   event: EventItem;
 }
@@ -35,10 +39,11 @@ export const EventCard = ({ event }: Props) => {
   const minPrice = hasTickets ? Math.min(...event.tickets.map((t) => effectiveUnitAmount(t))) : null;
   const maxPax = hasTickets ? Math.max(...event.tickets.map((t) => t.participantsPerTicket || 1)) : 1;
   const currency = 'USD';
+  const slugPath = event.slug ?? slugify(event.title) ?? event.id;
   return (
     <Card className="h-full flex flex-col border bg-card">
       <CardHeader className="p-0">
-        <Link to={`/event/${event.id}`} className="block relative h-48 w-full overflow-hidden rounded-t-lg">
+        <Link to={`/event/${slugPath}`} className="block relative h-48 w-full overflow-hidden rounded-t-lg">
           <img
             src={event.imageUrl}
             alt={`${event.title} event image`}
@@ -49,7 +54,7 @@ export const EventCard = ({ event }: Props) => {
         </Link>
         <div className="p-4">
           <CardTitle className="text-xl">
-            <Link to={`/event/${event.id}`} className="hover:underline">{event.title}</Link>
+            <Link to={`/event/${slugPath}`} className="hover:underline">{event.title}</Link>
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">{truncateWords(event.shortDescription, 50)}</p>
         </div>
@@ -84,7 +89,7 @@ export const EventCard = ({ event }: Props) => {
         </div>
         <div className="mt-4">
           <Button asChild className="w-full">
-            <Link to={`/event/${event.id}`}>Get tickets</Link>
+            <Link to={`/event/${slugPath}`}>Get tickets</Link>
           </Button>
         </div>
       </CardContent>

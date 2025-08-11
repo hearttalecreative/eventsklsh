@@ -30,6 +30,7 @@ export interface Addon {
 export interface EventItem {
   id: string;
   title: string;
+  slug?: string;
   shortDescription: string;
   description: string;
   imageUrl: string;

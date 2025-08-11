@@ -23,6 +23,7 @@ serve(async (req: Request) => {
       .from('events')
       .select(`
         id,
+        slug,
         title,
         short_description,
         starts_at,
@@ -45,7 +46,7 @@ serve(async (req: Request) => {
       startTime: new Date(e.starts_at).toISOString(),
       endTime: e.ends_at ? new Date(e.ends_at).toISOString() : null,
       shortDescription: e.short_description,
-      url: baseUrl ? `${baseUrl}/event/${e.id}` : `/event/${e.id}`,
+      url: baseUrl ? `${baseUrl}/event/${e.slug ?? e.id}` : `/event/${e.slug ?? e.id}`,
       venue: e.venues?.name || null,
       venueAddress: e.venues?.address || null,
     }));

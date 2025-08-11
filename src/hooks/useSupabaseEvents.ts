@@ -48,7 +48,7 @@ export function useSupabaseEventsList() {
       // 1) events (published)
       const { data: evs, error: eErr } = await supabase
         .from('events')
-        .select('id,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku')
+        .select('id,slug,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku')
         .eq('status', 'published')
         .order('starts_at', { ascending: true });
       if (eErr) {
@@ -93,6 +93,7 @@ export function useSupabaseEventsList() {
       const mapped: EventItem[] = (evs || []).map((r: any) => ({
         id: r.id,
         title: r.title,
+        slug: r.slug || undefined,
         shortDescription: r.short_description || '',
         description: r.description || '',
         imageUrl: r.image_url || '',
@@ -120,31 +121,38 @@ export function useSupabaseEventsList() {
   return { data, loading, error };
 }
 
-export function useSupabaseEventDetail(id: string | undefined) {
+export function useSupabaseEventDetail(idOrSlug: string | undefined) {
   const [data, setData] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (!idOrSlug) return;
     let canceled = false;
+
+    const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+
     async function load() {
       setLoading(true);
+      const field = isUuid(idOrSlug) ? 'id' : 'slug';
       const { data: e, error } = await supabase
         .from('events')
-        .select('id,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total')
-        .eq('id', id)
+        .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total')
+        .eq(field, idOrSlug)
         .maybeSingle();
-      if (error || !e) { setLoading(false); return; }
+      if (error || !e) { if (!canceled) setLoading(false); return; }
+
+      const eventId = e.id;
 
       const [{ data: tks }, { data: ads }, { data: v }] = await Promise.all([
-        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end').eq('event_id', id),
-        supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', id),
+        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end').eq('event_id', eventId),
+        supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', eventId),
         supabase.from('venues').select('id,name,address,lat,lng').eq('id', e.venue_id).maybeSingle(),
       ]);
 
       const mapped: EventItem = {
         id: e.id,
         title: e.title,
+        slug: e.slug || undefined,
         shortDescription: e.short_description || '',
         description: e.description || '',
         imageUrl: e.image_url || '',
@@ -166,7 +174,7 @@ export function useSupabaseEventDetail(id: string | undefined) {
     }
     load();
     return () => { canceled = true; };
-  }, [id]);
+  }, [idOrSlug]);
 
   return { data, loading };
 }

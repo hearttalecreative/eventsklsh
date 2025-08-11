@@ -34,11 +34,14 @@ function formatCurrency(cents: number, currency: string) {
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
-
+const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
 const EventDetail = () => {
-  const { id } = useParams();
-  const { data: dbEvent } = useSupabaseEventDetail(id);
-  const mockEvent: EventItem | undefined = useMemo(() => events.find((e) => e.id === id), [id]);
+  const { slugOrId } = useParams();
+  const { data: dbEvent } = useSupabaseEventDetail(slugOrId);
+  const mockEvent: EventItem | undefined = useMemo(() => {
+    if (!slugOrId) return undefined;
+    return events.find((e) => e.id === slugOrId || e.slug === slugOrId || slugify(e.title) === slugOrId);
+  }, [slugOrId]);
   const event: EventItem | undefined = dbEvent ?? mockEvent;
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(event?.tickets[0]?.id);

@@ -306,6 +306,7 @@ export type Database = {
           recurrence_text: string | null
           short_description: string | null
           sku: string
+          slug: string
           starts_at: string
           status: Database["public"]["Enums"]["event_status"]
           title: string
@@ -327,6 +328,7 @@ export type Database = {
           recurrence_text?: string | null
           short_description?: string | null
           sku?: string
+          slug: string
           starts_at: string
           status?: Database["public"]["Enums"]["event_status"]
           title: string
@@ -348,6 +350,7 @@ export type Database = {
           recurrence_text?: string | null
           short_description?: string | null
           sku?: string
+          slug?: string
           starts_at?: string
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
@@ -654,6 +657,10 @@ export type Database = {
       }
     }
     Functions: {
+      compute_event_slug: {
+        Args: { _title: string; _id: string }
+        Returns: string
+      }
       get_event_sales_summary_admin: {
         Args: Record<PropertyKey, never>
         Returns: {
