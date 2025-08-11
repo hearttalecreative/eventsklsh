@@ -20,11 +20,20 @@ serve(async (req: Request) => {
   }
   try {
     const { name, email, eventTitle }: Payload = await req.json();
+    console.log("send-confirmation invoked with:", { name, email, eventTitle });
 
-    const subject = `Your test ticket for ${eventTitle || 'the event'}`;
+    if (!email || !name) {
+      console.error("Missing fields", { name, email });
+      return new Response(JSON.stringify({ error: "Missing name or email" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const subject = `Your test ticket for ${eventTitle || "the event"}`;
     const html = `
       <h1>Thank you, ${name}!</h1>
-      <p>This is a test purchase confirmation for <strong>${eventTitle || 'the event'}</strong>.</p>
+      <p>This is a test purchase confirmation for <strong>${eventTitle || "the event"}</strong>.</p>
       <p>If you received this, Resend is correctly configured.</p>
     `;
 
@@ -35,14 +44,20 @@ serve(async (req: Request) => {
       html,
     });
 
+    console.log("Resend response:", response);
+
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message || String(error) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    console.error("Error in send-confirmation:", error);
+    return new Response(
+      JSON.stringify({ error: error?.message || String(error) }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      },
+    );
   }
 });

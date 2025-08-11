@@ -12,6 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
 import { useLocation } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import RichMarkdownEditor from "@/components/RichMarkdownEditor";
+import { addDays, addMonths } from "date-fns";
 
 interface Venue { id: string; name: string; address?: string | null; }
 
@@ -62,6 +65,11 @@ const AdminEvents = () => {
   
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  // Recurrence settings
+  const [eventType, setEventType] = useState<'single' | 'recurring'>("single");
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]); // 0..6
+  const [recurrenceMonths, setRecurrenceMonths] = useState<number>(1);
 
   // Sorting for events table
   const [evOrderBy, setEvOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>("upcoming");
@@ -166,25 +174,62 @@ const saveVenueEdit = async () => {
     if (!title || !startsAt) return alert("Title and start are required");
     const { data: session } = await supabase.auth.getSession();
     const created_by = session.session?.user?.id || null;
-    const payload: any = {
+
+    // Base payload template
+    const base: any = {
       title,
       short_description: shortDesc,
       description: longDesc || null,
       instructions: instructions || null,
-      starts_at: startsAt,
-      ends_at: endsAt || null,
       venue_id: venueId || null,
       status: status as any,
       image_url: imageUrl || null,
       created_by,
     };
-const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
-    if (error) return alert(error.message);
-    setEvents((arr) => [data!, ...arr]);
-    await logAdmin('event_created','event', data!.id, { title });
-    setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
-  };
 
+    try {
+      if (eventType === 'single') {
+        const payload = {
+          ...base,
+          starts_at: startsAt,
+          ends_at: endsAt || null,
+        };
+        const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
+        if (error) throw error;
+        setEvents((arr) => [data!, ...arr]);
+        await logAdmin('event_created','event', data!.id, { title });
+      } else {
+        if (recurrenceDays.length === 0) return alert('Select at least one weekday for recurrence');
+        const startBase = new Date(startsAt);
+        const durationMs = endsAt ? (new Date(endsAt).getTime() - startBase.getTime()) : 0;
+        const endWindow = addMonths(startBase, recurrenceMonths);
+        const rows: any[] = [];
+        for (let d = new Date(startBase); d <= endWindow; d = addDays(d, 1)) {
+          if (!recurrenceDays.includes(d.getDay())) continue;
+          const s = new Date(d);
+          s.setHours(startBase.getHours(), startBase.getMinutes(), 0, 0);
+          const e = durationMs ? new Date(s.getTime() + durationMs) : null;
+          rows.push({
+            ...base,
+            starts_at: s.toISOString(),
+            ends_at: e ? e.toISOString() : null,
+            recurrence_text: `Repeats on ${recurrenceDays.map(i=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]).join(', ')} for ${recurrenceMonths} month(s)`,
+          });
+        }
+        if (rows.length === 0) return alert('No dates generated with the selected options.');
+        const { data, error } = await supabase.from('events').insert(rows).select('*');
+        if (error) throw error;
+        setEvents(arr => [ ...(data || []), ...arr ]);
+        await logAdmin('events_bulk_created','event', (data && data[0]?.id) || null, { count: data?.length, title });
+      }
+
+      // Reset form
+      setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
+      setEventType('single'); setRecurrenceDays([]); setRecurrenceMonths(1);
+    } catch (error: any) {
+      alert(error.message || 'Failed to create event(s)');
+    }
+  };
   const saveEdit = async () => {
     if (!editingEvent) return;
     const payload: any = {
@@ -431,12 +476,52 @@ const deleteTicket = async (id: string) => {
             <CardContent className="space-y-3">
               <Input placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
               <Textarea placeholder="Short description" value={shortDesc} onChange={(e)=>setShortDesc(e.target.value)} />
-              <Textarea placeholder="Long description (Basic Markdown allowed)" value={longDesc} onChange={(e)=>setLongDesc(e.target.value)} />
+              <div className="space-y-1">
+                <Label>Long description</Label>
+                <RichMarkdownEditor value={longDesc} onChange={setLongDesc} />
+              </div>
               <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={instructions} onChange={(e)=>setInstructions(e.target.value)} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input type="datetime-local" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
                 <Input type="datetime-local" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
               </div>
+              <div className="space-y-2">
+                <Label>Event type</Label>
+                <Select value={eventType} onValueChange={(v)=>setEventType(v as any)}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Single</SelectItem>
+                    <SelectItem value="recurring">Recurring</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {eventType === 'recurring' && (
+                <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+                  <div className="space-y-1">
+                    <Label>Select weekdays</Label>
+                    <div className="grid grid-cols-7 gap-2">
+                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, idx) => (
+                        <label key={idx} className="flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={recurrenceDays.includes(idx)}
+                            onCheckedChange={(v)=>{
+                              const checked = Boolean(v);
+                              setRecurrenceDays(prev => checked ? Array.from(new Set([...prev, idx])) : prev.filter(i => i!==idx));
+                            }}
+                          />
+                          <span>{d}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Repeat for how many months?</Label>
+                    <Input type="number" min={1} max={12} value={recurrenceMonths} onChange={(e)=>setRecurrenceMonths(Math.max(1, Math.min(12, parseInt(e.target.value||'1',10))))} />
+                    <p className="text-xs text-muted-foreground">We will create identical events on the selected weekdays for the next {recurrenceMonths} month(s) using the same start time.</p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid sm:grid-cols-2 gap-3">
                 <Select value={venueId} onValueChange={setVenueId as any}>
                   <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
@@ -707,7 +792,10 @@ const deleteTicket = async (id: string) => {
             <div className="space-y-3">
               <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
               <Textarea placeholder="Short description" value={eShort} onChange={(e)=>setEShort(e.target.value)} />
-              <Textarea placeholder="Long description (Basic Markdown allowed)" value={eLong} onChange={(e)=>setELong(e.target.value)} />
+              <div className="space-y-1">
+                <Label>Long description</Label>
+                <RichMarkdownEditor value={eLong} onChange={setELong} />
+              </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
                 <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
