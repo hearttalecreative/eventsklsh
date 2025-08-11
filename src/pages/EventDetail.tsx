@@ -154,6 +154,7 @@ const proceed = () => {
       toast.error(err?.message || 'Failed to send test email');
     }
   };
+  return (
     <main className="container mx-auto py-10 space-y-10">
       <Helmet>
         <title>{`${event.title} | Events`}</title>
