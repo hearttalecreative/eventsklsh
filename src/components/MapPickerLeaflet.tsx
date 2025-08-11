@@ -12,6 +12,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl,
 });
 
+const MC = MapContainer as any;
+const TL = TileLayer as any;
+const MK = Marker as any;
+
 interface MapPickerLeafletProps {
   lat?: number;
   lng?: number;
@@ -40,14 +44,17 @@ const MapPickerLeaflet: React.FC<MapPickerLeafletProps> = ({ lat, lng, heightCla
 
   return (
     <div className={`w-full ${heightClass} rounded-md overflow-hidden border`}>
-      <MapContainer center={center} zoom={position ? 13 : 2} scrollWheelZoom={false} className="w-full h-full">
-        <TileLayer
+      {/* @ts-ignore */}
+      <MC center={center as any} zoom={position ? 13 : 2} scrollWheelZoom={false} className="w-full h-full">
+        {/* @ts-ignore */}
+        <TL
           attribution="© OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ClickHandler setPos={setPos} />
         {position && (
-          <Marker
+          // @ts-ignore
+          <MK
             position={position as any}
             draggable
             eventHandlers={{
@@ -60,7 +67,7 @@ const MapPickerLeaflet: React.FC<MapPickerLeafletProps> = ({ lat, lng, heightCla
             }}
           />
         )}
-      </MapContainer>
+      </MC>
     </div>
   );
 };
