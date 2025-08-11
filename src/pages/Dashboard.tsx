@@ -224,6 +224,7 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline"><a href="/admin/events">Manage events</a></Button>
+          <Button asChild variant="outline"><a href="/admin/coupons">Manage coupons</a></Button>
           <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
         </div>
       </header>
