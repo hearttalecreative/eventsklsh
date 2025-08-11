@@ -103,41 +103,176 @@ serve(async (req) => {
       return sum + (row ? row.unit_amount_cents * (a.qty || 0) : 0);
     }, 0);
 
+    // 2.1) Validate coupon (event-specific preferred over global)
+    type Coupon = {
+      id: string;
+      code: string;
+      discount_percent: number | null;
+      discount_amount_cents: number | null;
+      apply_to: 'tickets' | 'addons' | 'both';
+      event_id: string | null;
+      starts_at: string | null;
+      ends_at: string | null;
+      max_redemptions: number | null;
+      active: boolean;
+    };
+
+    let chosen: Coupon | null = null;
+    if (cart.coupon && cart.coupon.trim()) {
+      const codeUpper = cart.coupon.trim().toUpperCase();
+      const { data: coupons, error: coupErr } = await supabase
+        .from('coupons')
+        .select('id, code, discount_percent, discount_amount_cents, apply_to, event_id, starts_at, ends_at, max_redemptions, active')
+        .or(`event_id.eq.${cart.eventId},event_id.is.null`)
+        .ilike('code', codeUpper)
+        .eq('active', true)
+        .order('event_id', { ascending: false, nullsFirst: false });
+      if (coupErr) throw coupErr;
+      const now = new Date();
+      let candidate = (coupons || []).find(c => c.event_id === cart.eventId) || (coupons || []).find(c => c.event_id === null);
+      if (candidate) {
+        if (candidate.starts_at && new Date(candidate.starts_at) > now) candidate = null as any;
+        if (candidate && candidate.ends_at && new Date(candidate.ends_at) < now) candidate = null as any;
+        if (candidate && candidate.max_redemptions != null) {
+          const { count, error: cntErr } = await supabase
+            .from('coupon_redemptions')
+            .select('id', { count: 'exact', head: true })
+            .eq('coupon_id', candidate.id);
+          if (cntErr) throw cntErr;
+          if ((count ?? 0) >= candidate.max_redemptions) candidate = null as any;
+        }
+      }
+      chosen = candidate || null;
+    }
+
+    // 2.2) Calculate discount amount (in cents)
+    const subtotalBeforeDiscount = ticketsSubtotal + addonsSubtotal;
+    const pct = chosen?.discount_percent ?? null;
+    const amt = chosen?.discount_amount_cents ?? null;
+
     let discount = 0;
-    if (cart.coupon) {
-      // Simple validation: match event.coupon_code then apply 50% off tickets as in UI
-      const { data: ev2 } = await supabase.from("events").select("coupon_code").eq("id", cart.eventId).maybeSingle();
-      if (ev2?.coupon_code && ev2.coupon_code.trim().toLowerCase() === cart.coupon.trim().toLowerCase()) {
-        discount = Math.round(ticketsSubtotal * 0.5);
+    if (chosen) {
+      const scope = chosen.apply_to;
+      const baseTickets = ticketsSubtotal;
+      const baseAddons = addonsSubtotal;
+      const baseBoth = baseTickets + baseAddons;
+      if (pct != null) {
+        if (scope === 'tickets') discount = Math.floor(baseTickets * (pct / 100));
+        else if (scope === 'addons') discount = Math.floor(baseAddons * (pct / 100));
+        else discount = Math.floor(baseBoth * (pct / 100));
+      } else if (amt != null) {
+        if (scope === 'tickets') discount = Math.min(amt, baseTickets);
+        else if (scope === 'addons') discount = Math.min(amt, baseAddons);
+        else discount = Math.min(amt, baseBoth);
       }
     }
 
-    const total = ticketsSubtotal + addonsSubtotal - discount;
-    if (total <= 0) throw new Error("Invalid total amount");
+    let total = subtotalBeforeDiscount - discount;
 
     // Validate participants count
     const expectedParticipants = (ticket.participants_per_ticket || 1) * cart.ticketQty;
     if (!Array.isArray(cart.participants) || cart.participants.length !== expectedParticipants) {
-      throw new Error("Participants count mismatch");
+      throw new Error('Participants count mismatch');
+    }
+
+    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || 'http://localhost:5173';
+
+    // 2.3) Bypass Stripe if total <= 0 (free order)
+    if (total <= 0) {
+      // Create order directly
+      const { data: order, error: orderErr } = await supabase
+        .from('orders')
+        .insert({
+          event_id: cart.eventId,
+          email: buyer.email,
+          total_amount_cents: 0,
+          currency: (currency || 'mxn').toLowerCase(),
+          status: 'paid',
+        })
+        .select('id')
+        .single();
+      if (orderErr) throw orderErr;
+
+      // Ticket item
+      const { data: ticketItem, error: oiErr } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: order.id,
+          ticket_id: ticket.id,
+          quantity: cart.ticketQty,
+          unit_amount_cents: unit,
+          total_amount_cents: unit * cart.ticketQty,
+        })
+        .select('id')
+        .single();
+      if (oiErr) throw oiErr;
+
+      // Add-on items
+      if (addonsRows.length > 0) {
+        const addonItems = addonsRows.map((row) => {
+          const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
+          if (qty <= 0) return null;
+          return {
+            order_id: order.id,
+            addon_id: row.id,
+            quantity: qty,
+            unit_amount_cents: row.unit_amount_cents,
+            total_amount_cents: row.unit_amount_cents * qty,
+          };
+        }).filter(Boolean) as any[];
+        if (addonItems.length > 0) {
+          const { error } = await supabase.from('order_items').insert(addonItems);
+          if (error) throw error;
+        }
+      }
+
+      // Attendees
+      const attendees = cart.participants.map((p) => ({
+        event_id: cart.eventId,
+        order_item_id: ticketItem.id,
+        name: p.fullName,
+        email: p.email,
+        phone: p.phone || null,
+        zone: ticket.zone || null,
+        seat: null,
+      }));
+      if (attendees.length > 0) {
+        const { error } = await supabase.from('attendees').insert(attendees);
+        if (error) throw error;
+      }
+
+      // Record redemption
+      if (chosen) {
+        const { error } = await supabase.from('coupon_redemptions').insert({
+          coupon_id: chosen.id,
+          order_id: order.id,
+          event_id: cart.eventId,
+          user_id: null,
+          amount_discount_cents: subtotalBeforeDiscount, // full discount to zero
+          email: buyer.email,
+        });
+        if (error) throw error;
+      }
+
+      return new Response(JSON.stringify({ url: `${origin}/checkout/exito?free=1` }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
     }
 
     // 3) Build Stripe Checkout Session
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+      apiVersion: '2023-10-16',
     });
 
-    // Adjust ticket unit for discount on tickets only
-    const effectiveTicketUnit = discount > 0
-      ? Math.max(0, Math.floor((ticketsSubtotal - discount) / cart.ticketQty))
-      : unit;
-
-    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+    // Base line items (before discounts)
+    let line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
         quantity: cart.ticketQty,
         price_data: {
           currency: curr,
           product_data: { name: `${event.title} — ${ticket.name}` },
-          unit_amount: effectiveTicketUnit,
+          unit_amount: unit,
         },
       },
       ...addonsRows.map((row) => {
@@ -153,20 +288,88 @@ serve(async (req) => {
       }).filter((li) => (li.quantity || 0) > 0),
     ];
 
-    const origin = req.headers.get("origin") || Deno.env.get("SITE_URL") || "http://localhost:5173";
-
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer_email: buyer.email,
       line_items,
-      mode: "payment",
+      mode: 'payment',
       currency: curr,
       success_url: `${origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancelar`,
-    });
+      metadata: chosen ? {
+        coupon_id: chosen.id,
+        coupon_code: chosen.code,
+        coupon_apply_to: chosen.apply_to,
+        coupon_discount_cents: String(discount),
+      } : undefined,
+    };
+
+    // Apply discounts either by adjusting items or via Stripe coupon (for 'both')
+    if (chosen) {
+      const scope = chosen.apply_to;
+      if (chosen.discount_percent != null || scope === 'both') {
+        // For 'both' we can safely use a Stripe coupon to apply across all items
+        if (scope === 'both') {
+          if (discount > 0) {
+            if (chosen.discount_percent != null) {
+              const stripeCoupon = await stripe.coupons.create({
+                percent_off: chosen.discount_percent,
+                duration: 'once',
+              });
+              (sessionParams as any).discounts = [{ coupon: stripeCoupon.id }];
+            } else if (chosen.discount_amount_cents != null) {
+              const stripeCoupon = await stripe.coupons.create({
+                amount_off: discount,
+                currency: curr,
+                duration: 'once',
+              });
+              (sessionParams as any).discounts = [{ coupon: stripeCoupon.id }];
+            }
+          }
+        } else if (scope === 'tickets') {
+          // Adjust ticket unit when scope is tickets
+          const discountedUnit = Math.max(0, Math.floor(
+            chosen.discount_percent != null
+              ? unit * (1 - chosen.discount_percent / 100)
+              : unit - Math.min(chosen.discount_amount_cents || 0, unit)
+          ));
+          sessionParams.line_items![0].price_data!.unit_amount = discountedUnit;
+        } else if (scope === 'addons') {
+          // Adjust each addon line
+          sessionParams.line_items = sessionParams.line_items!.map((li, idx) => {
+            if (idx === 0) return li; // ticket line
+            const unitAmt = li.price_data!.unit_amount as number;
+            const newUnit = Math.max(0, Math.floor(
+              chosen.discount_percent != null
+                ? unitAmt * (1 - chosen.discount_percent / 100)
+                : unitAmt - Math.min(chosen.discount_amount_cents || 0, unitAmt)
+            ));
+            return { ...li, price_data: { ...li.price_data!, unit_amount: newUnit } };
+          });
+        }
+      } else if (chosen.discount_amount_cents != null) {
+        // Amount-only discounts: handle like above
+        if (chosen.apply_to === 'tickets') {
+          const discountedUnit = Math.max(0, Math.floor(unit - Math.min(chosen.discount_amount_cents, unit)));
+          sessionParams.line_items![0].price_data!.unit_amount = discountedUnit;
+        } else if (chosen.apply_to === 'addons') {
+          sessionParams.line_items = sessionParams.line_items!.map((li, idx) => {
+            if (idx === 0) return li;
+            const unitAmt = li.price_data!.unit_amount as number;
+            const newUnit = Math.max(0, Math.floor(unitAmt - Math.min(chosen!.discount_amount_cents!, unitAmt)));
+            return { ...li, price_data: { ...li.price_data!, unit_amount: newUnit } };
+          });
+        } else {
+          const stripeCoupon = await stripe.coupons.create({ amount_off: discount, currency: curr, duration: 'once' });
+          (sessionParams as any).discounts = [{ coupon: stripeCoupon.id }];
+        }
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
   } catch (error: any) {
     console.error("[create-payment] error:", error);

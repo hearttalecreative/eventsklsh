@@ -110,11 +110,11 @@ serve(async (req) => {
     }, 0);
 
     let discount = 0;
-    if (cart.coupon) {
-      const { data: ev2 } = await supabase.from("events").select("coupon_code").eq("id", cart.eventId).maybeSingle();
-      if (ev2?.coupon_code && ev2.coupon_code.trim().toLowerCase() === cart.coupon.trim().toLowerCase()) {
-        discount = Math.round(ticketsSubtotal * 0.5);
-      }
+    // Prefer discount passed via Stripe session metadata
+    const meta = (session.metadata || {}) as Record<string, string>;
+    if (meta && typeof meta.coupon_discount_cents !== 'undefined') {
+      const d = Number(meta.coupon_discount_cents);
+      if (!Number.isNaN(d)) discount = d;
     }
     const total = ticketsSubtotal + addonsSubtotal - discount;
 
