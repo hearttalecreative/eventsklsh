@@ -201,29 +201,29 @@ serve(async (req) => {
       cart.participants.map(async (p) => {
         const currencyUpper = (session.currency || 'usd').toUpperCase();
         const html = `
-          <h1>Hola ${p.fullName}, tus tickets para ${event.title}</h1>
-          <p>Gracias por tu compra. Aquí tienes los detalles de tu asistencia.</p>
-          <h2>Evento</h2>
+          <h1>Hi ${p.fullName}, your tickets for ${event.title}</h1>
+          <p>Thank you for your purchase. Here are your attendance details.</p>
+          <h2>Event</h2>
           <ul>
-            <li><strong>Título:</strong> ${event.title}</li>
-            <li><strong>Fecha y hora:</strong> ${eventDate.toLocaleString()}</li>
-            ${venue ? `<li><strong>Ubicación:</strong> ${venue.name} — ${venue.address}</li>` : ""}
+            <li><strong>Title:</strong> ${event.title}</li>
+            <li><strong>Date & time:</strong> ${eventDate.toLocaleString('en-US')}</li>
+            ${venue ? `<li><strong>Location:</strong> ${venue.name} — ${venue.address}</li>` : ""}
           </ul>
-          ${event.short_description ? `<p><strong>Descripción breve:</strong> ${event.short_description}</p>` : ""}
-          ${event.instructions ? `<p><strong>Instrucciones:</strong> ${event.instructions}</p>` : ""}
-          ${addOnsSummary ? `<h3>Add-ons adquiridos</h3><ul>${addOnsSummary}</ul>` : ""}
-          <h2>Resumen de compra</h2>
+          ${event.short_description ? `<p><strong>Short description:</strong> ${event.short_description}</p>` : ""}
+          ${event.instructions ? `<p><strong>Instructions:</strong> ${event.instructions}</p>` : ""}
+          ${addOnsSummary ? `<h3>Purchased add-ons</h3><ul>${addOnsSummary}</ul>` : ""}
+          <h2>Order summary</h2>
           <ul>
-            <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>
+            <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
             ${addonsRows.map(row=>{
               const qty = cart.addons.find(a=>a.id===row.id)?.qty || 0;
-              return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>` : ''
+              return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''
             }).join('')}
-            ${discount>0 ? `<li><strong>Descuento:</strong> -${(discount/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>` : ''}
-            <li><strong>Total:</strong> ${(total/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>
-            <li><strong>Fecha de compra:</strong> ${purchaseDate.toLocaleString()}</li>
+            ${discount>0 ? `<li><strong>Discount:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''}
+            <li><strong>Total:</strong> ${(total/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
+            <li><strong>Purchase date:</strong> ${purchaseDate.toLocaleString('en-US')}</li>
           </ul>
-          <p>Este email sirve como confirmación. Si tienes dudas, responde a este correo.</p>
+          <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
         `;
 
         await resend.emails.send({

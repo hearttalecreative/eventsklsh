@@ -46,8 +46,8 @@ const App = () => (
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
             <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/terms" element={<Terms />} />
-            <Route path="/checkout/exito" element={<CheckoutSuccess />} />
-            <Route path="/checkout/cancelar" element={<CheckoutCancel />} />
+            <Route path="/checkout/success" element={<CheckoutSuccess />} />
+            <Route path="/checkout/cancel" element={<CheckoutCancel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

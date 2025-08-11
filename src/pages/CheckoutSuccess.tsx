@@ -19,12 +19,12 @@ const CheckoutSuccess = () => {
         const cartRaw = localStorage.getItem("lastCart");
         if (isFree) {
           setDone(true);
-          toast.success("Orden gratuita confirmada.");
+          toast.success("Free order confirmed.");
           localStorage.removeItem("lastCart");
           return;
         }
-        if (!sessionId) { setError("Falta session id"); return; }
-        if (!cartRaw) throw new Error("Faltan datos del carrito");
+        if (!sessionId) { setError("Missing session id"); return; }
+        if (!cartRaw) throw new Error("Missing cart data");
         const cart = JSON.parse(cartRaw);
         const { data, error } = await supabase.functions.invoke("verify-payment", {
           body: { sessionId, cart },
@@ -32,14 +32,14 @@ const CheckoutSuccess = () => {
         if (error) throw error as any;
         if (data?.ok) {
           setDone(true);
-          toast.success("Pago confirmado y emails enviados.");
+          toast.success("Payment confirmed. Confirmation emails sent.");
           localStorage.removeItem("lastCart");
         } else {
-          throw new Error("Respuesta inesperada");
+          throw new Error("Unexpected response");
         }
       } catch (e: any) {
         console.error(e);
-        setError(e?.message || "Fallo al verificar el pago");
+        setError(e?.message || "Failed to verify payment");
       } finally {
         setLoading(false);
       }
@@ -50,24 +50,24 @@ const CheckoutSuccess = () => {
   return (
     <main className="container mx-auto py-16">
       <Helmet>
-        <title>Pago exitoso | Kyle Lam Sound Healing</title>
-        <meta name="description" content="Confirmación de compra" />
+        <title>Payment successful | Kyle Lam Sound Healing</title>
+        <meta name="description" content="Purchase confirmation" />
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
       </Helmet>
       <div className="max-w-xl mx-auto text-center space-y-4">
-        <h1 className="text-3xl font-bold">{loading ? 'Procesando tu pago…' : done ? '¡Gracias!' : 'Verificación'}</h1>
-        {loading && <p className="text-muted-foreground">Confirmando tu pago…</p>}
+        <h1 className="text-3xl font-bold">{loading ? 'Processing your payment…' : done ? 'Thank you!' : 'Verification'}</h1>
+        {loading && <p className="text-muted-foreground">Confirming your payment…</p>}
         {error && (
           <div>
             <p className="text-destructive">{error}</p>
-            <p className="text-muted-foreground text-sm mt-2">Si el cargo aparece en tu estado de cuenta, contáctanos y te ayudaremos.</p>
+            <p className="text-muted-foreground text-sm mt-2">If the charge appears on your statement, contact us and we'll help.</p>
           </div>
         )}
         {done && (
           <div className="space-y-3">
-            <p className="text-muted-foreground">Tu compra se registró correctamente.</p>
+            <p className="text-muted-foreground">Your purchase was recorded successfully.</p>
             <Button asChild>
-              <Link to="/">Volver a eventos</Link>
+              <Link to="/">Back to events</Link>
             </Button>
           </div>
         )}

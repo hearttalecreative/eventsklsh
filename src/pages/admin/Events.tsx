@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
 import { addDays, addMonths } from "date-fns";
 import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Venue { id: string; name: string; address?: string | null; }
 

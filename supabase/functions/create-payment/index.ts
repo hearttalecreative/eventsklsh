@@ -254,7 +254,7 @@ serve(async (req) => {
         if (error) throw error;
       }
 
-      return new Response(JSON.stringify({ url: `${origin}/checkout/exito?free=1` }), {
+      return new Response(JSON.stringify({ url: `${origin}/checkout/success?free=1` }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
@@ -293,8 +293,8 @@ serve(async (req) => {
       line_items,
       mode: 'payment',
       currency: curr,
-      success_url: `${origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/checkout/cancelar`,
+      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout/cancel`,
       metadata: chosen ? {
         coupon_id: chosen.id,
         coupon_code: chosen.code,
