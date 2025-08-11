@@ -25,8 +25,10 @@ interface Props {
 }
 
 export const EventCard = ({ event }: Props) => {
-  const minPrice = Math.min(...event.tickets.map((t) => effectiveUnitAmount(t)));
-  const maxPax = Math.max(...event.tickets.map((t) => t.participantsPerTicket || 1));
+  const hasTickets = event.tickets && event.tickets.length > 0;
+  const minPrice = hasTickets ? Math.min(...event.tickets.map((t) => effectiveUnitAmount(t))) : null;
+  const maxPax = hasTickets ? Math.max(...event.tickets.map((t) => t.participantsPerTicket || 1)) : 1;
+  const currency = hasTickets ? event.tickets[0].currency : 'USD';
   return (
     <Card className="h-full flex flex-col border bg-card">
       <CardHeader className="p-0">
@@ -61,10 +63,17 @@ export const EventCard = ({ event }: Props) => {
               <span className="font-medium">Up to {maxPax} per ticket</span>
             </div>
           )}
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">From</span>
-            <span className="font-medium">{formatCurrency(minPrice, event.tickets[0].currency)}</span>
-          </div>
+          {hasTickets ? (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">From</span>
+              <span className="font-medium">{formatCurrency(minPrice as number, currency)}</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Tickets</span>
+              <span className="font-medium">Not available</span>
+            </div>
+          )}
         </div>
         <div className="mt-4">
           <Button asChild className="w-full">

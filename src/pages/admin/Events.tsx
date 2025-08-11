@@ -526,7 +526,7 @@ const deleteTicket = async (id: string) => {
 
         <section className="grid md:grid-cols-2 gap-6">
           <Card>
-            <CardHeader><CardTitle>Quick create</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Create New Event</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <Input placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
               <Textarea placeholder="Short description" value={shortDesc} onChange={(e)=>setShortDesc(e.target.value)} />
