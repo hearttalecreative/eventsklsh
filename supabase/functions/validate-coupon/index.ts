@@ -18,33 +18,93 @@ serve(async (req: Request) => {
 
   try {
     const { eventId, code } = (await req.json()) as Payload;
-    if (!eventId || typeof code !== 'string') {
-      return new Response(JSON.stringify({ error: 'Invalid payload' }), {
+    if (!eventId || !code) {
+      return new Response(JSON.stringify({ error: "Invalid payload" }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    const supabase = createClient(
+    const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
+    const supabaseService = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
-    const { data: ev, error } = await supabase
-      .from('events')
-      .select('id,status,coupon_code')
-      .eq('id', eventId)
-      .maybeSingle();
+    const codeUpper = code.trim().toUpperCase();
+
+    // Prefer event-specific coupon over global; only admins can read coupons via service role
+    const { data: coupons, error } = await supabaseService
+      .from('coupons')
+      .select('id, code, discount_percent, discount_amount_cents, apply_to, event_id, starts_at, ends_at, max_redemptions, active')
+      .or(`event_id.eq.${eventId},event_id.is.null`)
+      .ilike('code', codeUpper)
+      .eq('active', true)
+      .order('event_id', { ascending: false, nullsFirst: false });
 
     if (error) throw error;
 
-    const valid = !!(ev && ev.status === 'published' && ev.coupon_code && code && ev.coupon_code.toUpperCase() === code.toUpperCase());
+    const now = new Date();
+    let chosen = (coupons || []).find(c => c.event_id === eventId) || (coupons || []).find(c => c.event_id === null);
 
-    return new Response(JSON.stringify({ valid }), {
+    if (!chosen) {
+      return new Response(JSON.stringify({ valid: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Date window check
+    if (chosen.starts_at && new Date(chosen.starts_at) > now) chosen = undefined as any;
+    if (chosen && chosen.ends_at && new Date(chosen.ends_at) < now) chosen = undefined as any;
+
+    if (!chosen) {
+      return new Response(JSON.stringify({ valid: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Usage limit check (total across all events)
+    if (chosen.max_redemptions != null) {
+      const { count, error: cntErr } = await supabaseService
+        .from('coupon_redemptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('coupon_id', chosen.id);
+      if (cntErr) throw cntErr;
+      if ((count ?? 0) >= chosen.max_redemptions) {
+        return new Response(JSON.stringify({ valid: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
+    const discount = chosen.discount_percent != null
+      ? { type: 'percent', value: chosen.discount_percent }
+      : chosen.discount_amount_cents != null
+        ? { type: 'amount', value: chosen.discount_amount_cents }
+        : null;
+
+    return new Response(JSON.stringify({
+      valid: true,
+      coupon: {
+        id: chosen.id,
+        code: chosen.code,
+        applyTo: chosen.apply_to,
+        eventId: chosen.event_id,
+        discount,
+      }
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (err: any) {
+    console.error('validate-coupon error', err);
     return new Response(JSON.stringify({ error: err?.message || String(err) }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

@@ -113,6 +113,7 @@ export type Database = {
           id: string
           name: string | null
           order_item_id: string | null
+          phone: string | null
           seat: string | null
           zone: string | null
         }
@@ -124,6 +125,7 @@ export type Database = {
           id?: string
           name?: string | null
           order_item_id?: string | null
+          phone?: string | null
           seat?: string | null
           zone?: string | null
         }
@@ -135,6 +137,7 @@ export type Database = {
           id?: string
           name?: string | null
           order_item_id?: string | null
+          phone?: string | null
           seat?: string | null
           zone?: string | null
         }
@@ -158,6 +161,131 @@ export type Database = {
             columns: ["order_item_id"]
             isOneToOne: false
             referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_redemptions: {
+        Row: {
+          amount_discount_cents: number
+          coupon_id: string
+          created_at: string
+          email: string | null
+          event_id: string
+          id: string
+          order_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_discount_cents?: number
+          coupon_id: string
+          created_at?: string
+          email?: string | null
+          event_id: string
+          id?: string
+          order_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_discount_cents?: number
+          coupon_id?: string
+          created_at?: string
+          email?: string | null
+          event_id?: string
+          id?: string
+          order_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_sales_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean
+          apply_to: Database["public"]["Enums"]["discount_apply_to"]
+          code: string
+          created_at: string
+          description: string | null
+          discount_amount_cents: number | null
+          discount_percent: number | null
+          ends_at: string | null
+          event_id: string | null
+          id: string
+          max_redemptions: number | null
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          apply_to?: Database["public"]["Enums"]["discount_apply_to"]
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_amount_cents?: number | null
+          discount_percent?: number | null
+          ends_at?: string | null
+          event_id?: string | null
+          id?: string
+          max_redemptions?: number | null
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          apply_to?: Database["public"]["Enums"]["discount_apply_to"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_amount_cents?: number | null
+          discount_percent?: number | null
+          ends_at?: string | null
+          event_id?: string | null
+          id?: string
+          max_redemptions?: number | null
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_sales_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "coupons_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -541,6 +669,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       currency_code: "usd" | "eur" | "ars" | "mxn"
+      discount_apply_to: "tickets" | "addons" | "both"
       event_status: "draft" | "published" | "archived"
       order_status: "pending" | "paid" | "refunded" | "canceled"
     }
@@ -672,6 +801,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       currency_code: ["usd", "eur", "ars", "mxn"],
+      discount_apply_to: ["tickets", "addons", "both"],
       event_status: ["draft", "published", "archived"],
       order_status: ["pending", "paid", "refunded", "canceled"],
     },
