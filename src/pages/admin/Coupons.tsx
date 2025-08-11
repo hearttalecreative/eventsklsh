@@ -92,10 +92,10 @@ const CouponsPage = () => {
             </div>
             <div>
               <label className="text-sm">Ámbito</label>
-              <Select value={(form.event_id || '')} onValueChange={(v)=>setForm(f=>({...f, event_id: v || null}))}>
+              <Select value={(form.event_id ?? 'global')} onValueChange={(v)=>setForm(f=>({...f, event_id: v === 'global' ? null : v}))}>
                 <SelectTrigger><SelectValue placeholder="Global o por evento" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Global</SelectItem>
+                  <SelectItem value="global">Global</SelectItem>
                   {events.map(ev=> <SelectItem key={ev.id} value={ev.id}>{ev.title}</SelectItem>)}
                 </SelectContent>
               </Select>
