@@ -38,7 +38,7 @@ serve(async (req: Request) => {
     `;
 
     const response = await resend.emails.send({
-      from: "Tickets <onboarding@resend.dev>",
+      from: "Kyle Lam Sound Healing <info@kylelamsoundhealing.com>",
       to: [email],
       subject,
       html,

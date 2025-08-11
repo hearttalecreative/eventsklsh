@@ -54,8 +54,9 @@ const App = () => (
               <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto opacity-80 dark:hidden" loading="lazy" />
               <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Kyle Lam Sound Healing logo (dark)" className="h-8 w-auto opacity-80 hidden dark:block" loading="lazy" />
               <nav aria-label="Footer" className="flex flex-wrap items-center gap-6 text-sm">
-                <Link to="/" className="story-link">Eventos</Link>
+                <Link to="/" className="story-link">Events</Link>
                 <Link to="/admin/events" className="story-link">Event management</Link>
+                <Link to="/admin/coupons" className="story-link">Coupons</Link>
                 <Link to="/dashboard" className="story-link">Dashboard</Link>
                 <Link to="/admin/login" className="story-link">Admin access</Link>
                 <a href="https://kylelamsoundhealing.com/" target="_blank" rel="noopener noreferrer" className="story-link">Main site</a>

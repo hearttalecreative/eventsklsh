@@ -227,9 +227,9 @@ serve(async (req) => {
         `;
 
         await resend.emails.send({
-          from: "Tickets <onboarding@resend.dev>",
+          from: "Kyle Lam Sound Healing <info@kylelamsoundhealing.com>",
           to: [p.email],
-          subject: `Confirmación: ${event.title}`,
+          subject: `Order confirmation: ${event.title}`,
           html,
         });
       })
