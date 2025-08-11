@@ -199,6 +199,7 @@ const EventDetail = () => {
                       <div>
                         <div className="font-medium">{t.name}{t.zone ? ` — ${t.zone}` : ''}</div>
                         <div className="text-xs text-muted-foreground">Capacity: {t.capacityTotal}</div>
+                        <div className="text-xs text-muted-foreground">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold">{formatCurrency(unit, t.currency)}</div>
@@ -320,20 +321,44 @@ const EventDetail = () => {
               <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(Boolean(v))} />
               <label htmlFor="terms" className="text-sm">I accept the <a href="#" className="underline">Terms and Conditions</a></label>
             </div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <Input placeholder="Coupon code" value={coupon} onChange={(e) => setCoupon(e.target.value)} className="max-w-xs" />
+              <Button type="button" variant="outline" onClick={() => {
+                if (coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase()) {
+                  toast.success('Coupon applied');
+                } else {
+                  toast.error('Invalid coupon');
+                }
+              }}>Apply coupon</Button>
             </div>
             {discount > 0 && (
               <p className="text-xs text-accent-foreground mb-3">You saved {formatCurrency(discount, currency)} with coupon {coupon.toUpperCase()}.</p>
             )}
-            <p className="text-xs text-muted-foreground -mt-3 mb-3">Coupons apply only to ticket value. Add-ons are not discounted.</p>
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Tickets</span><span>{formatCurrency(ticketsSubtotal, currency)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>{formatCurrency(addonsSubtotal, currency)}</span></div>
+            <p className="text-xs text-muted-foreground mt-2 mb-4">Coupons apply only to ticket value. Add-ons are not discounted.</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-start justify-between">
+                <div className="text-muted-foreground truncate">{selectedTicket.name} × {quantityTickets} {participantsPerTicket > 1 ? `(includes ${participantsPerTicket} participants each)` : ''}</div>
+                <div className="font-medium">{formatCurrency(ticketsSubtotal, currency)}</div>
+              </div>
+              {Object.entries(addonsQty).filter(([_, qty]) => (qty ?? 0) > 0).map(([id, qty]) => {
+                const a = event.addons.find((x) => x.id === id)!;
+                return (
+                  <div key={id} className="flex items-start justify-between pl-4">
+                    <div className="text-muted-foreground truncate">{a.name} × {qty}</div>
+                    <div>{formatCurrency(a.unitAmountCents * (qty ?? 0), currency)}</div>
+                  </div>
+                );
+              })}
               {discount > 0 && (
-                <div className="flex justify-between text-accent-foreground"><span>Discount</span><span>-{formatCurrency(discount, currency)}</span></div>
+                <div className="flex justify-between text-accent-foreground">
+                  <span>Discount</span>
+                  <span>-{formatCurrency(discount, currency)}</span>
+                </div>
               )}
-              <div className="flex justify-between pt-2 border-t font-semibold"><span>Total</span><span>{formatCurrency(total, currency)}</span></div>
+              <div className="flex justify-between pt-2 border-t font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(total, currency)}</span>
+              </div>
             </div>
             <Button className="w-full mt-4" onClick={proceed}>Proceed to payment</Button>
             <p className="text-xs text-muted-foreground mt-2">Stripe will be integrated at the final step.</p>

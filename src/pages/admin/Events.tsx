@@ -41,6 +41,7 @@ const AdminEvents = () => {
   const [title, setTitle] = useState("");
   const [shortDesc, setShortDesc] = useState("");
   const [longDesc, setLongDesc] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [venueId, setVenueId] = useState<string | undefined>(undefined);
@@ -49,12 +50,16 @@ const AdminEvents = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  // Sorting for events table
+  const [evOrderBy, setEvOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>("upcoming");
+
   // Edit event dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any|null>(null);
   const [eTitle, setETitle] = useState('');
   const [eShort, setEShort] = useState('');
   const [eLong, setELong] = useState('');
+  const [eInstructions, setEInstructions] = useState('');
   const [eStarts, setEStarts] = useState('');
   const [eEnds, setEEnds] = useState('');
   const [eVenueId, setEVenueId] = useState<string | undefined>(undefined);
@@ -74,10 +79,11 @@ const AdminEvents = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data: v } = await supabase.from("venues").select("id,name,address").order("name");
+      const { data: v } = await supabase.from("venues").select("id,name,address,lat,lng").order("name");
       setVenues(v || []);
       const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("created_at", { ascending: false });
       setEvents(ev || []);
+      setManageEventId(ev && ev.length ? ev[0].id : undefined);
       setLoading(false);
     };
     load();
@@ -101,11 +107,12 @@ const AdminEvents = () => {
   }
 
   const openEdit = (ev: any) => {
-    if (isEventPast(ev)) { alert('No se puede modificar un evento pasado.'); return; }
+    if (isEventPast(ev)) { alert('You cannot modify a past event.'); return; }
     setEditingEvent(ev);
     setETitle(ev.title || '');
     setEShort(ev.short_description || '');
     setELong(ev.description || '');
+    setEInstructions(ev.instructions || '');
     setEStarts(ev.starts_at ? ev.starts_at.slice(0,16) : '');
     setEEnds(ev.ends_at ? ev.ends_at.slice(0,16) : '');
     setEVenueId(ev.venue_id || undefined);
@@ -124,6 +131,7 @@ const AdminEvents = () => {
       title,
       short_description: shortDesc,
       description: longDesc || null,
+      instructions: instructions || null,
       starts_at: startsAt,
       ends_at: endsAt || null,
       venue_id: venueId || null,
@@ -134,7 +142,7 @@ const AdminEvents = () => {
     const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
     if (error) return alert(error.message);
     setEvents((arr) => [data!, ...arr]);
-    setTitle(""); setShortDesc(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
+    setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
   };
 
   const saveEdit = async () => {
@@ -143,6 +151,7 @@ const AdminEvents = () => {
       title: eTitle,
       short_description: eShort,
       description: eLong || null,
+      instructions: eInstructions || null,
       starts_at: eStarts ? new Date(eStarts).toISOString() : null,
       ends_at: eEnds ? new Date(eEnds).toISOString() : null,
       venue_id: eVenueId || null,
@@ -234,7 +243,7 @@ const AdminEvents = () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ event_id: ticketsEventId, name: 'Combo (2 participantes)', unit_amount_cents: 3500, capacity_total: 100, currency: 'usd', participants_per_ticket: 2, zone: null })
+      .insert({ event_id: ticketsEventId, name: 'Combo (2 participants)', unit_amount_cents: 3500, capacity_total: 100, currency: 'usd', participants_per_ticket: 2, zone: null })
       .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
       .single();
     if (error) return alert(error.message);
@@ -245,7 +254,7 @@ const AdminEvents = () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ event_id: ticketsEventId, name: 'Por ubicación', unit_amount_cents: 2500, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: 'General' })
+      .insert({ event_id: ticketsEventId, name: 'By zone', unit_amount_cents: 2500, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: 'General' })
       .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
       .single();
     if (error) return alert(error.message);
@@ -326,6 +335,33 @@ const AdminEvents = () => {
     setImageUrl(data.publicUrl);
     alert('Image uploaded');
   };
+
+  // Events ordering
+  const sortedEvents = useMemo(() => {
+    const now = Date.now();
+    const arr = [...events];
+    switch (evOrderBy) {
+      case 'title-asc':
+        return arr.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      case 'title-desc':
+        return arr.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      case 'past': {
+        const past = arr.filter((ev) => new Date(ev.starts_at).getTime() < now)
+          .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
+        const future = arr.filter((ev) => new Date(ev.starts_at).getTime() >= now)
+          .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+        return [...past, ...future];
+      }
+      case 'upcoming':
+      default: {
+        const future = arr.filter((ev) => new Date(ev.starts_at).getTime() >= now)
+          .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+        const past = arr.filter((ev) => new Date(ev.starts_at).getTime() < now)
+          .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
+        return [...future, ...past];
+      }
+    }
+  }, [events, evOrderBy]);
   return (
     <AdminRoute>
       <main className="container mx-auto py-8 space-y-8">
@@ -346,7 +382,8 @@ const AdminEvents = () => {
             <CardContent className="space-y-3">
               <Input placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
               <Textarea placeholder="Short description" value={shortDesc} onChange={(e)=>setShortDesc(e.target.value)} />
-              <Textarea placeholder="Long description (Markdown básico permitido)" value={longDesc} onChange={(e)=>setLongDesc(e.target.value)} />
+              <Textarea placeholder="Long description (Basic Markdown allowed)" value={longDesc} onChange={(e)=>setLongDesc(e.target.value)} />
+              <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={instructions} onChange={(e)=>setInstructions(e.target.value)} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input type="datetime-local" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
                 <Input type="datetime-local" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
@@ -380,17 +417,42 @@ const AdminEvents = () => {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Tips</CardTitle></CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2">
-              <p>- After creating an event, add Tickets and Add-ons from the event editor (coming next).</p>
-              <p>- Publish to make it visible on the public site.</p>
-              <p>- Use Dashboard for analytics and exports.</p>
+            <CardHeader><CardTitle>Tickets & add-ons</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="manage-ev">Select event</Label>
+                <Select value={manageEventId} onValueChange={(v)=>setManageEventId(v)}>
+                  <SelectTrigger id="manage-ev"><SelectValue placeholder="Choose an event" /></SelectTrigger>
+                  <SelectContent>
+                    {events.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={()=> manageEventId && openTickets(manageEventId)} disabled={!manageEventId}>Manage tickets</Button>
+                <Button variant="outline" onClick={()=> manageEventId && openAddons(manageEventId)} disabled={!manageEventId}>Manage add-ons</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Use these tools to define ticket types and optional add-ons for the selected event.</p>
             </CardContent>
           </Card>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-xl font-semibold">All events</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">All events</h2>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Order</Label>
+              <Select value={evOrderBy} onValueChange={setEvOrderBy as any}>
+                <SelectTrigger className="w-44"><SelectValue placeholder="Sort" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="upcoming">Upcoming first</SelectItem>
+                  <SelectItem value="past">Past first</SelectItem>
+                  <SelectItem value="title-asc">Title A–Z</SelectItem>
+                  <SelectItem value="title-desc">Title Z–A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -403,7 +465,7 @@ const AdminEvents = () => {
                 </tr>
               </thead>
               <tbody>
-                {events.map(ev => (
+                {sortedEvents.map(ev => (
                   <tr key={ev.id} className="border-b">
                     <td className="py-3 pr-4 font-medium">{ev.title}</td>
                     <td className="py-3 pr-4">{new Date(ev.starts_at).toLocaleString()}</td>
@@ -470,19 +532,19 @@ const AdminEvents = () => {
         <Dialog open={ticketsOpen} onOpenChange={setTicketsOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Gestionar tickets</DialogTitle>
+              <DialogTitle>Manage tickets</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               <p className="text-sm text-muted-foreground">
-                Define tipos de tickets, precios, capacidades y opciones de early-bird. Usa “Avanzados” para zonas y participantes por ticket.
+                Define ticket types, prices, capacities and early-bird options. Use “Advanced” for zones and participants per ticket.
               </p>
               <div className="flex justify-end">
                 <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
-                  {showAdvancedTicketFields ? 'Ocultar avanzados' : 'Ver avanzados'}
+                  {showAdvancedTicketFields ? 'Hide advanced' : 'Show advanced'}
                 </Button>
               </div>
               {tickets.length === 0 && (
-                <p className="text-sm text-muted-foreground">No hay tickets todavía.</p>
+                <p className="text-sm text-muted-foreground">No tickets yet.</p>
               )}
               {tickets.map((t) => {
                 const earlyEnabled = Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end);
@@ -490,17 +552,17 @@ const AdminEvents = () => {
                   <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
                     <div className="grid sm:grid-cols-6 gap-3 items-center">
                       <div className="sm:col-span-2 space-y-1">
-                        <Label>Nombre</Label>
+                        <Label>Name</Label>
                         <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                       </div>
                       <div className="space-y-1">
-                        <Label>Precio ({(t.currency || 'usd').toUpperCase()})</Label>
+                        <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
                         <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
                           onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label>Capacidad</Label>
+                        <Label>Capacity</Label>
                         <Input type="number" min={0} defaultValue={t.capacity_total || 0}
                           onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
@@ -508,13 +570,13 @@ const AdminEvents = () => {
                       {showAdvancedTicketFields && (
                         <>
                           <div className="space-y-1">
-                            <Label>Participantes</Label>
+                            <Label>Participants per ticket</Label>
                             <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
                               onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label>Zona</Label>
+                            <Label>Zone</Label>
                             <Input defaultValue={t.zone || ''}
                               onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
                             />
@@ -522,7 +584,7 @@ const AdminEvents = () => {
                         </>
                       )}
                       <div className="flex justify-end">
-                        <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Eliminar</Button>
+                        <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
                       </div>
                     </div>
 
@@ -531,10 +593,10 @@ const AdminEvents = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <Label>Early bird</Label>
-                          <p className="text-xs text-muted-foreground">Precio promocional por tiempo limitado</p>
+                          <p className="text-xs text-muted-foreground">Limited-time promotional price</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Activo' : 'Inactivo'}</span>
+                          <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Active' : 'Inactive'}</span>
                           <Switch
                             checked={earlyEnabled}
                             onCheckedChange={(checked)=>{
@@ -551,19 +613,19 @@ const AdminEvents = () => {
                       {earlyEnabled && (
                         <div className="grid sm:grid-cols-4 gap-3">
                           <div className="space-y-1">
-                            <Label>Precio early</Label>
+                            <Label>Early price</Label>
                             <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents||0)/100).toFixed(2)}
                               onBlur={(e)=>updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
                             />
                           </div>
                           <div className="space-y-1 sm:col-span-2">
-                            <Label>Inicio</Label>
+                            <Label>Start</Label>
                             <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0,16) : ''}
                               onBlur={(e)=>updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
                             />
                           </div>
                           <div className="space-y-1 sm:col-span-2">
-                            <Label>Fin</Label>
+                            <Label>End</Label>
                             <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0,16) : ''}
                               onBlur={(e)=>updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
                             />
@@ -576,10 +638,10 @@ const AdminEvents = () => {
               })}
             </div>
             <DialogFooter className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={addTicketSimple}>Agregar ticket simple</Button>
-              <Button variant="secondary" onClick={addTicketCombo}>Agregar combo (multi-participante)</Button>
-              <Button variant="secondary" onClick={addTicketByZone}>Agregar ticket por ubicación</Button>
-              <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Cerrar</Button>
+              <Button variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
+              <Button variant="secondary" onClick={addTicketCombo}>Add combo (multi-participant)</Button>
+              <Button variant="secondary" onClick={addTicketByZone}>Add ticket by zone</Button>
+              <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -593,7 +655,7 @@ const AdminEvents = () => {
             <div className="space-y-3">
               <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
               <Textarea placeholder="Short description" value={eShort} onChange={(e)=>setEShort(e.target.value)} />
-              <Textarea placeholder="Long description (Markdown básico permitido)" value={eLong} onChange={(e)=>setELong(e.target.value)} />
+              <Textarea placeholder="Long description (Basic Markdown allowed)" value={eLong} onChange={(e)=>setELong(e.target.value)} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
                 <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />

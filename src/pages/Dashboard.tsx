@@ -55,6 +55,8 @@ const Dashboard = () => {
 
   const { data: supa } = useSupabaseEventsList();
 
+  const [orderBy, setOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>('upcoming');
+
   const source = useMemo(() => (supa && supa.length ? supa : mockEvents), [supa]);
   const usingSupabase = Boolean(supa && supa.length);
 
@@ -90,17 +92,31 @@ const Dashboard = () => {
     [filtered]
   );
 
-  // Sort events by the nearest upcoming first; past events are listed after future ones
   const sorted = useMemo(() => {
     const now = Date.now();
-    const future = filtered
-      .filter((ev) => new Date(ev.startsAt).getTime() >= now)
-      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-    const past = filtered
-      .filter((ev) => new Date(ev.startsAt).getTime() < now)
-      .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
-    return [...future, ...past];
-  }, [filtered]);
+    const arr = [...filtered];
+    switch (orderBy) {
+      case 'title-asc':
+        return arr.sort((a, b) => a.title.localeCompare(b.title));
+      case 'title-desc':
+        return arr.sort((a, b) => b.title.localeCompare(a.title));
+      case 'past': {
+        const past = arr.filter((ev) => new Date(ev.startsAt).getTime() < now)
+          .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+        const future = arr.filter((ev) => new Date(ev.startsAt).getTime() >= now)
+          .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+        return [...past, ...future];
+      }
+      case 'upcoming':
+      default: {
+        const future = arr.filter((ev) => new Date(ev.startsAt).getTime() >= now)
+          .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+        const past = arr.filter((ev) => new Date(ev.startsAt).getTime() < now)
+          .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+        return [...future, ...past];
+      }
+    }
+  }, [filtered, orderBy]);
 
   function exportCsv() {
     const rows = [
@@ -160,9 +176,9 @@ const Dashboard = () => {
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Events Dashboard</h1>
           {usingSupabase ? (
-            <p className="text-muted-foreground text-sm">Conectado a Supabase. Administra tus eventos y datos reales.</p>
+            <p className="text-muted-foreground text-sm">Connected to Supabase. Manage your real events and data.</p>
           ) : (
-            <p className="text-muted-foreground text-sm">Para crear/editar eventos, inicia sesión y conecta Supabase.</p>
+            <p className="text-muted-foreground text-sm">To create and edit events with real data, sign in and connect Supabase.</p>
           )}
         </div>
         <div className="flex items-center gap-2">
