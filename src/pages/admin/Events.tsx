@@ -15,6 +15,7 @@ import { useLocation } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
 import { addDays, addMonths } from "date-fns";
+import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2 } from "lucide-react";
 
 interface Venue { id: string; name: string; address?: string | null; }
 
@@ -398,6 +399,16 @@ const deleteTicket = async (id: string) => {
     setAttendeesOpen(true);
   };
 
+  // Delete event
+  const deleteEvent = async (eventId: string) => {
+    if (!confirm('Delete this event? This action cannot be undone.')) return;
+    await supabase.from('tickets').delete().eq('event_id', eventId);
+    await supabase.from('addons').delete().eq('event_id', eventId);
+    const { error } = await supabase.from('events').delete().eq('id', eventId);
+    if (error) return alert(error.message);
+    setEvents(arr => arr.filter(e => e.id !== eventId));
+    await logAdmin('event_deleted','event', eventId);
+  };
   // Export attendees as CSV
   const exportAttendeesCsv = () => {
     const headers = ['Name','Email','Seat','Zone','Checked in','Created at'];
@@ -611,19 +622,36 @@ const deleteTicket = async (id: string) => {
                     <td className="py-3 pr-4">{ev.venues?.name || '-'}</td>
                     <td className="py-3 pr-4 capitalize">{ev.status}</td>
                     <td className="py-3 pr-4 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={async ()=>{
+                      <Button size="icon" variant="outline" title="Toggle publish" aria-label="Toggle publish" onClick={async ()=>{
                         const next = ev.status === 'published' ? 'draft' : 'published';
                         const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                         if (!error) {
                           setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                           await logAdmin('event_status_toggled','event', ev.id, { from: ev.status, to: next });
                         }
-                      }}>Toggle publish</Button>
-                      <Button size="sm" variant="outline" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>Edit</Button>
-                      <Button size="sm" variant="secondary" onClick={()=>openTickets(ev.id)}>Manage tickets</Button>
-                      <Button size="sm" variant="secondary" onClick={()=>openAddons(ev.id)}>Manage add-ons</Button>
-                      <Button size="sm" variant="outline" onClick={()=>openAttendees(ev.id)}>Attendees</Button>
-                      <Button size="sm" asChild><a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">View</a></Button>
+                      }}>
+                        <Megaphone className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="outline" title="Edit" aria-label="Edit" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>
+                        <Edit3 className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="secondary" title="Manage tickets" aria-label="Manage tickets" onClick={()=>openTickets(ev.id)}>
+                        <Ticket className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="secondary" title="Manage add-ons" aria-label="Manage add-ons" onClick={()=>openAddons(ev.id)}>
+                        <Package className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" onClick={()=>openAttendees(ev.id)}>
+                        <Users className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" asChild title="View" aria-label="View">
+                        <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
+                          <Eye className="w-4 h-4" />
+                        </a>
+                      </Button>
+                      <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" onClick={()=>deleteEvent(ev.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}

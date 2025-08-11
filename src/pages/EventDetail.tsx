@@ -260,40 +260,43 @@ const proceed = () => {
             </div>
           </section>
 
-          <section className="p-6 border rounded-lg bg-card animate-enter">
-            <h2 className="text-xl font-semibold mb-4">2. Add-ons (max {participantsCount} per add-on)</h2>
-            <div className="space-y-4">
-              {event.addons.map((a: Addon) => (
-                <div key={a.id} className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium">{a.name}</div>
-                    {a.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
-                    )}
-                    <div className="text-sm text-muted-foreground mt-1">{formatCurrency(a.unitAmountCents, currency)}</div>
+          {event.addons.length > 0 && (
+            <section className="p-6 border rounded-lg bg-card animate-enter">
+              <h2 className="text-xl font-semibold mb-4">2. Add-ons (max {participantsCount} per add-on)</h2>
+              <div className="space-y-4">
+                {event.addons.map((a: Addon) => (
+                  <div key={a.id} className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium">{a.name}</div>
+                      {a.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
+                      )}
+                      <div className="text-sm text-muted-foreground mt-1">{formatCurrency(a.unitAmountCents, currency)}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="outline" size="icon" aria-label={`Decrease ${a.name}`}
+                        onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) - 1, 0, participantsCount) }))}>−</Button>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={participantsCount}
+                        value={addonsQty[a.id] ?? 0}
+                        onChange={(e) => {
+                          const v = clamp(parseInt(e.target.value || '0', 10), 0, participantsCount);
+                          setAddonsQty((prev) => ({ ...prev, [a.id]: v }));
+                        }}
+                        className="w-16 text-center"
+                      />
+                      <Button type="button" variant="outline" size="icon" aria-label={`Increase ${a.name}`}
+                        onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) + 1, 0, participantsCount) }))}>+</Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="icon" aria-label={`Decrease ${a.name}`}
-                      onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) - 1, 0, participantsCount) }))}>−</Button>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={participantsCount}
-                      value={addonsQty[a.id] ?? 0}
-                      onChange={(e) => {
-                        const v = clamp(parseInt(e.target.value || '0', 10), 0, participantsCount);
-                        setAddonsQty((prev) => ({ ...prev, [a.id]: v }));
-                      }}
-                      className="w-16 text-center"
-                    />
-                    <Button type="button" variant="outline" size="icon" aria-label={`Increase ${a.name}`}
-                      onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) + 1, 0, participantsCount) }))}>+</Button>
-                  </div>
-                </div>
-              ))}
-              <div className="text-xs text-muted-foreground">You can select up to {participantsCount} units of each add-on.</div>
-            </div>
-          </section>
+                ))}
+                <div className="text-xs text-muted-foreground">You can select up to {participantsCount} units of each add-on.</div>
+              </div>
+            </section>
+          )}
+
 
           <section className="p-6 border rounded-lg bg-card animate-enter">
             <h2 className="text-xl font-semibold mb-4">3. Participants</h2>
