@@ -12,6 +12,8 @@ import AdminLogin from "./pages/admin/Login";
 import AdminEvents from "./pages/admin/Events";
 import AdminRoute from "./routes/AdminRoute";
 import Terms from "./pages/Terms";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
+import CheckoutCancel from "./pages/CheckoutCancel";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,8 @@ const App = () => (
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/checkout/exito" element={<CheckoutSuccess />} />
+            <Route path="/checkout/cancelar" element={<CheckoutCancel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

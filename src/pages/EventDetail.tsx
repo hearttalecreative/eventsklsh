@@ -143,7 +143,7 @@ const EventDetail = () => {
     })),
   };
 
-const proceed = () => {
+const proceed = async () => {
     // basic validation
     if (!acceptedTerms) {
       toast.error('Please accept Terms and Conditions');
@@ -154,7 +154,37 @@ const proceed = () => {
       toast.error(`Please complete participant #${invalid + 1}`);
       return;
     }
-    toast.success('Great! The payment step will be enabled when we add Stripe.');
+
+    try {
+      const cart = {
+        eventId: event.id,
+        ticketId: selectedTicket.id,
+        ticketQty: quantityTickets,
+        addons: Object.entries(addonsQty)
+          .map(([id, qty]) => ({ id, qty: Number(qty) }))
+          .filter((a) => (a.qty ?? 0) > 0),
+        participants,
+        coupon: couponValid ? (coupon || undefined) : undefined,
+      };
+      localStorage.setItem('lastCart', JSON.stringify(cart));
+
+      const primary = participants[0];
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          currency: 'usd',
+          buyer: { name: primary.fullName, email: primary.email },
+          cart,
+        },
+      });
+      if (error) throw error as any;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to start checkout');
+    }
   };
 
   const testPurchase = async () => {
@@ -454,7 +484,7 @@ const proceed = () => {
             </div>
             <Button className="w-full mt-4" onClick={proceed}>Proceed to payment</Button>
             <Button className="w-full mt-2" variant="secondary" onClick={testPurchase}>Test purchase (send email)</Button>
-            <p className="text-xs text-muted-foreground mt-2">Stripe will be integrated at the final step.</p>
+            <p className="text-xs text-muted-foreground mt-2">Serás redirigido a Stripe Checkout.</p>
           </section>
         </aside>
       </div>
