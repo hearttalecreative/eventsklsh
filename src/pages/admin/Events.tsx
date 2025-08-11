@@ -679,9 +679,33 @@ const deleteTicket = async (id: string) => {
                           </div>
                           <div className="space-y-1">
                             <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
-                            <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
-                              onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
-                            />
+                            {(() => {
+                              let priceEl: HTMLInputElement | null = null;
+                              return (
+                                <div className="flex gap-2">
+                                  <Input
+                                    ref={(el) => (priceEl = el)}
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() =>
+                                      updateTicketField(t.id, {
+                                        unit_amount_cents: Math.round(
+                                          parseFloat(priceEl?.value || '0') * 100
+                                        ),
+                                      })
+                                    }
+                                  >
+                                    Save
+                                  </Button>
+                                </div>
+                              );
+                            })()}
                           </div>
                           <div className="space-y-1">
                             <Label>Capacity</Label>
@@ -985,9 +1009,33 @@ const deleteTicket = async (id: string) => {
                       </div>
                       <div className="space-y-1">
                         <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
-                        <Input type="number" step="0.01" min="0" defaultValue={(t.unit_amount_cents/100).toFixed(2)}
-                          onBlur={(e)=>updateTicketField(t.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
-                        />
+                        {(() => {
+                          let priceEl: HTMLInputElement | null = null;
+                          return (
+                            <div className="flex gap-2">
+                              <Input
+                                ref={(el) => (priceEl = el)}
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
+                              />
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() =>
+                                  updateTicketField(t.id, {
+                                    unit_amount_cents: Math.round(
+                                      parseFloat(priceEl?.value || '0') * 100
+                                    ),
+                                  })
+                                }
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="space-y-1">
                         <Label>Capacity</Label>
