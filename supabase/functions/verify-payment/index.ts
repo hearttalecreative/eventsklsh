@@ -124,13 +124,14 @@ serve(async (req) => {
     }
 
     // 4) Insert Order, Items, and Attendees
+    const orderCurrency = (session.currency || 'mxn').toLowerCase();
     const { data: order, error: orderErr } = await supabase
       .from("orders")
       .insert({
         event_id: cart.eventId,
         email: (session.customer_details?.email as string) || undefined,
         total_amount_cents: total,
-        currency: "usd",
+        currency: orderCurrency,
         status: "paid",
       })
       .select("id")
@@ -198,6 +199,7 @@ serve(async (req) => {
 
     await Promise.all(
       cart.participants.map(async (p) => {
+        const currencyUpper = (session.currency || 'mxn').toUpperCase();
         const html = `
           <h1>Hola ${p.fullName}, tus tickets para ${event.title}</h1>
           <p>Gracias por tu compra. Aquí tienes los detalles de tu asistencia.</p>
@@ -212,13 +214,13 @@ serve(async (req) => {
           ${addOnsSummary ? `<h3>Add-ons adquiridos</h3><ul>${addOnsSummary}</ul>` : ""}
           <h2>Resumen de compra</h2>
           <ul>
-            <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('en-US',{style:'currency',currency:'USD'})}</li>
+            <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>
             ${addonsRows.map(row=>{
               const qty = cart.addons.find(a=>a.id===row.id)?.qty || 0;
-              return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:'USD'})}</li>` : ''
+              return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>` : ''
             }).join('')}
-            ${discount>0 ? `<li><strong>Descuento:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:'USD'})}</li>` : ''}
-            <li><strong>Total:</strong> ${(total/100).toLocaleString('en-US',{style:'currency',currency:'USD'})}</li>
+            ${discount>0 ? `<li><strong>Descuento:</strong> -${(discount/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>` : ''}
+            <li><strong>Total:</strong> ${(total/100).toLocaleString('es-MX',{style:'currency',currency:currencyUpper})}</li>
             <li><strong>Fecha de compra:</strong> ${purchaseDate.toLocaleString()}</li>
           </ul>
           <p>Este email sirve como confirmación. Si tienes dudas, responde a este correo.</p>

@@ -171,7 +171,7 @@ const proceed = async () => {
       const primary = participants[0];
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
-          currency: 'usd',
+          currency: 'mxn',
           buyer: { name: primary.fullName, email: primary.email },
           cart,
         },

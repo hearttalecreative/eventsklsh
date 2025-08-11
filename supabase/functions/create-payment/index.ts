@@ -25,7 +25,7 @@ interface CartPayload {
 }
 
 interface CreatePaymentRequest {
-  currency: "usd";
+  currency?: string;
   buyer: { name: string; email: string };
   cart: CartPayload;
 }
@@ -62,6 +62,7 @@ serve(async (req) => {
 
   try {
     const { buyer, cart, currency }: CreatePaymentRequest = await req.json();
+    const curr = (currency || 'mxn').toLowerCase();
     if (!buyer?.email || !buyer?.name) throw new Error("Missing buyer info");
     if (!cart?.eventId || !cart?.ticketId || !cart?.ticketQty || cart.ticketQty < 1)
       throw new Error("Invalid cart");
@@ -134,7 +135,7 @@ serve(async (req) => {
       {
         quantity: cart.ticketQty,
         price_data: {
-          currency,
+          currency: curr,
           product_data: { name: `${event.title} — ${ticket.name}` },
           unit_amount: effectiveTicketUnit,
         },
@@ -144,7 +145,7 @@ serve(async (req) => {
         return {
           quantity: qty,
           price_data: {
-            currency,
+            currency: curr,
             product_data: { name: `${row.name} (Add-on)` },
             unit_amount: row.unit_amount_cents,
           },
@@ -158,7 +159,7 @@ serve(async (req) => {
       customer_email: buyer.email,
       line_items,
       mode: "payment",
-      currency,
+      currency: curr,
       success_url: `${origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancelar`,
     });
