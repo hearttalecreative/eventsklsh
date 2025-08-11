@@ -44,6 +44,7 @@ export const EventCard = ({ event }: Props) => {
             alt={`${event.title} event image`}
             className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
             loading="lazy"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }}
           />
         </Link>
         <div className="p-4">

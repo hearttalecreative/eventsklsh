@@ -42,15 +42,15 @@ const CouponsPage = () => {
 
   const create = async () => {
     try {
-      if (!form.code) return toast.error('Código requerido');
-      if (form.discount_percent == null && form.discount_amount_cents == null) return toast.error('Define un descuento');
+      if (!form.code) return toast.error('Code is required');
+      if (form.discount_percent == null && form.discount_amount_cents == null) return toast.error('Define a discount');
       const payload: any = { ...form, code: form.code!.toUpperCase() };
       const { data, error } = await supabase.from('coupons').insert(payload).select('*');
       if (error) throw error;
-      toast.success('Cupón creado');
+      toast.success('Coupon created');
       setCoupons([...(data as any[]), ...coupons]);
     } catch (e: any) {
-      toast.error(e?.message || 'Error al crear cupón');
+      toast.error(e?.message || 'Failed to create coupon');
     }
   };
 
@@ -59,9 +59,9 @@ const CouponsPage = () => {
       const { error } = await supabase.from('coupons').delete().eq('id', id);
       if (error) throw error;
       setCoupons(coupons.filter(c => c.id !== id));
-      toast.success('Cupón eliminado');
+      toast.success('Coupon deleted');
     } catch (e: any) {
-      toast.error(e?.message || 'Error al eliminar');
+      toast.error(e?.message || 'Failed to delete');
     }
   };
 
@@ -71,29 +71,29 @@ const CouponsPage = () => {
     <AdminRoute>
       <main className="container mx-auto py-10 space-y-6">
         <Helmet>
-          <title>Gestionar cupones | Dashboard</title>
-          <meta name="description" content="Crear y eliminar cupones con caducidad y límites." />
+          <title>Manage coupons | Dashboard</title>
+          <meta name="description" content="Create and delete coupons with validity windows and limits." />
           <link rel="canonical" href={`${baseUrl}/admin/coupons`} />
         </Helmet>
 
         <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Cupones</h1>
+          <h1 className="text-2xl font-semibold">Coupons</h1>
         </header>
 
         <section className="p-4 border rounded-lg bg-card space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="text-sm">Código</label>
+              <label className="text-sm">Code</label>
               <Input value={form.code || ''} onChange={(e)=>setForm(f=>({...f, code:e.target.value}))} placeholder="KLSH100" />
             </div>
             <div>
-              <label className="text-sm">Descripción</label>
-              <Input value={form.description || ''} onChange={(e)=>setForm(f=>({...f, description:e.target.value}))} placeholder="Descripción" />
+              <label className="text-sm">Description</label>
+              <Input value={form.description || ''} onChange={(e)=>setForm(f=>({...f, description:e.target.value}))} placeholder="Description" />
             </div>
             <div>
-              <label className="text-sm">Ámbito</label>
+              <label className="text-sm">Scope</label>
               <Select value={(form.event_id ?? 'global')} onValueChange={(v)=>setForm(f=>({...f, event_id: v === 'global' ? null : v}))}>
-                <SelectTrigger><SelectValue placeholder="Global o por evento" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Global or per event" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="global">Global</SelectItem>
                   {events.map(ev=> <SelectItem key={ev.id} value={ev.id}>{ev.title}</SelectItem>)}
@@ -101,39 +101,39 @@ const CouponsPage = () => {
               </Select>
             </div>
             <div>
-              <label className="text-sm">Tipo de aplicación</label>
+              <label className="text-sm">Apply to</label>
               <Select value={form.apply_to || 'both'} onValueChange={(v:any)=>setForm(f=>({...f, apply_to: v}))}>
-                <SelectTrigger><SelectValue placeholder="Aplicar a" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Apply to" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="both">Tickets y Add-ons</SelectItem>
-                  <SelectItem value="tickets">Solo Tickets</SelectItem>
-                  <SelectItem value="addons">Solo Add-ons</SelectItem>
+                  <SelectItem value="both">Tickets and Add-ons</SelectItem>
+                  <SelectItem value="tickets">Tickets only</SelectItem>
+                  <SelectItem value="addons">Add-ons only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm">Descuento %</label>
+              <label className="text-sm">Discount %</label>
               <Input type="number" min={0} max={100} value={form.discount_percent ?? ''} onChange={(e)=>setForm(f=>({...f, discount_percent: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="100" />
             </div>
             <div>
-              <label className="text-sm">Monto fijo (centavos)</label>
-              <Input type="number" min={0} value={form.discount_amount_cents ?? ''} onChange={(e)=>setForm(f=>({...f, discount_amount_cents: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="Opcional" />
+              <label className="text-sm">Fixed amount (cents)</label>
+              <Input type="number" min={0} value={form.discount_amount_cents ?? ''} onChange={(e)=>setForm(f=>({...f, discount_amount_cents: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="Optional" />
             </div>
             <div>
-              <label className="text-sm">Desde</label>
+              <label className="text-sm">Starts at</label>
               <Input type="datetime-local" value={form.starts_at ?? ''} onChange={(e)=>setForm(f=>({...f, starts_at: e.target.value}))} />
             </div>
             <div>
-              <label className="text-sm">Hasta</label>
+              <label className="text-sm">Ends at</label>
               <Input type="datetime-local" value={form.ends_at ?? ''} onChange={(e)=>setForm(f=>({...f, ends_at: e.target.value}))} />
             </div>
             <div>
-              <label className="text-sm">Máx. usos</label>
-              <Input type="number" min={0} value={form.max_redemptions ?? ''} onChange={(e)=>setForm(f=>({...f, max_redemptions: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="Ilimitado" />
+              <label className="text-sm">Max. redemptions</label>
+              <Input type="number" min={0} value={form.max_redemptions ?? ''} onChange={(e)=>setForm(f=>({...f, max_redemptions: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="Unlimited" />
             </div>
           </div>
           <div>
-            <Button onClick={create}>Crear cupón</Button>
+            <Button onClick={create}>Create coupon</Button>
           </div>
         </section>
 

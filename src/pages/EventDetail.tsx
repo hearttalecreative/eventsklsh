@@ -92,15 +92,15 @@ const EventDetail = () => {
     return (
       <main className="container mx-auto py-16">
         <Helmet>
-          <title>Evento no disponible | Events</title>
+          <title>Event not available | Events</title>
           <meta name="robots" content="noindex,follow" />
           <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
         </Helmet>
         <div className="max-w-xl mx-auto text-center space-y-4">
-          <h1 className="text-3xl font-bold">Este evento no se encuentra disponible</h1>
-          <p className="text-muted-foreground">Puede que no tenga tickets, esté archivado o ya haya pasado la fecha.</p>
+          <h1 className="text-3xl font-bold">This event is not available</h1>
+          <p className="text-muted-foreground">It may have no tickets, be archived, or the date has passed.</p>
           <Button asChild>
-            <Link to="/">Ver todos los eventos</Link>
+            <Link to="/">See all events</Link>
           </Button>
         </div>
       </main>
@@ -221,7 +221,7 @@ const proceed = async () => {
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-6">
           <div className="rounded-lg overflow-hidden border">
-            <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-64 object-cover" loading="lazy" decoding="async" />
+            <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-64 object-cover" loading="lazy" decoding="async" onError={(e)=>{ (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
           </div>
           <article className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -484,8 +484,7 @@ const proceed = async () => {
               </div>
             </div>
             <Button className="w-full mt-4" onClick={proceed}>Proceed to payment</Button>
-            <Button className="w-full mt-2" variant="secondary" onClick={testPurchase}>Test purchase (send email)</Button>
-            <p className="text-xs text-muted-foreground mt-2">Serás redirigido a Stripe Checkout.</p>
+            <p className="text-xs text-muted-foreground mt-2">You will be redirected to Stripe Checkout.</p>
           </section>
         </aside>
       </div>
