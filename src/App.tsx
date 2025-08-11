@@ -16,6 +16,7 @@ import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutCancel from "./pages/CheckoutCancel";
 import CouponsPage from "./pages/admin/Coupons";
 import AddAttendeePage from "./pages/admin/AddAttendee";
+import VenuesPage from "./pages/admin/Venues";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
             <Route path="/admin/coupons" element={<AdminRoute><CouponsPage /></AdminRoute>} />
+            <Route path="/admin/venues" element={<AdminRoute><VenuesPage /></AdminRoute>} />
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
             <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/terms" element={<Terms />} />
@@ -56,6 +58,7 @@ const App = () => (
               <nav aria-label="Footer" className="flex flex-wrap items-center gap-6 text-sm">
                 <Link to="/" className="story-link">Events</Link>
                 <Link to="/admin/events" className="story-link">Event management</Link>
+                <Link to="/admin/venues" className="story-link">Venues</Link>
                 <Link to="/admin/coupons" className="story-link">Coupons</Link>
                 <Link to="/dashboard" className="story-link">Dashboard</Link>
                 <Link to="/admin/login" className="story-link">Admin access</Link>
