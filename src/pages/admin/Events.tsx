@@ -683,13 +683,14 @@ const deleteTicket = async (id: string) => {
                             {(() => {
                               let priceEl: HTMLInputElement | null = null;
                               return (
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                                   <Input
                                     ref={(el) => (priceEl = el)}
                                     type="number"
                                     step="0.01"
                                     min="0"
                                     defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
+                                    className="flex-1 min-w-[140px]"
                                   />
                                   <Button
                                     size="sm"
@@ -1013,13 +1014,14 @@ const deleteTicket = async (id: string) => {
                         {(() => {
                           let priceEl: HTMLInputElement | null = null;
                           return (
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                               <Input
                                 ref={(el) => (priceEl = el)}
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
+                                className="flex-1 min-w-[140px]"
                               />
                               <Button
                                 size="sm"
