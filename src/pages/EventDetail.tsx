@@ -320,7 +320,7 @@ const EventDetail = () => {
             <h2 className="text-xl font-semibold mb-4">4. Terms, Coupon & Summary</h2>
             <div className="flex items-center gap-2 mb-4">
               <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(Boolean(v))} />
-              <label htmlFor="terms" className="text-sm">I accept the <a href="#" className="underline">Terms and Conditions</a></label>
+              <label htmlFor="terms" className="text-sm">I accept the <a href="/terms" className="underline">Terms and Conditions</a></label>
             </div>
             <div className="flex items-center gap-2 mb-3">
               <Input placeholder="Coupon code" value={coupon} onChange={(e) => setCoupon(e.target.value)} className="max-w-xs" />
