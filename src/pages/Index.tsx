@@ -19,7 +19,7 @@ const Index = () => {
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
-      <header className="container mx-auto py-8">
+      <header className="container mx-auto px-4 py-8 text-center">
         <h1 className="text-4xl font-bold">Upcoming events</h1>
       </header>
 

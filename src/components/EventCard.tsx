@@ -20,6 +20,12 @@ function formatCurrency(cents: number, currency: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);
 }
 
+function truncateWords(text: string, maxWords: number) {
+  if (!text) return '';
+  const words = text.trim().split(/\s+/);
+  return words.length > maxWords ? words.slice(0, maxWords).join(' ') + '…' : text;
+}
+
 interface Props {
   event: EventItem;
 }
@@ -44,7 +50,7 @@ export const EventCard = ({ event }: Props) => {
           <CardTitle className="text-xl">
             <Link to={`/event/${event.id}`} className="hover:underline">{event.title}</Link>
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">{event.shortDescription}</p>
+          <p className="text-sm text-muted-foreground mt-1">{truncateWords(event.shortDescription, 50)}</p>
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 mt-auto">
@@ -77,7 +83,7 @@ export const EventCard = ({ event }: Props) => {
         </div>
         <div className="mt-4">
           <Button asChild className="w-full">
-            <Link to={`/event/${event.id}`}>View details</Link>
+            <Link to={`/event/${event.id}`}>Get tickets</Link>
           </Button>
         </div>
       </CardContent>

@@ -23,18 +23,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container mx-auto h-16 flex items-center justify-between gap-6">
-              <Link to="/" className="flex items-center gap-3 hover-scale" aria-label="Kyle Lam Sound Healing - Home">
-                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto dark:hidden" loading="lazy" />
-                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Kyle Lam Sound Healing logo (dark)" className="h-8 w-auto hidden dark:block" loading="lazy" />
-                <span className="sr-only">Kyle Lam Sound Healing</span>
+            <div className="container mx-auto h-16 flex items-center justify-center">
+              <Link to="/" className="flex items-center gap-3" aria-label="Home">
+                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Logo" className="h-8 w-auto dark:hidden" loading="lazy" />
+                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Logo (dark)" className="h-8 w-auto hidden dark:block" loading="lazy" />
+                <span className="sr-only">Home</span>
               </Link>
-              <nav aria-label="Primary" className="flex items-center gap-6 text-sm">
-                <Link to="/" className="story-link">Eventos</Link>
-                <Link to="/admin/events" className="story-link">Event management</Link>
-                <Link to="/dashboard" className="story-link">Dashboard</Link>
-                <Link to="/admin/login" className="story-link">Admin access</Link>
-              </nav>
             </div>
           </header>
           <Routes>

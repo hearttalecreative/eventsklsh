@@ -8,7 +8,14 @@ const EventList = () => {
   const { data, loading } = useSupabaseEventsList();
   const [query, setQuery] = useState('');
   const items = useMemo(() => (data && data.length ? data : mockEvents), [data]);
-  const filtered = useMemo(() => items.filter(ev => ev.title.toLowerCase().includes(query.toLowerCase())), [items, query]);
+  const available = useMemo(
+    () => items.filter((ev) => (ev.tickets?.length ?? 0) > 0 && !!ev.imageUrl && ev.imageUrl.trim() !== ''),
+    [items]
+  );
+  const filtered = useMemo(
+    () => available.filter((ev) => ev.title.toLowerCase().includes(query.toLowerCase())),
+    [available, query]
+  );
   const sorted = useMemo(() => {
     const now = Date.now();
     const future = filtered
@@ -20,16 +27,19 @@ const EventList = () => {
     return [...future, ...past];
   }, [filtered]);
   return (
-    <section aria-labelledby="events-heading" className="container mx-auto">
-      <h2 id="events-heading" className="text-3xl font-semibold mb-6">Upcoming events</h2>
+    <section className="container mx-auto px-4">
       <div className="mb-4 max-w-md">
         <Input placeholder="Search events by name" value={query} onChange={(e)=>setQuery(e.target.value)} aria-label="Search events" />
       </div>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {sorted.map((ev) => (
-          <EventCard key={ev.id} event={ev} />
-        ))}
-      </div>
+      {sorted.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No events found.</p>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {sorted.map((ev) => (
+            <EventCard key={ev.id} event={ev} />
+          ))}
+        </div>
+      )}
     </section>
   );
 };
