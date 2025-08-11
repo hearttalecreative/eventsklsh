@@ -107,7 +107,7 @@ const EventDetail = () => {
     );
   }
 
-  const currency = selectedTicket.currency;
+  const currency = 'USD';
   const ticketUnit = effectiveUnitAmount(selectedTicket);
   const ticketsSubtotal = ticketUnit * quantityTickets;
   const addonsSubtotal = Object.entries(addonsQty).reduce((sum, [id, qty]) => {
@@ -138,7 +138,7 @@ const EventDetail = () => {
       "@type": "Offer",
       url: typeof window !== 'undefined' ? window.location.href : '',
       price: (effectiveUnitAmount(t) / 100).toFixed(2),
-      priceCurrency: t.currency.toUpperCase(),
+      priceCurrency: 'USD',
       availability: "https://schema.org/InStock",
       validFrom: t.earlyBirdStart || event.startsAt,
     })),
@@ -172,7 +172,7 @@ const proceed = async () => {
       const primary = participants[0];
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
-          currency: 'mxn',
+          currency: 'usd',
           buyer: { name: primary.fullName, email: primary.email },
           cart,
         },
@@ -311,7 +311,7 @@ const proceed = async () => {
                         <div className="text-xs text-muted-foreground">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold">{formatCurrency(unit, t.currency)}</div>
+                        <div className="font-semibold">{formatCurrency(unit, 'USD')}</div>
                         {t.earlyBirdAmountCents && t.earlyBirdEnd && new Date() <= new Date(t.earlyBirdEnd) && (
                           <div className="text-xs text-accent-foreground bg-accent/20 inline-block px-2 py-0.5 rounded">Early bird</div>
                         )}

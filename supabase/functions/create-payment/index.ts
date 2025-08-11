@@ -62,7 +62,7 @@ serve(async (req) => {
 
   try {
     const { buyer, cart, currency }: CreatePaymentRequest = await req.json();
-    const curr = (currency || 'mxn').toLowerCase();
+    const curr = 'usd';
     if (!buyer?.email || !buyer?.name) throw new Error("Missing buyer info");
     if (!cart?.eventId || !cart?.ticketId || !cart?.ticketQty || cart.ticketQty < 1)
       throw new Error("Invalid cart");
@@ -186,7 +186,7 @@ serve(async (req) => {
           event_id: cart.eventId,
           email: buyer.email,
           total_amount_cents: 0,
-          currency: (currency || 'mxn').toLowerCase(),
+          currency: 'usd',
           status: 'paid',
         })
         .select('id')

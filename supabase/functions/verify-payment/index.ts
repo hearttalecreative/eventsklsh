@@ -124,7 +124,7 @@ serve(async (req) => {
     }
 
     // 4) Insert Order, Items, and Attendees
-    const orderCurrency = (session.currency || 'mxn').toLowerCase();
+    const orderCurrency = (session.currency || 'usd').toLowerCase();
     const { data: order, error: orderErr } = await supabase
       .from("orders")
       .insert({
@@ -199,7 +199,7 @@ serve(async (req) => {
 
     await Promise.all(
       cart.participants.map(async (p) => {
-        const currencyUpper = (session.currency || 'mxn').toUpperCase();
+        const currencyUpper = (session.currency || 'usd').toUpperCase();
         const html = `
           <h1>Hola ${p.fullName}, tus tickets para ${event.title}</h1>
           <p>Gracias por tu compra. Aquí tienes los detalles de tu asistencia.</p>

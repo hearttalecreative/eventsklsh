@@ -34,7 +34,7 @@ export const EventCard = ({ event }: Props) => {
   const hasTickets = event.tickets && event.tickets.length > 0;
   const minPrice = hasTickets ? Math.min(...event.tickets.map((t) => effectiveUnitAmount(t))) : null;
   const maxPax = hasTickets ? Math.max(...event.tickets.map((t) => t.participantsPerTicket || 1)) : 1;
-  const currency = hasTickets ? event.tickets[0].currency : 'USD';
+  const currency = 'USD';
   return (
     <Card className="h-full flex flex-col border bg-card">
       <CardHeader className="p-0">

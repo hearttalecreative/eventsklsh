@@ -193,7 +193,7 @@ const Dashboard = () => {
           ev.status,
           capacityForEvent(ev).toString(),
           effectiveUnitAmount(minTicket).toString(),
-          minTicket.currency.toUpperCase(),
+          'USD',
           ev.couponCode || "",
         ];
       }),
@@ -251,7 +251,7 @@ const Dashboard = () => {
             <CardTitle className="text-sm text-muted-foreground">Avg. min price</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold">{formatCurrency(kpis.avgMinPrice, filtered[0]?.tickets[0]?.currency?.toUpperCase?.() || "USD")}</div>
+            <div className="text-3xl font-semibold">{formatCurrency(kpis.avgMinPrice, 'USD')}</div>
           </CardContent>
         </Card>
         <Card className="bg-card border animate-enter">
@@ -361,7 +361,7 @@ const Dashboard = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                     <YAxis />
-                    <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
+                    <Tooltip formatter={(v:number)=>formatCurrency(v, 'USD')} />
                     <Bar dataKey="ticketRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -379,7 +379,7 @@ const Dashboard = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
                     <YAxis />
-                    <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
+                    <Tooltip formatter={(v:number)=>formatCurrency(v, 'USD')} />
                     <Bar dataKey="addonRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
                   </BarChart>
                 </ResponsiveContainer>
