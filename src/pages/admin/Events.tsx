@@ -72,8 +72,12 @@ const AdminEvents = () => {
   const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]); // 0..6
   const [recurrenceMonths, setRecurrenceMonths] = useState<number>(1);
 
-  // Sorting for events table
+  // Sorting and filters for events table
   const [evOrderBy, setEvOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>("upcoming");
+  const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | '1'..'12'
+  const [filterYear, setFilterYear] = useState<string>('all');   // 'all' | '2025' etc
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
 
   // Edit event dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -409,6 +413,29 @@ const deleteTicket = async (id: string) => {
     setEvents(arr => arr.filter(e => e.id !== eventId));
     await logAdmin('event_deleted','event', eventId);
   };
+
+  // Bulk actions
+  const bulkUpdateStatus = async (next: 'draft' | 'published' | 'archived') => {
+    if (selectedIds.length === 0) return;
+    const { error } = await supabase.from('events').update({ status: next }).in('id', selectedIds as any);
+    if (error) return alert(error.message);
+    setEvents(arr => arr.map(e => selectedIds.includes(e.id) ? { ...e, status: next } : e));
+    setSelectedIds([]);
+    await logAdmin('events_bulk_status','event', null as any, { next, count: selectedIds.length });
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Delete ${selectedIds.length} selected event(s)? This cannot be undone.`)) return;
+    await supabase.from('tickets').delete().in('event_id', selectedIds as any);
+    await supabase.from('addons').delete().in('event_id', selectedIds as any);
+    const { error } = await supabase.from('events').delete().in('id', selectedIds as any);
+    if (error) return alert(error.message);
+    setEvents(arr => arr.filter(e => !selectedIds.includes(e.id)));
+    await logAdmin('events_bulk_deleted','event', null as any, { count: selectedIds.length });
+    setSelectedIds([]);
+  };
+
   // Export attendees as CSV
   const exportAttendeesCsv = () => {
     const headers = ['Name','Email','Seat','Zone','Checked in','Created at'];
@@ -446,10 +473,21 @@ const deleteTicket = async (id: string) => {
     alert('Image uploaded');
   };
 
-  // Events ordering
-  const sortedEvents = useMemo(() => {
+  // Events ordering + filters
+  const displayedEvents = useMemo(() => {
+    const monthNum = filterMonth === 'all' ? null : parseInt(filterMonth, 10);
+    const yearNum = filterYear === 'all' ? null : parseInt(filterYear, 10);
+    const filtered = events.filter((ev) => {
+      const d = new Date(ev.starts_at);
+      const m = d.getMonth() + 1;
+      const y = d.getFullYear();
+      const okM = monthNum ? m === monthNum : true;
+      const okY = yearNum ? y === yearNum : true;
+      return okM && okY;
+    });
+
     const now = Date.now();
-    const arr = [...events];
+    const arr = [...filtered];
     switch (evOrderBy) {
       case 'title-asc':
         return arr.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
@@ -471,7 +509,7 @@ const deleteTicket = async (id: string) => {
         return [...future, ...past];
       }
     }
-  }, [events, evOrderBy]);
+  }, [events, evOrderBy, filterMonth, filterYear]);
   return (
     <AdminRoute>
       <main className="container mx-auto py-8 space-y-8">
@@ -588,9 +626,29 @@ const deleteTicket = async (id: string) => {
         </section>
 
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">All events</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Month</Label>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {['1','2','3','4','5','6','7','8','9','10','11','12'].map(m=> (
+                    <SelectItem key={m} value={m}>{new Date(2025, parseInt(m)-1, 1).toLocaleString(undefined,{month:'short'})}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Label className="text-sm text-muted-foreground">Year</Label>
+              <Select value={filterYear} onValueChange={setFilterYear}>
+                <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {Array.from(new Set(events.map(e=> new Date(e.starts_at).getFullYear()))).sort().map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Label className="text-sm text-muted-foreground">Order</Label>
               <Select value={evOrderBy} onValueChange={setEvOrderBy as any}>
                 <SelectTrigger className="w-44"><SelectValue placeholder="Sort" /></SelectTrigger>
@@ -603,10 +661,32 @@ const deleteTicket = async (id: string) => {
               </Select>
             </div>
           </div>
+
+          {selectedIds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 p-3 border rounded-md bg-muted/30">
+              <span className="text-sm">Selected: {selectedIds.length}</span>
+              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('published')}>Publish</Button>
+              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('draft')}>Mark draft</Button>
+              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('archived')}>Archive</Button>
+              <Button size="sm" variant="destructive" onClick={bulkDelete}>Delete</Button>
+              <Button size="sm" variant="secondary" onClick={()=>setSelectedIds([])}>Clear</Button>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground border-b">
+                  <th className="py-3 pr-4 w-10">
+                    <Checkbox
+                      checked={displayedEvents.length>0 && selectedIds.length === displayedEvents.length}
+                      onCheckedChange={(v)=>{
+                        const checked = Boolean(v);
+                        setSelectedIds(checked ? displayedEvents.map(e=>e.id) : []);
+                      }}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="py-3 pr-4">Title</th>
                   <th className="py-3 pr-4">Start</th>
                   <th className="py-3 pr-4">Venue</th>
@@ -615,8 +695,18 @@ const deleteTicket = async (id: string) => {
                 </tr>
               </thead>
               <tbody>
-                {sortedEvents.map(ev => (
+                {displayedEvents.map(ev => (
                   <tr key={ev.id} className="border-b">
+                    <td className="py-3 pr-4">
+                      <Checkbox
+                        checked={selectedIds.includes(ev.id)}
+                        onCheckedChange={(v)=>{
+                          const checked = Boolean(v);
+                          setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
+                        }}
+                        aria-label={`Select ${ev.title}`}
+                      />
+                    </td>
                     <td className="py-3 pr-4 font-medium">{ev.title}</td>
                     <td className="py-3 pr-4">{new Date(ev.starts_at).toLocaleString()}</td>
                     <td className="py-3 pr-4">{ev.venues?.name || '-'}</td>
