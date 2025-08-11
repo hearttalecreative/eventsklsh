@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
     ticket.earlyBirdAmountCents &&
@@ -57,6 +57,7 @@ const EventDetail = () => {
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [coupon, setCoupon] = useState('');
+  const [couponValid, setCouponValid] = useState(false);
 
   const [showFullDesc, setShowFullDesc] = useState(false);
   const { shortDesc, isLong } = useMemo(() => {
@@ -90,7 +91,7 @@ const EventDetail = () => {
     return sum + (addon ? addon.unitAmountCents * qty : 0);
   }, 0);
 
-  const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal) * 0.5) : 0; // 50% demo (tickets only)
+  const discount = couponValid ? Math.round((ticketsSubtotal) * 0.5) : 0; // 50% demo (tickets only)
   const total = ticketsSubtotal + addonsSubtotal - discount;
 
 
@@ -193,7 +194,7 @@ const proceed = () => {
             </div>
             <MapLeaflet lat={event.venue.lat} lng={event.venue.lng} name={event.venue.name} />
             <div className="prose max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {(showFullDesc || !isLong) ? (event.description || '') : `${shortDesc}...`}
               </ReactMarkdown>
               {isLong && (
@@ -345,12 +346,23 @@ const proceed = () => {
               <label htmlFor="terms" className="text-sm">I accept the <a href="/terms" className="underline">Terms and Conditions</a></label>
             </div>
             <div className="flex items-center gap-2 mb-3">
-              <Input placeholder="Coupon code" value={coupon} onChange={(e) => setCoupon(e.target.value)} className="max-w-xs" />
-              <Button type="button" variant="outline" onClick={() => {
-                if (coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase()) {
-                  toast.success('Coupon applied');
-                } else {
-                  toast.error('Invalid coupon');
+              <Input placeholder="Coupon code" value={coupon} onChange={(e) => { setCoupon(e.target.value); setCouponValid(false); }} className="max-w-xs" />
+              <Button type="button" variant="outline" onClick={async () => {
+                if (!coupon) { toast.error('Enter a coupon'); return; }
+                try {
+                  const { data, error } = await supabase.functions.invoke('validate-coupon', {
+                    body: { eventId: event.id, code: coupon }
+                  });
+                  if (error) throw error as any;
+                  if (data?.valid) {
+                    setCouponValid(true);
+                    toast.success('Coupon applied');
+                  } else {
+                    setCouponValid(false);
+                    toast.error('Invalid coupon');
+                  }
+                } catch (err: any) {
+                  toast.error(err?.message || 'Failed to validate coupon');
                 }
               }}>Apply coupon</Button>
             </div>

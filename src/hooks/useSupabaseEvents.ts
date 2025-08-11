@@ -48,7 +48,7 @@ export function useSupabaseEventsList() {
       // 1) events (published)
       const { data: evs, error: eErr } = await supabase
         .from('events')
-        .select('id,title,short_description,image_url,starts_at,ends_at,venue_id,status,coupon_code,category,description,sku')
+        .select('id,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku')
         .eq('status', 'published')
         .order('starts_at', { ascending: true });
       if (eErr) {
@@ -105,7 +105,7 @@ export function useSupabaseEventsList() {
         tickets: ticketsByEvent.get(r.id) || [],
         addons: addonsByEvent.get(r.id) || [],
         capacityTotal: r.capacity_total || undefined,
-        couponCode: r.coupon_code || undefined,
+        
         instructions: undefined,
         recurrenceRule: r.recurrence_rule || undefined,
         recurrenceText: r.recurrence_text || undefined,
@@ -131,7 +131,7 @@ export function useSupabaseEventDetail(id: string | undefined) {
       setLoading(true);
       const { data: e, error } = await supabase
         .from('events')
-        .select('id,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,coupon_code,category,sku,recurrence_rule,recurrence_text,capacity_total')
+        .select('id,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total')
         .eq('id', id)
         .maybeSingle();
       if (error || !e) { setLoading(false); return; }
@@ -157,7 +157,7 @@ export function useSupabaseEventDetail(id: string | undefined) {
         tickets: (tks || []).map(mapTicket),
         addons: (ads || []).map(mapAddon),
         capacityTotal: e.capacity_total || undefined,
-        couponCode: e.coupon_code || undefined,
+        
         instructions: undefined,
         recurrenceRule: e.recurrence_rule || undefined,
         recurrenceText: e.recurrence_text || undefined,
