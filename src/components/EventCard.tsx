@@ -26,6 +26,7 @@ interface Props {
 
 export const EventCard = ({ event }: Props) => {
   const minPrice = Math.min(...event.tickets.map((t) => effectiveUnitAmount(t)));
+  const maxPax = Math.max(...event.tickets.map((t) => t.participantsPerTicket || 1));
   return (
     <Card className="h-full flex flex-col border bg-card">
       <CardHeader className="p-0">
@@ -54,6 +55,12 @@ export const EventCard = ({ event }: Props) => {
             <span className="text-muted-foreground">Venue</span>
             <span className="font-medium truncate max-w-[60%]" title={`${event.venue.name} — ${event.venue.address}`}>{event.venue.name}</span>
           </div>
+          {maxPax > 1 && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Multi-participant</span>
+              <span className="font-medium">Up to {maxPax} per ticket</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">From</span>
             <span className="font-medium">{formatCurrency(minPrice, event.tickets[0].currency)}</span>

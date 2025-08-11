@@ -13,7 +13,7 @@ export const events: EventItem[] = [
     imageUrl:
       "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=1600&auto=format&fit=crop",
     startsAt: plusDays(7),
-    endsAt: plusDays(7) /* same day, sample */,
+    endsAt: plusDays(7),
     venue: {
       name: "La Casa del Sol",
       address: "Av. Córdoba 1234, Buenos Aires",
@@ -62,7 +62,7 @@ export const events: EventItem[] = [
     capacityTotal: 100,
     couponCode: "HALFOFF50",
     instructions: "Please arrive 15 minutes early. Bring ID. No outside food or drinks.",
-   },
+  },
   {
     id: "ev-2",
     title: "Coffee Tasting Workshop",
@@ -94,6 +94,14 @@ export const events: EventItem[] = [
         earlyBirdStart: nowIso,
         earlyBirdEnd: plusDays(5),
       },
+      {
+        id: "t2",
+        name: "Pair Ticket (2)",
+        unitAmountCents: 5200,
+        currency: "usd",
+        capacityTotal: 10,
+        participantsPerTicket: 2,
+      },
     ],
     addons: [{ id: "a1", name: "Premium Beans (250g)", unitAmountCents: 1200, description: "Single-origin roasted beans to brew 10–12 delicious cups at home." }],
     capacityTotal: 30,
@@ -101,5 +109,50 @@ export const events: EventItem[] = [
     recurrenceRule: "FREQ=WEEKLY;BYDAY=SA",
     recurrenceText: "Every Saturday",
     instructions: "Bring your own cup and arrive 10 minutes early.",
-   },
+  },
+  {
+    id: "ev-3",
+    title: "Artisanal Bread Class",
+    shortDescription: "Learn sourdough basics and bake your first loaf.",
+    description:
+      "A beginner-friendly, hands-on workshop to demystify sourdough. We’ll cover starters, hydration, autolyse, stretch-and-fold, bulk fermentation and scoring. Each participant mixes, shapes and bakes a mini loaf to take home, plus a jar of active starter and a printed guide. Expect a relaxed, supportive environment with time for Q&A.",
+    imageUrl:
+      "https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1600&auto=format&fit=crop",
+    startsAt: plusDays(21),
+    endsAt: plusDays(21),
+    venue: {
+      name: "Kitchen Lab",
+      address: "123 Baker St, London",
+      lat: 51.5074,
+      lng: -0.1278,
+    },
+    category: "Class",
+    sku: "EV-BRD-0003",
+    status: "published",
+    tickets: [
+      {
+        id: "t1",
+        name: "General",
+        unitAmountCents: 4500,
+        currency: "usd",
+        capacityTotal: 20,
+        participantsPerTicket: 1,
+      },
+      {
+        id: "t2",
+        name: "Friends (2)",
+        unitAmountCents: 8000,
+        currency: "usd",
+        capacityTotal: 10,
+        participantsPerTicket: 2,
+      },
+    ],
+    addons: [
+      { id: "a1", name: "Tool Kit", unitAmountCents: 2000, description: "Bench scraper, lame, and proofing basket." },
+      { id: "a2", name: "Extra Starter", unitAmountCents: 500 },
+    ],
+    capacityTotal: 30,
+    couponCode: "HALFOFF50",
+    instructions: "Wear comfortable clothes and closed shoes.",
+  },
 ];

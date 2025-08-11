@@ -71,8 +71,14 @@ const AdminEvents = () => {
 
   // Venue create dialog state
   const [venueDialogOpen, setVenueDialogOpen] = useState(false);
-  const location = useLocation();
 
+  // Venue edit dialog state
+  const [venueEditOpen, setVenueEditOpen] = useState(false);
+  const [venueEditing, setVenueEditing] = useState<Venue | null>(null);
+  const [vName, setVName] = useState("");
+  const [vAddress, setVAddress] = useState("");
+
+  const location = useLocation();
   const handleVenueCreated = (venue: Venue) => {
     setVenues((arr) => [...arr, venue]);
     setVenueId(venue.id);
@@ -124,6 +130,24 @@ const AdminEvents = () => {
     setVenueDialogOpen(true);
   };
 
+  const openVenueEdit = (v: Venue) => {
+    setVenueEditing(v);
+    setVName(v.name || "");
+    setVAddress((v as any).address || "");
+    setVenueEditOpen(true);
+  };
+
+  const saveVenueEdit = async () => {
+    if (!venueEditing) return;
+    const { error } = await supabase
+      .from('venues')
+      .update({ name: vName, address: vAddress || null })
+      .eq('id', (venueEditing as any).id);
+    if (error) return alert(error.message);
+    setVenues(arr => arr.map(v => v.id === (venueEditing as any).id ? { ...v, name: vName, address: vAddress } : v));
+    setVenueEditOpen(false);
+    setVenueEditing(null);
+  };
   const createEvent = async () => {
     if (!title || !startsAt) return alert("Title and start are required");
     const { data: session } = await supabase.auth.getSession();
@@ -718,6 +742,21 @@ const AdminEvents = () => {
             <DialogFooter>
               <Button variant="outline" onClick={exportAttendeesCsv}>Export CSV</Button>
               <Button variant="secondary" onClick={()=>setAttendeesOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={venueEditOpen} onOpenChange={setVenueEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit venue</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input placeholder="Name" value={vName} onChange={(e)=>setVName(e.target.value)} />
+              <Input placeholder="Address" value={vAddress} onChange={(e)=>setVAddress(e.target.value)} />
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={()=>setVenueEditOpen(false)}>Cancel</Button>
+              <Button onClick={saveVenueEdit}>Save</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -13,7 +13,6 @@ import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
     ticket.earlyBirdAmountCents &&
