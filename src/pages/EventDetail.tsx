@@ -191,27 +191,6 @@ const proceed = async () => {
     }
   };
 
-  const testPurchase = async () => {
-    if (!acceptedTerms) {
-      toast.error('Please accept Terms and Conditions');
-      return;
-    }
-    const invalid = participants.findIndex((p) => !p.fullName || !p.email || !p.phone);
-    if (invalid !== -1) {
-      toast.error(`Please complete participant #${invalid + 1}`);
-      return;
-    }
-    const primary = participants[0];
-    try {
-      const { error } = await supabase.functions.invoke('send-confirmation', {
-        body: { name: primary.fullName, email: primary.email, eventTitle: event.title },
-      });
-      if (error) throw error as any;
-      toast.success('Test email sent. Please check your inbox.');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to send test email');
-    }
-  };
   return (
     <main className="container mx-auto py-10 space-y-10">
       <Helmet>

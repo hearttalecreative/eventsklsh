@@ -35,26 +35,6 @@ const AdminLogin = () => {
     navigate("/dashboard");
   };
 
-  const onSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      alert('Please enter a valid email and password');
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/` }
-    });
-    setLoading(false);
-    if (error) {
-      alert(error.message);
-      return;
-    }
-    alert('Account created. Please check your email (or disable confirmation for testing) and then log in.');
-  };
-
   return (
     <main className="container mx-auto py-10">
       <Helmet>
@@ -71,10 +51,7 @@ const AdminLogin = () => {
             <form className="space-y-4" onSubmit={onLogin}>
               <Input type="email" placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} required />
               <Input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} required />
-              <div className="flex gap-2">
-                <Button type="submit" disabled={loading} className="flex-1">Log in</Button>
-                <Button type="button" variant="secondary" onClick={onSignUp} disabled={loading}>Sign up</Button>
-              </div>
+              <Button type="submit" disabled={loading} className="w-full">Log in</Button>
             </form>
           </CardContent>
         </Card>
