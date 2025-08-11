@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -99,7 +99,8 @@ const AdminEvents = () => {
   const [vAddress, setVAddress] = useState("");
 
   const location = useLocation();
-const handleVenueCreated = (venue: Venue) => {
+  const openedFromParamRef = useRef(false);
+  const handleVenueCreated = (venue: Venue) => {
     setVenues((arr) => [...arr, venue]);
     setVenueId(venue.id);
     logAdmin('venue_created','venue', venue.id, { name: venue.name });
@@ -117,15 +118,19 @@ const handleVenueCreated = (venue: Venue) => {
     load();
   }, []);
 
-  // Auto-open edit dialog when coming from dashboard with ?edit=<id>
+  // Auto-open edit dialog when coming from dashboard with ?edit=<id> (only once)
   useEffect(() => {
+    if (openedFromParamRef.current) return;
     if (!loading) {
       const params = new URLSearchParams(location.search);
       const editId = params.get('edit');
       if (editId) {
         const ev = events.find(e => e.id === editId);
-        if (ev) openEdit(ev);
+        if (ev) {
+          openEdit(ev);
+        }
       }
+      openedFromParamRef.current = true;
     }
   }, [loading, location.search, events]);
 
