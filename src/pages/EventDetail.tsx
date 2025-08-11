@@ -182,7 +182,7 @@ const proceed = async () => {
       });
       if (error) throw error as any;
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.assign(data.url);
       } else {
         throw new Error('No checkout URL returned');
       }
