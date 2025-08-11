@@ -221,11 +221,6 @@ const Dashboard = () => {
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Events Dashboard</h1>
-          {usingSupabase ? (
-            <p className="text-muted-foreground text-sm">Connected to Supabase. Manage your real events and data.</p>
-          ) : (
-            <p className="text-muted-foreground text-sm">To create and edit events with real data, sign in and connect Supabase.</p>
-          )}
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline"><a href="/admin/events">Manage events</a></Button>
@@ -285,16 +280,18 @@ const Dashboard = () => {
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="capacity" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="h-64 overflow-x-auto">
+          <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
+            <ResponsiveContainer width="100%" height={256}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="capacity" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </section>
 
@@ -302,71 +299,91 @@ const Dashboard = () => {
         <Card className="bg-card border animate-enter">
           <CardHeader><CardTitle>Tickets sold per event</CardTitle></CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="ticketsSold" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64 overflow-x-auto">
+              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
+                <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="ticketsSold" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-card border animate-enter">
           <CardHeader><CardTitle>Participants per event</CardTitle></CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="attendees" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64 overflow-x-auto">
+              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
+                <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="attendees" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-card border animate-enter">
           <CardHeader><CardTitle>Remaining spots</CardTitle></CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="remaining" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64 overflow-x-auto">
+              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
+                <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="remaining" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-card border animate-enter">
           <CardHeader><CardTitle>Revenue: tickets</CardTitle></CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
-                <Bar dataKey="ticketRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64 overflow-x-auto">
+              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
+                <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <YAxis />
+                    <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
+                    <Bar dataKey="ticketRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="bg-card border animate-enter lg:col-span-2">
           <CardHeader><CardTitle>Revenue: add-ons</CardTitle></CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
-                <Bar dataKey="addonRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64 overflow-x-auto">
+              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
+                <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
+                    <YAxis />
+                    <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
+                    <Bar dataKey="addonRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </section>

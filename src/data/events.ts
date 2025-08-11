@@ -117,4 +117,21 @@ export const events: EventItem[] = [
       { id: "a1", name: "Journal + Pen", unitAmountCents: 1000, description: "Simple set for integration notes." },
     ],
   },
+  {
+    id: "ev-sh-test",
+    title: "Sound Healing Test Session (Demo)",
+    shortDescription: "Demo event to test flows: a gentle 60‑minute crystal bowls session with simple example content.",
+    description: "This is a test event intended for demo purposes only. It includes example copy, one ticket type and a stock image.",
+    imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1600&auto=format&fit=crop",
+    startsAt: plusDays(28),
+    endsAt: plusDays(28),
+    venue: { name: "Demo Studio", address: "789 Ocean Ave, Santa Monica", lat: 34.0195, lng: -118.4912 },
+    category: "Sound Healing",
+    sku: "EV-SH-TEST",
+    status: "published",
+    tickets: [
+      { id: "t1", name: "General Admission", unitAmountCents: 3000, currency: "usd", capacityTotal: 20, participantsPerTicket: 1 },
+    ],
+    addons: [],
+  },
 ];

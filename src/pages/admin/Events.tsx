@@ -90,6 +90,8 @@ const AdminEvents = () => {
   const [eEnds, setEEnds] = useState('');
   const [eVenueId, setEVenueId] = useState<string | undefined>(undefined);
   const [eStatus, setEStatus] = useState('draft');
+  const [eImageUrl, setEImageUrl] = useState('');
+  const [eImageFile, setEImageFile] = useState<File | null>(null);
 
   // Tickets advanced fields
   const [showAdvancedTicketFields, setShowAdvancedTicketFields] = useState(false);
@@ -155,6 +157,7 @@ const AdminEvents = () => {
     setEEnds(ev.ends_at ? ev.ends_at.slice(0,16) : '');
     setEVenueId(ev.venue_id || undefined);
     setEStatus(ev.status || 'draft');
+    setEImageUrl(ev.image_url || '');
     setEditOpen(true);
   };
   const createVenue = async () => {
@@ -251,6 +254,7 @@ const saveVenueEdit = async () => {
       ends_at: eEnds ? new Date(eEnds).toISOString() : null,
       venue_id: eVenueId || null,
       status: eStatus as any,
+      image_url: eImageUrl || null,
     };
 const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
     if (error) return alert(error.message);
@@ -473,6 +477,17 @@ const deleteTicket = async (id: string) => {
     alert('Image uploaded');
   };
 
+  // Image upload for edit dialog
+  const uploadEditImage = async () => {
+    if (!eImageFile) return alert('Select an image first');
+    const ext = eImageFile.name.split('.').pop() || 'jpg';
+    const path = `events/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('event-images').upload(path, eImageFile, { upsert: false });
+    if (error) return alert(error.message);
+    const { data } = supabase.storage.from('event-images').getPublicUrl(path);
+    setEImageUrl(data.publicUrl);
+    alert('Image uploaded');
+  };
   // Events ordering + filters
   const displayedEvents = useMemo(() => {
     const monthNum = filterMonth === 'all' ? null : parseInt(filterMonth, 10);
@@ -531,16 +546,15 @@ const deleteTicket = async (id: string) => {
               <Input placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
               <div className="space-y-1">
                 <Textarea
-                  placeholder="Short description (max 50 words)"
+                  placeholder="Short description (max 350 characters)"
                   value={shortDesc}
                   onChange={(e)=>{
-                    const words = e.target.value.trim().split(/\s+/).filter(Boolean);
-                    const limited = words.slice(0,50).join(' ');
-                    setShortDesc(limited);
+                    const val = e.target.value;
+                    setShortDesc(val.slice(0, 350));
                   }}
                 />
                 <p className="text-xs text-muted-foreground text-right">
-                  Max 50 words — {Math.max(0, 50 - (shortDesc.trim().split(/\s+/).filter(Boolean).length || 0))} left
+                  {shortDesc.length}/350
                 </p>
               </div>
               <div className="space-y-1">
@@ -1070,16 +1084,15 @@ const deleteTicket = async (id: string) => {
               <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
               <div className="space-y-1">
                 <Textarea
-                  placeholder="Short description (max 50 words)"
+                  placeholder="Short description (max 350 characters)"
                   value={eShort}
                   onChange={(e)=>{
-                    const words = e.target.value.trim().split(/\s+/).filter(Boolean);
-                    const limited = words.slice(0,50).join(' ');
-                    setEShort(limited);
+                    const val = e.target.value;
+                    setEShort(val.slice(0, 350));
                   }}
                 />
                 <p className="text-xs text-muted-foreground text-right">
-                  Max 50 words — {Math.max(0, 50 - (eShort.trim().split(/\s+/).filter(Boolean).length || 0))} left
+                  {eShort.length}/350
                 </p>
               </div>
               <div className="space-y-1">
@@ -1105,6 +1118,11 @@ const deleteTicket = async (id: string) => {
                     <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3 items-center">
+                <Input type="file" accept="image/*" onChange={(e)=>setEImageFile(e.target.files?.[0] || null)} />
+                <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
+                {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
               </div>
             </div>
             <DialogFooter>
