@@ -529,7 +529,20 @@ const deleteTicket = async (id: string) => {
             <CardHeader><CardTitle>Create New Event</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <Input placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
-              <Textarea placeholder="Short description" value={shortDesc} onChange={(e)=>setShortDesc(e.target.value)} />
+              <div className="space-y-1">
+                <Textarea
+                  placeholder="Short description (max 50 words)"
+                  value={shortDesc}
+                  onChange={(e)=>{
+                    const words = e.target.value.trim().split(/\s+/).filter(Boolean);
+                    const limited = words.slice(0,50).join(' ');
+                    setShortDesc(limited);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  Max 50 words — {Math.max(0, 50 - (shortDesc.trim().split(/\s+/).filter(Boolean).length || 0))} left
+                </p>
+              </div>
               <div className="space-y-1">
                 <Label>Long description</Label>
                 <RichMarkdownEditor value={longDesc} onChange={setLongDesc} />
@@ -872,12 +885,6 @@ const deleteTicket = async (id: string) => {
                       <Button size="icon" variant="outline" title="Edit" aria-label="Edit" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>
                         <Edit3 className="w-4 h-4" />
                       </Button>
-                      <Button size="icon" variant="secondary" title="Manage tickets" aria-label="Manage tickets" onClick={()=>openTickets(ev.id)}>
-                        <Ticket className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="secondary" title="Manage add-ons" aria-label="Manage add-ons" onClick={()=>openAddons(ev.id)}>
-                        <Package className="w-4 h-4" />
-                      </Button>
                       <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" onClick={()=>openAttendees(ev.id)}>
                         <Users className="w-4 h-4" />
                       </Button>
@@ -1061,7 +1068,20 @@ const deleteTicket = async (id: string) => {
             </DialogHeader>
             <div className="space-y-3">
               <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
-              <Textarea placeholder="Short description" value={eShort} onChange={(e)=>setEShort(e.target.value)} />
+              <div className="space-y-1">
+                <Textarea
+                  placeholder="Short description (max 50 words)"
+                  value={eShort}
+                  onChange={(e)=>{
+                    const words = e.target.value.trim().split(/\s+/).filter(Boolean);
+                    const limited = words.slice(0,50).join(' ');
+                    setEShort(limited);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  Max 50 words — {Math.max(0, 50 - (eShort.trim().split(/\s+/).filter(Boolean).length || 0))} left
+                </p>
+              </div>
               <div className="space-y-1">
                 <Label>Long description</Label>
                 <RichMarkdownEditor value={eLong} onChange={setELong} />

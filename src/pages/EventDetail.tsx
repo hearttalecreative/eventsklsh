@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Facebook, Mail, MessageSquare, MessageCircle, Send, Share2 } from 'lucide-react';
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
@@ -193,21 +194,40 @@ const proceed = () => {
           </div>
           <article className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => {
+            <Button variant="outline" size="icon" aria-label="Share" onClick={() => {
               if (navigator.share) {
                 navigator.share({ title: event.title, text: event.shortDescription, url: typeof window !== 'undefined' ? window.location.href : '' });
               } else {
                 window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`,'_blank');
               }
             }}>
-              Share
+              <Share2 className="w-4 h-4" />
             </Button>
-            {/* Share links */}
-            <a className="text-sm story-link" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} target="_blank" rel="noopener noreferrer">Facebook</a>
-            <a className="text-sm story-link" href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent((event.shortDescription||'') + '\n' + (typeof window !== 'undefined' ? window.location.href : ''))}`}>Email</a>
-            <a className="text-sm story-link" href={`sms:?&body=${encodeURIComponent(event.title + ' - ' + (typeof window !== 'undefined' ? window.location.href : ''))}`}>SMS</a>
-            <a className="text-sm story-link" href={`https://wa.me/?text=${encodeURIComponent(event.title + ' - ' + (typeof window !== 'undefined' ? window.location.href : ''))}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
-            <a className="text-sm story-link" href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer">Telegram</a>
+            <Button asChild variant="outline" size="icon" aria-label="Facebook">
+              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} target="_blank" rel="noopener noreferrer">
+                <Facebook className="w-4 h-4" />
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="icon" aria-label="Email">
+              <a href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent((event.shortDescription||'') + '\n' + (typeof window !== 'undefined' ? window.location.href : ''))}`}>
+                <Mail className="w-4 h-4" />
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="icon" aria-label="SMS">
+              <a href={`sms:?&body=${encodeURIComponent(event.title + ' - ' + (typeof window !== 'undefined' ? window.location.href : ''))}`}>
+                <MessageSquare className="w-4 h-4" />
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="icon" aria-label="WhatsApp">
+              <a href={`https://wa.me/?text=${encodeURIComponent(event.title + ' - ' + (typeof window !== 'undefined' ? window.location.href : ''))}`} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="w-4 h-4" />
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="icon" aria-label="Telegram">
+              <a href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer">
+                <Send className="w-4 h-4" />
+              </a>
+            </Button>
           </div>
             <h1 className="text-4xl font-bold">{event.title}</h1>
             <p className="text-muted-foreground">{event.shortDescription}</p>

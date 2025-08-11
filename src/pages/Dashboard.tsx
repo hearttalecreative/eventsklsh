@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { events as mockEvents } from "@/data/events";
 import { EventItem, TicketType } from "@/types/events";
@@ -24,6 +24,7 @@ import {
   Tooltip,
   Bar,
 } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
@@ -60,6 +61,45 @@ const Dashboard = () => {
   const source = useMemo(() => (supa && supa.length ? supa : mockEvents), [supa]);
   const usingSupabase = Boolean(supa && supa.length);
 
+  const [attendeesMap, setAttendeesMap] = useState<Record<string, number>>({});
+  const [ticketsSoldMap, setTicketsSoldMap] = useState<Record<string, number>>({});
+  const [ticketRevenueMap, setTicketRevenueMap] = useState<Record<string, number>>({});
+  const [addonRevenueMap, setAddonRevenueMap] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    async function loadAgg() {
+      if (!supa || supa.length === 0) return;
+      const eventIds = supa.map((e) => e.id);
+      const [{ data: attendees }, { data: orders }, { data: items }] = await Promise.all([
+        supabase.from('attendees').select('event_id').in('event_id', eventIds),
+        supabase.from('orders').select('id,event_id,status').in('event_id', eventIds),
+        supabase.from('order_items').select('order_id,quantity,total_amount_cents,ticket_id,addon_id'),
+      ]);
+      const paidOrders = new Set((orders || []).filter((o:any)=>o.status==='paid').map((o:any)=>o.id));
+      const attendeesBy: Record<string, number> = {};
+      (attendees || []).forEach((a:any) => { attendeesBy[a.event_id] = (attendeesBy[a.event_id]||0) + 1; });
+      setAttendeesMap(attendeesBy);
+      const ticketsSoldBy: Record<string, number> = {};
+      const ticketRevenueBy: Record<string, number> = {};
+      const addonRevenueBy: Record<string, number> = {};
+      (items || []).forEach((it:any) => {
+        if (!paidOrders.has(it.order_id)) return;
+        const evId = (orders || []).find((o:any)=>o.id===it.order_id)?.event_id;
+        if (!evId) return;
+        if (it.ticket_id) {
+          ticketsSoldBy[evId] = (ticketsSoldBy[evId]||0) + (it.quantity||0);
+          ticketRevenueBy[evId] = (ticketRevenueBy[evId]||0) + (it.total_amount_cents||0);
+        } else if (it.addon_id) {
+          addonRevenueBy[evId] = (addonRevenueBy[evId]||0) + (it.total_amount_cents||0);
+        }
+      });
+      setTicketsSoldMap(ticketsSoldBy);
+      setTicketRevenueMap(ticketRevenueBy);
+      setAddonRevenueMap(addonRevenueBy);
+    }
+    loadAgg();
+  }, [supa]);
+
   const filtered = useMemo(() => {
     return source.filter((ev) => {
       const matchesQ = q
@@ -86,10 +126,16 @@ const Dashboard = () => {
   const chartData = useMemo(
     () =>
       filtered.map((ev) => ({
+        id: ev.id,
         name: ev.title.length > 18 ? ev.title.slice(0, 18) + "…" : ev.title,
         capacity: capacityForEvent(ev),
+        attendees: attendeesMap[ev.id] || 0,
+        ticketsSold: ticketsSoldMap[ev.id] || 0,
+        remaining: Math.max(0, capacityForEvent(ev) - (attendeesMap[ev.id] || 0)),
+        ticketRevenue: ticketRevenueMap[ev.id] || 0,
+        addonRevenue: addonRevenueMap[ev.id] || 0,
       })),
-    [filtered]
+    [filtered, attendeesMap, ticketsSoldMap, ticketRevenueMap, addonRevenueMap]
   );
 
   const sorted = useMemo(() => {
@@ -252,58 +298,77 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <section className="space-y-3 animate-enter">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Events</h2>
-          <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link to="/">Back to site</Link>
-            </Button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-muted-foreground border-b">
-                <th className="py-3 pr-4">Title</th>
-                <th className="py-3 pr-4">Start</th>
-                <th className="py-3 pr-4">End</th>
-                <th className="py-3 pr-4">Venue</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3 pr-4">Capacity</th>
-                <th className="py-3 pr-4">From</th>
-                <th className="py-3 pr-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((ev) => {
-                const min = Math.min(...ev.tickets.map((t) => effectiveUnitAmount(t)));
-                const currency = ev.tickets[0]?.currency || "usd";
-                return (
-                  <tr key={ev.id} className="border-b hover:bg-muted/50">
-                    <td className="py-3 pr-4 font-medium">{ev.title}</td>
-                    <td className="py-3 pr-4">{new Date(ev.startsAt).toLocaleString()}</td>
-                    <td className="py-3 pr-4">{new Date(ev.endsAt).toLocaleString()}</td>
-                    <td className="py-3 pr-4">{ev.venue.name}</td>
-                    <td className="py-3 pr-4 capitalize">{ev.status}</td>
-                    <td className="py-3 pr-4">{capacityForEvent(ev)}</td>
-                    <td className="py-3 pr-4">{formatCurrency(min, currency.toUpperCase())}</td>
-                    <td className="py-3 pr-4">
-                      <div className="flex gap-2">
-                        <Button asChild size="sm">
-                          <Link to={`/event/${ev.id}`}>View</Link>
-                        </Button>
-                        <Button asChild size="sm" variant="outline">
-                          <Link to={`/admin/events?edit=${ev.id}`}>Edit</Link>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card className="bg-card border animate-enter">
+          <CardHeader><CardTitle>Tickets sold per event</CardTitle></CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="ticketsSold" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border animate-enter">
+          <CardHeader><CardTitle>Participants per event</CardTitle></CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="attendees" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border animate-enter">
+          <CardHeader><CardTitle>Remaining spots</CardTitle></CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="remaining" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border animate-enter">
+          <CardHeader><CardTitle>Revenue: tickets</CardTitle></CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
+                <Bar dataKey="ticketRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border animate-enter lg:col-span-2">
+          <CardHeader><CardTitle>Revenue: add-ons</CardTitle></CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(v:number)=>formatCurrency(v, (filtered[0]?.tickets[0]?.currency || 'usd').toUpperCase())} />
+                <Bar dataKey="addonRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </section>
 
       {usingSupabase ? null : (
