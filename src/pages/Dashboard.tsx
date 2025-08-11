@@ -65,6 +65,8 @@ const Dashboard = () => {
   const [ticketsSoldMap, setTicketsSoldMap] = useState<Record<string, number>>({});
   const [ticketRevenueMap, setTicketRevenueMap] = useState<Record<string, number>>({});
   const [addonRevenueMap, setAddonRevenueMap] = useState<Record<string, number>>({});
+  const [summaryMap, setSummaryMap] = useState<Record<string, { total: number; ordersPaid: number; ordersTotal: number }>>({});
+
 
   useEffect(() => {
     async function loadAgg() {
@@ -96,6 +98,26 @@ const Dashboard = () => {
       setTicketsSoldMap(ticketsSoldBy);
       setTicketRevenueMap(ticketRevenueBy);
       setAddonRevenueMap(addonRevenueBy);
+
+      // Admin-only financial summary via secure RPC
+      try {
+        const { data: summary, error: summaryError } = await (supabase as any).rpc('get_event_sales_summary_admin');
+        if (!summaryError && Array.isArray(summary)) {
+          const map: Record<string, { total: number; ordersPaid: number; ordersTotal: number }> = {};
+          summary.forEach((row: any) => {
+            if (row?.event_id && eventIds.includes(row.event_id)) {
+              map[row.event_id] = {
+                total: Number(row.total_amount_cents) || 0,
+                ordersPaid: Number(row.orders_paid) || 0,
+                ordersTotal: Number(row.orders_total) || 0,
+              };
+            }
+          });
+          setSummaryMap(map);
+        }
+      } catch (e) {
+        console.warn('get_event_sales_summary_admin failed or unauthorized');
+      }
     }
     loadAgg();
   }, [supa]);
@@ -122,6 +144,14 @@ const Dashboard = () => {
     const published = filtered.filter((e) => e.status === "published").length;
     return { totalEvents, totalCapacity, avgMinPrice, published };
   }, [filtered]);
+
+  const paidRevenue = useMemo(() => {
+    return filtered.reduce((sum, ev) => sum + (summaryMap[ev.id]?.total || 0), 0);
+  }, [filtered, summaryMap]);
+
+  const paidOrders = useMemo(() => {
+    return filtered.reduce((sum, ev) => sum + (summaryMap[ev.id]?.ordersPaid || 0), 0);
+  }, [filtered, summaryMap]);
 
   const chartData = useMemo(
     () =>
@@ -229,7 +259,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <Card className="bg-card border animate-enter">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Total events</CardTitle>
@@ -260,6 +290,22 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-semibold">{kpis.published}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border animate-enter">
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Paid revenue (RPC)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold">{formatCurrency(paidRevenue, 'USD')}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border animate-enter">
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Paid orders (RPC)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold">{paidOrders}</div>
           </CardContent>
         </Card>
       </section>
