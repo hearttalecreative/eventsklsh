@@ -57,6 +57,13 @@ const EventDetail = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [coupon, setCoupon] = useState('');
 
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  const { shortDesc, isLong } = useMemo(() => {
+    const desc = event?.description || '';
+    const words = desc.trim().split(/\s+/).filter(Boolean);
+    return { shortDesc: words.slice(0, 100).join(' '), isLong: words.length > 100 };
+  }, [event?.description]);
+
   useEffect(() => {
     // keep participants array length in sync
     setParticipants((prev) => {
@@ -85,11 +92,6 @@ const EventDetail = () => {
   const discount = coupon && coupon.toUpperCase() === (event.couponCode || '').toUpperCase() ? Math.round((ticketsSubtotal) * 0.5) : 0; // 50% demo (tickets only)
   const total = ticketsSubtotal + addonsSubtotal - discount;
 
-  const [showFullDesc, setShowFullDesc] = useState(false);
-  const { shortDesc, isLong } = useMemo(() => {
-    const words = (event.description || '').trim().split(/\s+/);
-    return { shortDesc: words.slice(0, 100).join(' '), isLong: words.length > 100 };
-  }, [event.description]);
 
   const eventJsonLd = {
     "@context": "https://schema.org",
