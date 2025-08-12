@@ -30,8 +30,6 @@ function mapVenue(row: any): Venue {
   return {
     name: row.name,
     address: row.address || '',
-    lat: row.lat ?? 0,
-    lng: row.lng ?? 0,
   };
 }
 
@@ -73,7 +71,7 @@ export function useSupabaseEventsList() {
       // 4) venues
       const { data: vns } = await supabase
         .from('venues')
-        .select('id,name,address,lat,lng')
+        .select('id,name,address')
         .in('id', venueIds);
 
       const venueMap = new Map((vns || []).map((v: any) => [v.id, mapVenue(v)]));
@@ -99,7 +97,7 @@ export function useSupabaseEventsList() {
         imageUrl: r.image_url || '',
         startsAt: r.starts_at,
         endsAt: r.ends_at,
-        venue: venueMap.get(r.venue_id) || { name: 'Venue', address: '', lat: 0, lng: 0 },
+        venue: venueMap.get(r.venue_id) || { name: 'Venue', address: '' },
         category: r.category || undefined,
         sku: r.sku || '',
         status: r.status,
@@ -146,7 +144,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       const [{ data: tks }, { data: ads }, { data: v }] = await Promise.all([
         supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end').eq('event_id', eventId),
         supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', eventId),
-        supabase.from('venues').select('id,name,address,lat,lng').eq('id', e.venue_id).maybeSingle(),
+        supabase.from('venues').select('id,name,address').eq('id', e.venue_id).maybeSingle(),
       ]);
 
       const mapped: EventItem = {
@@ -158,7 +156,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
         imageUrl: e.image_url || '',
         startsAt: e.starts_at,
         endsAt: e.ends_at,
-        venue: v ? mapVenue(v) : { name: 'Venue', address: '', lat: 0, lng: 0 },
+        venue: v ? mapVenue(v) : { name: 'Venue', address: '' },
         category: e.category || undefined,
         sku: e.sku || '',
         status: e.status,

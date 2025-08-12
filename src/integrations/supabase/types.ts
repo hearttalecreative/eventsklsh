@@ -594,8 +594,6 @@ export type Database = {
           capacity_total: number | null
           created_at: string
           id: string
-          lat: number | null
-          lng: number | null
           name: string
           updated_at: string
         }
@@ -604,8 +602,6 @@ export type Database = {
           capacity_total?: number | null
           created_at?: string
           id?: string
-          lat?: number | null
-          lng?: number | null
           name: string
           updated_at?: string
         }
@@ -614,8 +610,6 @@ export type Database = {
           capacity_total?: number | null
           created_at?: string
           id?: string
-          lat?: number | null
-          lng?: number | null
           name?: string
           updated_at?: string
         }

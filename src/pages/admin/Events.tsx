@@ -121,7 +121,7 @@ const AdminEvents = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data: v } = await supabase.from("venues").select("id,name,address,lat,lng").order("name");
+      const { data: v } = await supabase.from("venues").select("id,name,address").order("name");
       setVenues(v || []);
       const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("created_at", { ascending: false });
       setEvents(ev || []);

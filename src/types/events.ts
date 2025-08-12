@@ -3,9 +3,8 @@ export type Currency = 'usd' | 'eur' | 'ars' | 'mxn';
 export interface Venue {
   name: string;
   address: string;
-  lat: number;
-  lng: number;
 }
+
 
 export interface TicketType {
   id: string;

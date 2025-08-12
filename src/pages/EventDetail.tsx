@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { events } from '@/data/events';
 import { EventItem, TicketType, Addon } from '@/types/events';
-import MapLeaflet from '@/components/MapLeaflet';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -297,7 +297,7 @@ const proceed = async () => {
               </div>
               {/* Recurrence removed as requested */}
             </div>
-            <MapLeaflet lat={event.venue.lat} lng={event.venue.lng} name={event.venue.name} />
+            
             <div className="prose max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {(showFullDesc || !isLong) ? (event.description || '') : `${shortDesc}...`}

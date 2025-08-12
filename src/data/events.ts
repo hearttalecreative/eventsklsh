@@ -18,8 +18,6 @@ export const events: EventItem[] = [
     venue: {
       name: "Anahata Studio",
       address: "123 Serenity Ave, Los Angeles",
-      lat: 34.0522,
-      lng: -118.2437,
     },
     category: "Sound Healing",
     sku: "EV-SH-0001",
@@ -57,8 +55,6 @@ export const events: EventItem[] = [
     venue: {
       name: "Lotus Hall",
       address: "456 Tranquility Rd, San Diego",
-      lat: 32.7157,
-      lng: -117.1611,
     },
     category: "Sound Healing",
     sku: "EV-SH-0002",
@@ -97,8 +93,6 @@ export const events: EventItem[] = [
     venue: {
       name: "Golden Gate Wellness Center",
       address: "101 Harmony Blvd, San Francisco",
-      lat: 37.7749,
-      lng: -122.4194,
     },
     category: "Sound Healing",
     sku: "EV-SH-0003",
@@ -125,7 +119,7 @@ export const events: EventItem[] = [
     imageUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1600&auto=format&fit=crop",
     startsAt: plusDays(28),
     endsAt: plusDays(28),
-    venue: { name: "Demo Studio", address: "789 Ocean Ave, Santa Monica", lat: 34.0195, lng: -118.4912 },
+    venue: { name: "Demo Studio", address: "789 Ocean Ave, Santa Monica" },
     category: "Sound Healing",
     sku: "EV-SH-TEST",
     status: "published",

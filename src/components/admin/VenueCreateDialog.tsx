@@ -3,60 +3,39 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import MapPickerLeaflet from '@/components/MapPickerLeaflet';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (venue: { id: string; name: string; address?: string | null; lat?: number | null; lng?: number | null }) => void;
+  onCreated: (venue: { id: string; name: string; address?: string | null }) => void;
 }
 
 const VenueCreateDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) => {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
-  const [lat, setLat] = useState<number | undefined>(undefined);
-  const [lng, setLng] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
-  const onPick = (la: number, ln: number) => {
-    setLat(la); setLng(ln);
-  };
-
-  const searchAddress = async () => {
-    if (!address) return;
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      const data = await res.json();
-      if (data && data[0]) {
-        const la = parseFloat(data[0].lat);
-        const ln = parseFloat(data[0].lon);
-        setLat(la); setLng(ln);
-      } else {
-        alert('Address not found. You can place the pin manually on the map.');
-      }
-    } catch {
-      alert('Error al buscar dirección. Intenta nuevamente.');
-    }
-  };
-
   const saveVenue = async () => {
-    if (!name) return alert('Enter the venue name');
-    if (lat === undefined || lng === undefined) return alert('Verify the location on the map');
+    if (!name.trim()) return alert('Enter the venue name');
     setLoading(true);
-    const payload: any = { name, address: address || null, lat, lng };
-    const { data, error } = await supabase.from('venues').insert(payload).select('id,name,address,lat,lng').single();
+    const payload: any = { name, address: address || null };
+    const { data, error } = await supabase
+      .from('venues')
+      .insert(payload)
+      .select('id,name,address')
+      .single();
     setLoading(false);
     if (error) return alert(error.message);
     onCreated(data!);
     onOpenChange(false);
-    setName(''); setAddress(''); setLat(undefined); setLng(undefined);
+    setName('');
+    setAddress('');
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>New venue</DialogTitle>
         </DialogHeader>
@@ -65,25 +44,10 @@ const VenueCreateDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =
             <Label>Name</Label>
             <Input value={name} onChange={(e)=>setName(e.target.value)} placeholder="e.g. Central Theater" />
           </div>
-          <div className="grid sm:grid-cols-3 gap-3 items-end">
-            <div className="sm:col-span-2 space-y-1">
-              <Label>Address</Label>
-              <Input value={address} onChange={(e)=>setAddress(e.target.value)} placeholder="Street, city" />
-            </div>
-            <Button variant="outline" onClick={searchAddress}>Search</Button>
+          <div className="space-y-1">
+            <Label>Address</Label>
+            <Input value={address} onChange={(e)=>setAddress(e.target.value)} placeholder="Street, city" />
           </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Latitude</Label>
-              <Input value={lat ?? ''} onChange={(e)=>setLat(parseFloat(e.target.value)||undefined)} placeholder="-34.60" />
-            </div>
-            <div className="space-y-1">
-              <Label>Longitude</Label>
-              <Input value={lng ?? ''} onChange={(e)=>setLng(parseFloat(e.target.value)||undefined)} placeholder="-58.38" />
-            </div>
-          </div>
-          <MapPickerLeaflet lat={lat} lng={lng} onChange={onPick} />
-          <p className="text-xs text-muted-foreground">Coloca el pin en la ubicación exacta para verificar que la dirección sea correcta.</p>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={()=>onOpenChange(false)}>Cancel</Button>

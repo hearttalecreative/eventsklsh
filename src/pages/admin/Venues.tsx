@@ -14,8 +14,6 @@ interface Venue {
   id: string;
   name: string;
   address?: string | null;
-  lat?: number | null;
-  lng?: number | null;
   capacity_total?: number | null;
   created_at?: string;
   updated_at?: string;
@@ -31,7 +29,7 @@ const VenuesPage = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("venues")
-      .select("id,name,address,lat,lng,capacity_total,created_at,updated_at")
+      .select("id,name,address,capacity_total,created_at,updated_at")
       .order("created_at", { ascending: false });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -51,15 +49,13 @@ const VenuesPage = () => {
     const payload = {
       name: edit.name,
       address: edit.address || null,
-      lat: edit.lat ?? null,
-      lng: edit.lng ?? null,
       capacity_total: edit.capacity_total ?? null,
     };
     const { data, error } = await supabase
       .from("venues")
       .update(payload)
       .eq("id", edit.id)
-      .select("id,name,address,lat,lng,capacity_total,created_at,updated_at")
+      .select("id,name,address,capacity_total,created_at,updated_at")
       .maybeSingle();
     if (error) return toast.error(error.message);
     if (data) {
@@ -109,8 +105,6 @@ const VenuesPage = () => {
                     <tr className="text-left border-b">
                       <th className="py-2 pr-4">Name</th>
                       <th className="py-2 pr-4">Address</th>
-                      <th className="py-2 pr-4">Lat</th>
-                      <th className="py-2 pr-4">Lng</th>
                       <th className="py-2 pr-4">Capacity</th>
                       <th className="py-2 pr-4">Actions</th>
                     </tr>
@@ -120,8 +114,6 @@ const VenuesPage = () => {
                       <tr key={v.id} className="border-b hover:bg-muted/30">
                         <td className="py-2 pr-4">{v.name}</td>
                         <td className="py-2 pr-4">{v.address || '—'}</td>
-                        <td className="py-2 pr-4">{v.lat ?? '—'}</td>
-                        <td className="py-2 pr-4">{v.lng ?? '—'}</td>
                         <td className="py-2 pr-4">{v.capacity_total ?? '—'}</td>
                         <td className="py-2 pr-4 flex items-center gap-2">
                           <Button variant="outline" size="sm" onClick={() => setEdit(v)}>Edit</Button>
@@ -153,14 +145,6 @@ const VenuesPage = () => {
               <div className="space-y-1 sm:col-span-2">
                 <Label>Address</Label>
                 <Input value={edit?.address ?? ''} onChange={(e)=>setEdit(prev=>prev?{...prev, address:e.target.value}:prev)} />
-              </div>
-              <div className="space-y-1">
-                <Label>Latitude</Label>
-                <Input value={edit?.lat ?? ''} onChange={(e)=>setEdit(prev=>prev?{...prev, lat:parseFloat(e.target.value)||null}:prev)} />
-              </div>
-              <div className="space-y-1">
-                <Label>Longitude</Label>
-                <Input value={edit?.lng ?? ''} onChange={(e)=>setEdit(prev=>prev?{...prev, lng:parseFloat(e.target.value)||null}:prev)} />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label>Capacity</Label>

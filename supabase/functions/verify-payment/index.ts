@@ -115,7 +115,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
 
     const { data: venue } = await supabase
       .from("venues")
-      .select("name, address, lat, lng")
+      .select("name, address")
       .eq("id", event.venue_id)
       .maybeSingle();
 
@@ -241,32 +241,44 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
         const confCode = attendeeRow?.confirmation_code || '';
         const displayName = attendeeRow?.name || p.fullName;
         const html = `
-          <h1>Hi ${displayName}, your tickets for ${event.title}</h1>
-          <p>Thank you for your purchase. Here are your attendance details.</p>
-          <p><strong>Confirmation code:</strong> ${confCode}</p>
-          <h2>Event</h2>
-          <ul>
-            <li><strong>Title:</strong> ${event.title}</li>
-            <li><strong>Date & time:</strong> ${eventDate.toLocaleString('en-US')}</li>
-            ${venue ? `<li><strong>Location:</strong> ${venue.name} — ${venue.address}</li>` : ""}
-            ${eventUrl ? `<li><strong>Event page:</strong> <a href="${eventUrl}">${eventUrl}</a></li>` : ''}
-          </ul>
-          ${event.short_description ? `<p><strong>Short description:</strong> ${event.short_description}</p>` : ""}
-          ${event.instructions ? `<p><strong>Instructions:</strong> ${event.instructions}</p>` : ""}
-          <p><a href="${gcalUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 14px;border-radius:6px;background:#1a73e8;color:#fff;text-decoration:none">Add to Google Calendar</a></p>
-          ${addOnsSummary ? `<h3>Purchased add-ons</h3><ul>${addOnsSummary}</ul>` : ""}
-          <h2>Order summary</h2>
-          <ul>
-            <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
-            ${addonsRows.map(row=>{
-              const qty = cart.addons.find(a=>a.id===row.id)?.qty || 0;
-              return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''
-            }).join('')}
-            ${discount>0 ? `<li><strong>Discount:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''}
-            <li><strong>Total:</strong> ${(total/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
-            <li><strong>Purchase date:</strong> ${purchaseDate.toLocaleString('en-US')}</li>
-          </ul>
-          <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
+          <div style="background:#f6f7fb;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
+            <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
+              <div style="padding:24px 24px 0 24px;text-align:center;">
+                <h1 style="margin:0;font-size:22px;line-height:1.3;color:#111827;">Thank you, ${displayName}!</h1>
+                <p style="margin:8px 0 0 0;color:#6b7280;">Your tickets for <strong>${event.title}</strong> are confirmed.</p>
+                <p style="margin:8px 0 0 0;color:#6b7280;">Confirmation code: <strong style="letter-spacing:0.5px;">${confCode}</strong></p>
+              </div>
+              <div style="padding:24px;">
+                <h2 style="margin:0 0 8px 0;font-size:16px;color:#111827;">Event details</h2>
+                <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;font-size:14px;color:#374151;">
+                  <tr><td style="padding:4px 0;width:140px;color:#6b7280;">Title</td><td style="padding:4px 0;">${event.title}</td></tr>
+                  <tr><td style="padding:4px 0;width:140px;color:#6b7280;">Date & time</td><td style="padding:4px 0;">${eventDate.toLocaleString('en-US')}</td></tr>
+                  ${venue ? `<tr><td style='padding:4px 0;width:140px;color:#6b7280;'>Location</td><td style='padding:4px 0;'>${venue.name} — ${venue.address}</td></tr>` : ''}
+                  ${eventUrl ? `<tr><td style='padding:4px 0;width:140px;color:#6b7280;'>Event page</td><td style='padding:4px 0;'><a href='${eventUrl}' style='color:#2563eb;text-decoration:none;'>${eventUrl}</a></td></tr>` : ''}
+                </table>
+                ${event.short_description ? `<p style="margin:12px 0 0 0;color:#374151">${event.short_description}</p>` : ''}
+                ${event.instructions ? `<p style="margin:8px 0 0 0;color:#374151"><strong>Instructions:</strong> ${event.instructions}</p>` : ''}
+                <p style="margin:16px 0 0 0;">
+                  <a href="${gcalUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#1a73e8;color:#ffffff;text-decoration:none;font-weight:600;">Add to Google Calendar</a>
+                </p>
+                ${addOnsSummary ? `<div style='margin-top:16px;'><h3 style='margin:0 0 6px 0;font-size:15px;color:#111827;'>Purchased add-ons</h3><ul style='margin:0 0 0 18px;color:#374151;'>${addOnsSummary}</ul></div>` : ''}
+                <div style="margin-top:16px;">
+                  <h2 style="margin:0 0 8px 0;font-size:16px;color:#111827;">Order summary</h2>
+                  <ul style="margin:0 0 0 18px;color:#374151;">
+                    <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
+                    ${addonsRows.map(row=>{
+                      const qty = cart.addons.find(a=>a.id===row.id)?.qty || 0;
+                      return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''
+                    }).join('')}
+                    ${discount>0 ? `<li><strong>Discount:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''}
+                    <li><strong>Total:</strong> ${(total/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
+                    <li><strong>Purchase date:</strong> ${purchaseDate.toLocaleString('en-US')}</li>
+                  </ul>
+                </div>
+                <p style="margin:16px 0 0 0;color:#6b7280;font-size:13px;">If you have any questions, just reply to this email.</p>
+              </div>
+            </div>
+          </div>
         `;
         try {
           await sendBrevoEmail(p.email, displayName, `Order confirmation: ${event.title}`, html);
