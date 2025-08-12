@@ -219,19 +219,19 @@ const proceed = async () => {
   return (
     <main className="container mx-auto py-10 space-y-10">
       <Helmet>
-        <title>{`${event.title} | Kyle Lam Sound Healing`}</title>
+        <title>{event.title}</title>
         <meta name="description" content={event.shortDescription} />
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
         <meta property="og:site_name" content="Kyle Lam Sound Healing" />
         <meta property="og:type" content="event" />
-        <meta property="og:title" content={`${event.title} | Kyle Lam Sound Healing`} />
+        <meta property="og:title" content={event.title} />
         <meta property="og:description" content={event.shortDescription} />
         <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
-        <meta property="og:image" content={event.imageUrl} />
+        <meta property="og:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${event.title} | Kyle Lam Sound Healing`} />
+        <meta name="twitter:title" content={event.title} />
         <meta name="twitter:description" content={event.shortDescription} />
-        <meta name="twitter:image" content={event.imageUrl} />
+        <meta name="twitter:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
         <script type="application/ld+json">{JSON.stringify(eventJsonLd)}</script>
       </Helmet>
 
