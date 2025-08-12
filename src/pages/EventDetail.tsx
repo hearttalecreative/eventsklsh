@@ -165,6 +165,13 @@ const EventDetail = () => {
     })),
   };
 
+  const fmtGcal = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const startStr = fmtGcal(event.startsAt);
+  const endStr = fmtGcal(event.endsAt || new Date(new Date(event.startsAt).getTime() + 2*60*60*1000).toISOString());
+  const locationStr = `${event.venue.name} — ${event.venue.address}`;
+  const detailsStr = `${event.shortDescription || ''} ${typeof window !== 'undefined' ? window.location.href : ''}`.trim();
+  const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(detailsStr)}&location=${encodeURIComponent(locationStr)}`;
+
 const proceed = async () => {
     // basic validation
     if (!acceptedTerms) {
@@ -268,6 +275,9 @@ const proceed = async () => {
               <a href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer">
                 <Send className="w-4 h-4" />
               </a>
+            </Button>
+            <Button asChild variant="outline">
+              <a href={gcalUrl} target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>
             </Button>
           </div>
             <h1 className="text-4xl font-bold">{event.title}</h1>

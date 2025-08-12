@@ -107,7 +107,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
 
     const { data: event, error: eventErr } = await supabase
       .from("events")
-      .select("id, title, starts_at, ends_at, short_description, instructions, venue_id")
+      .select("id, slug, title, starts_at, ends_at, short_description, instructions, venue_id")
       .eq("id", cart.eventId)
       .maybeSingle();
     if (eventErr) throw eventErr;
@@ -204,9 +204,14 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
       zone: ticket.zone || null,
       seat: null,
     }));
+    let insertedAttendees: { id: string; confirmation_code: string; name: string | null; email: string | null }[] = [];
     if (attendees.length > 0) {
-      const { error } = await supabase.from("attendees").insert(attendees);
+      const { data: ins, error } = await supabase
+        .from("attendees")
+        .insert(attendees)
+        .select("id, confirmation_code, name, email");
       if (error) throw error;
+      insertedAttendees = ins || [];
     }
 
     // 5) Send personalized emails to each participant
@@ -221,20 +226,34 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
       .filter(Boolean)
       .join("");
 
+    const siteBase = Deno.env.get("PUBLIC_SITE_URL") || "";
+    const eventUrl = siteBase ? `${siteBase}/event/${event.slug || event.id}` : "";
+    const fmtGcal = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const startStr = fmtGcal(event.starts_at);
+    const endStr = fmtGcal(event.ends_at || new Date(new Date(event.starts_at).getTime() + 2*60*60*1000).toISOString());
+    const locationStr = venue ? `${venue.name} — ${venue.address}` : '';
+    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(event.short_description || '')}${eventUrl ? encodeURIComponent('\n' + eventUrl) : ''}&location=${encodeURIComponent(locationStr)}`;
+
     await Promise.allSettled(
-      cart.participants.map(async (p) => {
+      cart.participants.map(async (p, idx) => {
         const currencyUpper = (session.currency || 'usd').toUpperCase();
+        const attendeeRow = insertedAttendees[idx];
+        const confCode = attendeeRow?.confirmation_code || '';
+        const displayName = attendeeRow?.name || p.fullName;
         const html = `
-          <h1>Hi ${p.fullName}, your tickets for ${event.title}</h1>
+          <h1>Hi ${displayName}, your tickets for ${event.title}</h1>
           <p>Thank you for your purchase. Here are your attendance details.</p>
+          <p><strong>Confirmation code:</strong> ${confCode}</p>
           <h2>Event</h2>
           <ul>
             <li><strong>Title:</strong> ${event.title}</li>
             <li><strong>Date & time:</strong> ${eventDate.toLocaleString('en-US')}</li>
             ${venue ? `<li><strong>Location:</strong> ${venue.name} — ${venue.address}</li>` : ""}
+            ${eventUrl ? `<li><strong>Event page:</strong> <a href="${eventUrl}">${eventUrl}</a></li>` : ''}
           </ul>
           ${event.short_description ? `<p><strong>Short description:</strong> ${event.short_description}</p>` : ""}
           ${event.instructions ? `<p><strong>Instructions:</strong> ${event.instructions}</p>` : ""}
+          <p><a href="${gcalUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 14px;border-radius:6px;background:#1a73e8;color:#fff;text-decoration:none">Add to Google Calendar</a></p>
           ${addOnsSummary ? `<h3>Purchased add-ons</h3><ul>${addOnsSummary}</ul>` : ""}
           <h2>Order summary</h2>
           <ul>
@@ -250,7 +269,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
           <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
         `;
         try {
-          await sendBrevoEmail(p.email, p.fullName, `Order confirmation: ${event.title}`, html);
+          await sendBrevoEmail(p.email, displayName, `Order confirmation: ${event.title}`, html);
         } catch (e) {
           console.error('[verify-payment email] failed for', p.email, e);
         }
