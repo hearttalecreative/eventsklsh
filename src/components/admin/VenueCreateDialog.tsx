@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import GoogleMapPicker from '@/components/GoogleMapPicker';
 
 interface Props {
   open: boolean;
@@ -47,6 +48,10 @@ const VenueCreateDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =
           <div className="space-y-1">
             <Label>Address</Label>
             <Input value={address} onChange={(e)=>setAddress(e.target.value)} placeholder="Street, city" />
+          </div>
+          <div className="space-y-1">
+            <Label>Pick on map (optional)</Label>
+            <GoogleMapPicker address={address} onAddressChange={setAddress} heightClass="h-72" />
           </div>
         </div>
         <DialogFooter>

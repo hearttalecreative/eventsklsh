@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Facebook, Mail, MessageSquare, Send, Share2 } from 'lucide-react';
 import whatsappIcon from '@/assets/whatsapp.svg';
+import GoogleMapDisplay from '@/components/GoogleMapDisplay';
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
@@ -297,7 +298,10 @@ const proceed = async () => {
               </div>
               {/* Recurrence removed as requested */}
             </div>
-            
+
+            <div className="rounded-lg overflow-hidden border">
+              <GoogleMapDisplay address={event.venue.address} name={`${event.title} — ${event.venue.name}`} />
+            </div>
             <div className="prose max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {(showFullDesc || !isLong) ? (event.description || '') : `${shortDesc}...`}
