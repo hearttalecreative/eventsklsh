@@ -107,6 +107,7 @@ export type Database = {
       attendees: {
         Row: {
           checked_in_at: string | null
+          confirmation_code: string
           created_at: string
           email: string | null
           event_id: string
@@ -119,6 +120,7 @@ export type Database = {
         }
         Insert: {
           checked_in_at?: string | null
+          confirmation_code: string
           created_at?: string
           email?: string | null
           event_id: string
@@ -131,6 +133,7 @@ export type Database = {
         }
         Update: {
           checked_in_at?: string | null
+          confirmation_code?: string
           created_at?: string
           email?: string | null
           event_id?: string
@@ -659,6 +662,10 @@ export type Database = {
     Functions: {
       compute_event_slug: {
         Args: { _title: string; _id: string }
+        Returns: string
+      }
+      generate_confirmation_code: {
+        Args: { _len?: number }
         Returns: string
       }
       get_event_sales_summary_admin: {
