@@ -332,6 +332,20 @@ const deleteAddon = async (id: string) => {
     setTicketsOpen(true);
   };
 
+  // Send Brevo test email to verify deliverability
+  const sendTestEmail = async () => {
+    try {
+      toast.loading('Enviando email de prueba…', { id: 'test-mail' });
+      const { data, error } = await supabase.functions.invoke('send-confirmation', {
+        body: { name: 'Test Buyer', email: 'rshelguera@gmail.com', eventTitle: 'Prueba de compra' },
+      });
+      if (error) throw error as any;
+      toast.success('Email de prueba enviado', { id: 'test-mail' });
+    } catch (e: any) {
+      console.error(e);
+      toast.error(`Error al enviar: ${e?.message || String(e)}`, { id: 'test-mail' });
+    }
+  };
 const addTicketSimple = async () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
@@ -664,6 +678,7 @@ const deleteTicket = async (id: string) => {
                       <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
                         {showAdvancedTicketFields ? 'Hide advanced' : 'Show advanced'}
                       </Button>
+                      <Button size="sm" variant="outline" onClick={sendTestEmail}>Enviar email de prueba</Button>
                     </div>
                   </div>
                   {tickets.length === 0 && (
@@ -673,60 +688,41 @@ const deleteTicket = async (id: string) => {
                     const earlyEnabled = Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end);
                     return (
                       <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
-                        <div className="grid sm:grid-cols-6 gap-3 items-center">
-                          <div className="sm:col-span-2 space-y-1">
+                        <div className="grid gap-3 sm:grid-cols-12 items-end">
+                          <div className="sm:col-span-6 space-y-1">
                             <Label>Name</Label>
-                            <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
+                            <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                           </div>
-                          <div className="space-y-1">
+                          <div className="sm:col-span-2 space-y-1">
                             <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
                             {(() => {
                               let priceEl: HTMLInputElement | null = null;
                               return (
-                                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-                                  <Input
-                                    ref={(el) => (priceEl = el)}
-                                    type="number"
-                                    inputMode="decimal"
-                                    step="0.01"
-                                    min="0"
-                                    defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
-                                    className="w-[7ch] sm:w-[8ch] text-right"
-                                    onBlur={() =>
-                                      updateTicketField(t.id, {
-                                        unit_amount_cents: Math.round(parseFloat(priceEl?.value || '0') * 100),
-                                      })
-                                    }
-                                  />
-                                </div>
+                                <Input
+                                  ref={(el) => (priceEl = el)}
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="0.01"
+                                  min="0"
+                                  defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
+                                  className="w-full text-right"
+                                  onBlur={() =>
+                                    updateTicketField(t.id, {
+                                      unit_amount_cents: Math.round(parseFloat(priceEl?.value || '0') * 100),
+                                    })
+                                  }
+                                />
                               );
                             })()}
                           </div>
-                          <div className="space-y-1">
+                          <div className="sm:col-span-2 space-y-1">
                             <Label>Capacity</Label>
                             <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
-                              size={8}
-                              className="min-w-[8ch] w-[8ch] text-right"
+                              className="w-full text-right"
                               onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
-                          {showAdvancedTicketFields && (
-                            <>
-                              <div className="space-y-1">
-                                <Label>Participants per ticket</Label>
-                                <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
-                                  onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label>Zone</Label>
-                                <Input defaultValue={t.zone || ''}
-                                  onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
-                                />
-                              </div>
-                            </>
-                          )}
-                          <div className="flex justify-end">
+                          <div className="sm:col-span-2 flex justify-end">
                             <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
                           </div>
                         </div>
@@ -1003,60 +999,41 @@ const deleteTicket = async (id: string) => {
                 const earlyEnabled = Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end);
                 return (
                   <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
-                    <div className="grid sm:grid-cols-6 gap-3 items-center">
-                      <div className="sm:col-span-2 space-y-1">
+                    <div className="grid gap-3 sm:grid-cols-12 items-end">
+                      <div className="sm:col-span-6 space-y-1">
                         <Label>Name</Label>
-                        <Input defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
+                        <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                       </div>
-                      <div className="space-y-1">
+                      <div className="sm:col-span-2 space-y-1">
                         <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
                         {(() => {
                           let priceEl: HTMLInputElement | null = null;
                           return (
-                            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-                              <Input
-                                ref={(el) => (priceEl = el)}
-                                type="number"
-                                inputMode="decimal"
-                                step="0.01"
-                                min="0"
-                                defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
-                                className="w-[7ch] sm:w-[8ch] text-right"
-                                onBlur={() =>
-                                  updateTicketField(t.id, {
-                                    unit_amount_cents: Math.round(parseFloat(priceEl?.value || '0') * 100),
-                                  })
-                                }
-                              />
-                            </div>
+                            <Input
+                              ref={(el) => (priceEl = el)}
+                              type="number"
+                              inputMode="decimal"
+                              step="0.01"
+                              min="0"
+                              defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
+                              className="w-full text-right"
+                              onBlur={() =>
+                                updateTicketField(t.id, {
+                                  unit_amount_cents: Math.round(parseFloat(priceEl?.value || '0') * 100),
+                                })
+                              }
+                            />
                           );
                         })()}
                       </div>
-                      <div className="space-y-1">
+                      <div className="sm:col-span-2 space-y-1">
                         <Label>Capacity</Label>
                         <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
-                          size={8}
-                          className="min-w-[8ch] w-[8ch] text-right"
+                          className="w-full text-right"
                           onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
                       </div>
-                      {showAdvancedTicketFields && (
-                        <>
-                          <div className="space-y-1">
-                            <Label>Participants per ticket</Label>
-                            <Input type="number" min={1} defaultValue={t.participants_per_ticket || 1}
-                              onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: parseInt(e.currentTarget.value || '1', 10) })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>Zone</Label>
-                            <Input defaultValue={t.zone || ''}
-                              onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value || null })}
-                            />
-                          </div>
-                        </>
-                      )}
-                      <div className="flex justify-end">
+                      <div className="sm:col-span-2 flex justify-end">
                         <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
                       </div>
                     </div>
