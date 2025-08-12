@@ -221,7 +221,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
       .filter(Boolean)
       .join("");
 
-    await Promise.all(
+    await Promise.allSettled(
       cart.participants.map(async (p) => {
         const currencyUpper = (session.currency || 'usd').toUpperCase();
         const html = `
@@ -249,8 +249,11 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
           </ul>
           <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
         `;
-
-        await sendBrevoEmail(p.email, p.fullName, `Order confirmation: ${event.title}`, html);
+        try {
+          await sendBrevoEmail(p.email, p.fullName, `Order confirmation: ${event.title}`, html);
+        } catch (e) {
+          console.error('[verify-payment email] failed for', p.email, e);
+        }
       })
     );
 

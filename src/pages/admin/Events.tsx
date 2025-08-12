@@ -705,7 +705,8 @@ const deleteTicket = async (id: string) => {
                           <div className="space-y-1">
                             <Label>Capacity</Label>
                             <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
-                              className="w-[7ch] text-right"
+                              size={8}
+                              className="min-w-[8ch] w-[8ch] text-right"
                               onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
@@ -1034,7 +1035,8 @@ const deleteTicket = async (id: string) => {
                       <div className="space-y-1">
                         <Label>Capacity</Label>
                         <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
-                          className="w-[7ch] text-right"
+                          size={8}
+                          className="min-w-[8ch] w-[8ch] text-right"
                           onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
                       </div>
