@@ -286,7 +286,7 @@ serve(async (req) => {
         })
         .filter(Boolean)
         .join('');
-      await Promise.all(
+      await Promise.allSettled(
         cart.participants.map(async (p) => {
           const currencyUpper = (curr || 'usd').toUpperCase();
           const html = `
@@ -304,7 +304,11 @@ serve(async (req) => {
             </ul>
             <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
           `;
-          await sendBrevoEmail(p.email, p.fullName, `Order confirmation: ${event.title}`, html);
+          try {
+            await sendBrevoEmail(p.email, p.fullName, `Order confirmation: ${event.title}`, html);
+          } catch (e) {
+            console.error('[free-order email] failed', e);
+          }
         })
       );
 

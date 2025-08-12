@@ -705,7 +705,7 @@ const deleteTicket = async (id: string) => {
                           <div className="space-y-1">
                             <Label>Capacity</Label>
                             <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
-                              className="w-[4ch] text-right"
+                              className="w-[6ch] text-right"
                               onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
@@ -776,6 +776,10 @@ const deleteTicket = async (id: string) => {
                       </div>
                     );
                   })}
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="secondary" onClick={()=>setTicketsOpen(false)}>Close</Button>
+                    <Button onClick={()=>toast.success('Changes saved')}>Save changes</Button>
+                  </div>
                 </div>
               )}
 
@@ -1030,7 +1034,7 @@ const deleteTicket = async (id: string) => {
                       <div className="space-y-1">
                         <Label>Capacity</Label>
                         <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
-                          className="w-[4ch] text-right"
+                          className="w-[6ch] text-right"
                           onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
                       </div>
