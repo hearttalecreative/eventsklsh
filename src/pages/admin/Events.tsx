@@ -51,7 +51,12 @@ const AdminEvents = () => {
   const filteredAttendees = useMemo(() => {
     const q = attendeesSearch.trim().toLowerCase();
     if (!q) return attendees;
-    return attendees.filter((a)=> (a.name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q));
+    return attendees.filter((a)=>
+      (a.name || '').toLowerCase().includes(q) ||
+      (a.email || '').toLowerCase().includes(q) ||
+      (a.phone || '').toLowerCase().includes(q) ||
+      (a.confirmation_code || '').toLowerCase().includes(q)
+    );
   }, [attendees, attendeesSearch]);
   const [manageEventId, setManageEventId] = useState<string | undefined>(undefined);
 
@@ -332,21 +337,6 @@ const deleteAddon = async (id: string) => {
     setTicketsOpen(true);
   };
 
-  // Send Brevo test email to verify deliverability
-  const sendTestEmail = async () => {
-    try {
-      toast.loading('Enviando email de prueba…', { id: 'test-mail' });
-      const { data, error } = await supabase.functions.invoke('send-confirmation', {
-        body: { name: 'Test Buyer', email: 'rshelguera@gmail.com', eventTitle: 'Prueba de compra' },
-      });
-      if (error) throw error as any;
-      if (!data?.ok) throw new Error(data?.error || 'No se pudo enviar el email');
-      toast.success('Email de prueba enviado', { id: 'test-mail' });
-    } catch (e: any) {
-      console.error(e);
-      toast.error(`Error al enviar: ${e?.message || String(e)}`, { id: 'test-mail' });
-    }
-  };
 const addTicketSimple = async () => {
     if (!ticketsEventId) return;
     const { data, error } = await supabase
@@ -415,7 +405,7 @@ const deleteTicket = async (id: string) => {
     setAttendeesEventId(eventId);
     const { data, error } = await supabase
       .from('attendees')
-      .select('id,name,email,seat,zone,checked_in_at,created_at')
+      .select('id,confirmation_code,name,email,phone,created_at')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
     if (error) return alert(error.message);
@@ -458,13 +448,12 @@ const deleteTicket = async (id: string) => {
 
   // Export attendees as CSV
   const exportAttendeesCsv = () => {
-    const headers = ['Name','Email','Seat','Zone','Checked in','Created at'];
+    const headers = ['Confirmation code','Name','Email','Phone','Created at'];
     const rows = attendees.map((a) => [
+      a.confirmation_code || '',
       a.name || '',
       a.email || '',
-      a.seat || '',
-      a.zone || '',
-      a.checked_in_at ? new Date(a.checked_in_at).toISOString() : '',
+      a.phone || '',
       a.created_at ? new Date(a.created_at).toISOString() : '',
     ]);
     const csv = [headers, ...rows]
@@ -679,7 +668,6 @@ const deleteTicket = async (id: string) => {
                       <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
                         {showAdvancedTicketFields ? 'Hide advanced' : 'Show advanced'}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={sendTestEmail}>Enviar email de prueba</Button>
                     </div>
                   </div>
                   {tickets.length === 0 && (
@@ -1163,27 +1151,25 @@ const deleteTicket = async (id: string) => {
               <DialogTitle>Attendees ({attendees.length})</DialogTitle>
             </DialogHeader>
             <div className="mb-3">
-              <Input placeholder="Search by name or email" value={attendeesSearch} onChange={(e)=>setAttendeesSearch(e.target.value)} />
+              <Input placeholder="Search by name, email or code" value={attendeesSearch} onChange={(e)=>setAttendeesSearch(e.target.value)} />
             </div>
             <div className="max-h-[60vh] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-muted-foreground border-b">
+                    <th className="py-2 pr-3">Code</th>
                     <th className="py-2 pr-3">Name</th>
                     <th className="py-2 pr-3">Email</th>
-                    <th className="py-2 pr-3">Seat</th>
-                    <th className="py-2 pr-3">Zone</th>
-                    <th className="py-2 pr-3">Checked in</th>
+                    <th className="py-2 pr-3">Phone</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredAttendees.map(a => (
                     <tr key={a.id} className="border-b">
+                      <td className="py-2 pr-3 font-mono">{a.confirmation_code || '-'}</td>
                       <td className="py-2 pr-3">{a.name || '-'}</td>
                       <td className="py-2 pr-3">{a.email || '-'}</td>
-                      <td className="py-2 pr-3">{a.seat || '-'}</td>
-                      <td className="py-2 pr-3">{a.zone || '-'}</td>
-                      <td className="py-2 pr-3">{a.checked_in_at ? new Date(a.checked_in_at).toLocaleString() : '-'}</td>
+                      <td className="py-2 pr-3">{a.phone || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

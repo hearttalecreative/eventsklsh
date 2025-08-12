@@ -65,9 +65,9 @@ const CheckoutSuccess = () => {
         )}
         {done && (
           <div className="space-y-3">
-            <p className="text-muted-foreground">Tu compra se registró correctamente. En breve recibirás por email las instrucciones y detalles del evento.</p>
+            <p className="text-muted-foreground">Your purchase was recorded successfully. You will receive the event instructions and details by email shortly.</p>
             <Button asChild>
-              <Link to="/">Volver a los eventos</Link>
+              <Link to="/">Back to events</Link>
             </Button>
           </div>
         )}

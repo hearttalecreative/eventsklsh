@@ -28,7 +28,7 @@ const AddAttendeePage = () => {
       if (!name.trim()) return toast.error('Nombre requerido');
       if (!phone.trim()) return toast.error('Teléfono requerido');
       setSaving(true);
-      const { error } = await supabase.from('attendees').insert({ event_id: eventId, name, email: email || null, phone });
+      const { error } = await supabase.from('attendees').insert({ event_id: eventId, name, email: email || null, phone } as any);
       if (error) throw error;
       toast.success('Asistente agregado');
       setName(''); setEmail(''); setPhone('');
