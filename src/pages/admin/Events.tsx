@@ -340,6 +340,7 @@ const deleteAddon = async (id: string) => {
         body: { name: 'Test Buyer', email: 'rshelguera@gmail.com', eventTitle: 'Prueba de compra' },
       });
       if (error) throw error as any;
+      if (!data?.ok) throw new Error(data?.error || 'No se pudo enviar el email');
       toast.success('Email de prueba enviado', { id: 'test-mail' });
     } catch (e: any) {
       console.error(e);

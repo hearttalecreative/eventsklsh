@@ -48,8 +48,8 @@ serve(async (req: Request) => {
 
     if (!email || !name) {
       console.error("Missing fields", { name, email });
-      return new Response(JSON.stringify({ error: "Missing name or email" }), {
-        status: 400,
+      return new Response(JSON.stringify({ ok: false, error: "Missing name or email" }), {
+        status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
@@ -61,20 +61,26 @@ serve(async (req: Request) => {
       <p>If you received this, Brevo is correctly configured.</p>
     `;
 
-    const response = await sendBrevoEmail(email, name, subject, html);
-
-    console.log("Brevo response:", response);
-
-    return new Response(JSON.stringify(response), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+    try {
+      const response = await sendBrevoEmail(email, name, subject, html);
+      console.log("Brevo response:", response);
+      return new Response(JSON.stringify({ ok: true, response }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    } catch (e: any) {
+      console.error("Brevo send error:", e?.message || String(e));
+      return new Response(
+        JSON.stringify({ ok: false, error: e?.message || String(e) }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
   } catch (error: any) {
     console.error("Error in send-confirmation:", error);
     return new Response(
-      JSON.stringify({ error: error?.message || String(error) }),
+      JSON.stringify({ ok: false, error: error?.message || String(error) }),
       {
-        status: 500,
+        status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
