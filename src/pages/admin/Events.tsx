@@ -683,18 +683,20 @@ const deleteTicket = async (id: string) => {
                             {(() => {
                               let priceEl: HTMLInputElement | null = null;
                               return (
-                                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <Input
                                     ref={(el) => (priceEl = el)}
                                     type="number"
+                                    inputMode="decimal"
                                     step="0.01"
                                     min="0"
                                     defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
-                                    className="flex-1 min-w-[140px]"
+                                    className="w-[7ch] sm:w-[8ch] text-right"
                                   />
                                   <Button
                                     size="sm"
                                     variant="secondary"
+                                    className="shrink-0"
                                     onClick={() =>
                                       updateTicketField(t.id, {
                                         unit_amount_cents: Math.round(
@@ -711,7 +713,8 @@ const deleteTicket = async (id: string) => {
                           </div>
                           <div className="space-y-1">
                             <Label>Capacity</Label>
-                            <Input type="number" min={0} defaultValue={t.capacity_total || 0}
+                            <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
+                              className="w-[4ch] text-right"
                               onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
@@ -1014,18 +1017,20 @@ const deleteTicket = async (id: string) => {
                         {(() => {
                           let priceEl: HTMLInputElement | null = null;
                           return (
-                            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                            <div className="flex flex-wrap items-center gap-2">
                               <Input
                                 ref={(el) => (priceEl = el)}
                                 type="number"
+                                inputMode="decimal"
                                 step="0.01"
                                 min="0"
                                 defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
-                                className="flex-1 min-w-[140px]"
+                                className="w-[7ch] sm:w-[8ch] text-right"
                               />
                               <Button
                                 size="sm"
                                 variant="secondary"
+                                className="shrink-0"
                                 onClick={() =>
                                   updateTicketField(t.id, {
                                     unit_amount_cents: Math.round(
@@ -1042,7 +1047,8 @@ const deleteTicket = async (id: string) => {
                       </div>
                       <div className="space-y-1">
                         <Label>Capacity</Label>
-                        <Input type="number" min={0} defaultValue={t.capacity_total || 0}
+                        <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
+                          className="w-[4ch] text-right"
                           onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
                       </div>
