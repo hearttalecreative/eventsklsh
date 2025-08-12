@@ -692,21 +692,12 @@ const deleteTicket = async (id: string) => {
                                     min="0"
                                     defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
                                     className="w-[7ch] sm:w-[8ch] text-right"
-                                  />
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="shrink-0"
-                                    onClick={() =>
+                                    onBlur={() =>
                                       updateTicketField(t.id, {
-                                        unit_amount_cents: Math.round(
-                                          parseFloat(priceEl?.value || '0') * 100
-                                        ),
+                                        unit_amount_cents: Math.round(parseFloat(priceEl?.value || '0') * 100),
                                       })
                                     }
-                                  >
-                                    Save
-                                  </Button>
+                                  />
                                 </div>
                               );
                             })()}
@@ -1026,21 +1017,12 @@ const deleteTicket = async (id: string) => {
                                 min="0"
                                 defaultValue={(t.unit_amount_cents / 100).toFixed(2)}
                                 className="w-[7ch] sm:w-[8ch] text-right"
-                              />
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="shrink-0"
-                                onClick={() =>
+                                onBlur={() =>
                                   updateTicketField(t.id, {
-                                    unit_amount_cents: Math.round(
-                                      parseFloat(priceEl?.value || '0') * 100
-                                    ),
+                                    unit_amount_cents: Math.round(parseFloat(priceEl?.value || '0') * 100),
                                   })
                                 }
-                              >
-                                Save
-                              </Button>
+                              />
                             </div>
                           );
                         })()}
