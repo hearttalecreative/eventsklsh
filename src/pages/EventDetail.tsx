@@ -63,6 +63,7 @@ const EventDetail = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [coupon, setCoupon] = useState('');
   const [couponValid, setCouponValid] = useState(false);
+  const [couponInfo, setCouponInfo] = useState<null | { applyTo: 'tickets' | 'addons' | 'both'; discount: { type: 'percent' | 'amount'; value: number } }>(null);
 
   const [showFullDesc, setShowFullDesc] = useState(false);
   const { shortDesc, isLong } = useMemo(() => {
@@ -118,7 +119,24 @@ const EventDetail = () => {
     return sum + (addon ? addon.unitAmountCents * qty : 0);
   }, 0);
 
-  const discount = couponValid ? Math.round((ticketsSubtotal) * 0.5) : 0; // 50% demo (tickets only)
+  let discount = 0;
+  if (couponValid && couponInfo) {
+    const baseTickets = ticketsSubtotal;
+    const baseAddons = addonsSubtotal;
+    const baseBoth = baseTickets + baseAddons;
+    const { applyTo, discount: d } = couponInfo;
+    const pct = d.type === 'percent' ? d.value : null;
+    const amt = d.type === 'amount' ? d.value : null;
+    if (pct != null) {
+      if (applyTo === 'tickets') discount = Math.floor(baseTickets * (pct / 100));
+      else if (applyTo === 'addons') discount = Math.floor(baseAddons * (pct / 100));
+      else discount = Math.floor(baseBoth * (pct / 100));
+    } else if (amt != null) {
+      if (applyTo === 'tickets') discount = Math.min(amt, baseTickets);
+      else if (applyTo === 'addons') discount = Math.min(amt, baseAddons);
+      else discount = Math.min(amt, baseBoth);
+    }
+  }
   const total = ticketsSubtotal + addonsSubtotal - discount;
 
 
@@ -436,6 +454,7 @@ const proceed = async () => {
                   if (error) throw error as any;
                   if (data?.valid) {
                     setCouponValid(true);
+                    setCouponInfo(data.coupon || null);
                     toast.success('Coupon applied');
                   } else {
                     setCouponValid(false);

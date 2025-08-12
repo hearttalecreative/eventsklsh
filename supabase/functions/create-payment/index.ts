@@ -60,6 +60,30 @@ serve(async (req) => {
     { auth: { persistSession: false } }
   );
 
+  // Brevo email helper
+  const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") || "";
+  async function sendBrevoEmail(toEmail: string, toName: string, subject: string, html: string) {
+    const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "no-reply@example.com";
+    const senderName = Deno.env.get("BREVO_SENDER_NAME") || "Notifications";
+    const resp = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: senderEmail, name: senderName },
+        to: [{ email: toEmail, name: toName }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    const text = await resp.text();
+    if (!resp.ok) throw new Error(`Brevo error ${resp.status}: ${text}`);
+    try { return JSON.parse(text); } catch { return { ok: true, raw: text }; }
+  }
+
   try {
     const { buyer, cart, currency }: CreatePaymentRequest = await req.json();
     const curr = 'usd';
@@ -253,6 +277,36 @@ serve(async (req) => {
         });
         if (error) throw error;
       }
+
+      // Send confirmation emails via Brevo (free order)
+      const addOnsSummary = addonsRows
+        .map((row) => {
+          const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
+          return qty > 0 ? `<li>${row.name} × ${qty}</li>` : '';
+        })
+        .filter(Boolean)
+        .join('');
+      await Promise.all(
+        cart.participants.map(async (p) => {
+          const currencyUpper = (curr || 'usd').toUpperCase();
+          const html = `
+            <h1>Hi ${p.fullName}, your tickets for ${event.title}</h1>
+            <p>Thank you for your purchase. Here are your attendance details.</p>
+            <h2>Order summary</h2>
+            <ul>
+              <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
+              ${addonsRows.map(row=>{
+                const qty = cart.addons.find(a=>a.id===row.id)?.qty || 0;
+                return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''
+              }).join('')}
+              ${discount>0 ? `<li><strong>Discount:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''}
+              <li><strong>Total:</strong> ${(0/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
+            </ul>
+            <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
+          `;
+          await sendBrevoEmail(p.email, p.fullName, `Order confirmation: ${event.title}`, html);
+        })
+      );
 
       return new Response(JSON.stringify({ url: `${origin}/checkout/success?free=1` }), {
         status: 200,

@@ -683,7 +683,7 @@ const deleteTicket = async (id: string) => {
                             {(() => {
                               let priceEl: HTMLInputElement | null = null;
                               return (
-                                <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                                   <Input
                                     ref={(el) => (priceEl = el)}
                                     type="number"
@@ -1017,7 +1017,7 @@ const deleteTicket = async (id: string) => {
                         {(() => {
                           let priceEl: HTMLInputElement | null = null;
                           return (
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                               <Input
                                 ref={(el) => (priceEl = el)}
                                 type="number"
