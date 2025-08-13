@@ -17,6 +17,7 @@ import CheckoutCancel from "./pages/CheckoutCancel";
 import CouponsPage from "./pages/admin/Coupons";
 import AddAttendeePage from "./pages/admin/AddAttendee";
 import VenuesPage from "./pages/admin/Venues";
+import ParticipantsPage from "./pages/admin/Participants";
 
 const queryClient = new QueryClient();
 
@@ -49,7 +50,7 @@ const App = () => (
             <Route path="/admin/coupons" element={<AdminRoute><CouponsPage /></AdminRoute>} />
             <Route path="/admin/venues" element={<AdminRoute><VenuesPage /></AdminRoute>} />
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
-            <Route path="/admin/participants" element={<AdminRoute><(await import('./pages/admin/Participants')).default /></AdminRoute>} />
+            <Route path="/admin/participants" element={<AdminRoute><ParticipantsPage /></AdminRoute>} />
             <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/checkout/success" element={<CheckoutSuccess />} />

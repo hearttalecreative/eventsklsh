@@ -96,6 +96,7 @@ const AdminEvents = () => {
   const [eEnds, setEEnds] = useState('');
   const [eVenueId, setEVenueId] = useState<string | undefined>(undefined);
   const [eStatus, setEStatus] = useState('draft');
+  const [eImageUrl, setEImageUrl] = useState('');
   const [eImageFile, setEImageFile] = useState<File | null>(null);
   const [eTimezone, setETimezone] = useState('America/Los_Angeles');
 
