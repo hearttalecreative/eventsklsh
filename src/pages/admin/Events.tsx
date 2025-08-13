@@ -333,7 +333,7 @@ const deleteAddon = async (id: string) => {
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
     setTickets(data || []);

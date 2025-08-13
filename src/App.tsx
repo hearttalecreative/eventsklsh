@@ -58,21 +58,23 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <footer className="border-t mt-10">
-            <div className="container mx-auto py-10 flex flex-col items-center gap-5">
-              <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto opacity-80 dark:hidden" loading="lazy" />
-              <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Kyle Lam Sound Healing logo (dark)" className="h-8 w-auto opacity-80 hidden dark:block" loading="lazy" />
-              <nav aria-label="Footer" className="flex flex-wrap items-center gap-6 text-sm">
-                <Link to="/" className="story-link">Events</Link>
-                <Link to="/admin/events" className="story-link">Event management</Link>
-                <Link to="/admin/venues" className="story-link">Venues</Link>
-                <Link to="/admin/coupons" className="story-link">Coupons</Link>
-                <Link to="/dashboard" className="story-link">Dashboard</Link>
-                <Link to="/admin/login" className="story-link">Admin access</Link>
-                <a href="https://kylelamsoundhealing.com/" target="_blank" rel="noopener noreferrer" className="story-link">Main site</a>
-              </nav>
-            </div>
-          </footer>
+          {!(typeof window !== 'undefined' && window.location.pathname === '/') && (
+            <footer className="border-t mt-10">
+              <div className="container mx-auto px-4 py-8 flex flex-col items-center gap-6 sm:gap-5">
+                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing logo" className="h-8 w-auto opacity-80 dark:hidden" loading="lazy" />
+                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Kyle Lam Sound Healing logo (dark)" className="h-8 w-auto opacity-80 hidden dark:block" loading="lazy" />
+                <nav aria-label="Footer" className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-4 sm:gap-6 text-base sm:text-sm text-muted-foreground">
+                  <Link to="/" className="story-link">Events</Link>
+                  <Link to="/admin/events" className="story-link">Event management</Link>
+                  <Link to="/admin/venues" className="story-link">Venues</Link>
+                  <Link to="/admin/coupons" className="story-link">Coupons</Link>
+                  <Link to="/dashboard" className="story-link">Dashboard</Link>
+                  <Link to="/admin/login" className="story-link">Admin access</Link>
+                  <a href="https://kylelamsoundhealing.com/" target="_blank" rel="noopener noreferrer" className="story-link">Main site</a>
+                </nav>
+              </div>
+            </footer>
+          )}
         </BrowserRouter>
       </TooltipProvider>
     </HelmetProvider>
