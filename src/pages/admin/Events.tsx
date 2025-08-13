@@ -247,7 +247,7 @@ const saveVenueEdit = async () => {
       }
 
       // Reset form
-      setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setImageUrl("");
+      setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setTimezone('America/Los_Angeles'); setImageUrl("");
       setEventType('single'); setRecurrenceDays([]); setRecurrenceMonths(1);
     } catch (error: any) {
       alert(error.message || 'Failed to create event(s)');
@@ -389,6 +389,7 @@ const updateTicketField = async (
       early_bird_amount_cents: number | null;
       early_bird_start: string | null;
       early_bird_end: string | null;
+      description: string | null;
     }>
   ) => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
@@ -622,13 +623,20 @@ const deleteTicket = async (id: string) => {
                 </Select>
                 <Button type="button" variant="secondary" onClick={createVenue}>New venue</Button>
               </div>
-              <div className="grid sm:grid-cols-1 gap-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
                     <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={timezone} onValueChange={setTimezone}>
+                  <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                    <SelectItem value="America/New_York">America/New_York</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -719,6 +727,14 @@ const deleteTicket = async (id: string) => {
                           <div className="sm:col-span-2 flex justify-end">
                             <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
                           </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Ticket description</Label>
+                          <Textarea
+                            placeholder="Brief description (shown under this ticket)"
+                            defaultValue={t.description || ''}
+                            onBlur={(e)=>updateTicketField(t.id, { description: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                          />
                         </div>
                         <div className="rounded-md border bg-muted/30 p-3 space-y-3">
                           <div className="flex items-center justify-between">
