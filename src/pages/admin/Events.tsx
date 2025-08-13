@@ -691,7 +691,7 @@ const deleteTicket = async (id: string) => {
                     return (
                       <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
                         <div className="grid gap-3 sm:grid-cols-12 items-end">
-                          <div className="sm:col-span-6 space-y-1">
+                          <div className="sm:col-span-5 space-y-1">
                             <Label>Name</Label>
                             <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                           </div>
@@ -724,7 +724,18 @@ const deleteTicket = async (id: string) => {
                               onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
-                          <div className="sm:col-span-2 flex justify-end">
+                          <div className="sm:col-span-2 space-y-1">
+                            <Label>Participants per ticket</Label>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              defaultValue={t.participants_per_ticket || 1}
+                              className="w-full text-right"
+                              onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: Math.max(1, parseInt(e.currentTarget.value || '1', 10)) })}
+                            />
+                          </div>
+                          <div className="sm:col-span-1 flex justify-end">
                             <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
                           </div>
                         </div>
