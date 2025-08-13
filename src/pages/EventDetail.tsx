@@ -380,7 +380,7 @@ const proceed = async () => {
 
           {event.addons.length > 0 && (
             <section className="p-6 border rounded-lg bg-card animate-enter">
-              <h2 className="text-xl font-semibold mb-4">2. Add-ons (max {participantsCount} per add-on)</h2>
+              <h2 className="text-xl font-semibold mb-4">2. Add-ons</h2>
               <div className="space-y-4">
                 {event.addons.map((a: Addon) => (
                   <div key={a.id} className="flex items-start justify-between gap-3">
@@ -392,25 +392,42 @@ const proceed = async () => {
                       <div className="text-sm text-muted-foreground mt-1">{formatCurrency(a.unitAmountCents, currency)}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button type="button" variant="outline" size="icon" aria-label={`Decrease ${a.name}`}
-                        onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) - 1, 0, participantsCount) }))}>−</Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Decrease ${a.name}`}
+                        onClick={() =>
+                          setAddonsQty((prev) => ({ ...prev, [a.id]: Math.max((prev[a.id] ?? 0) - 1, 0) }))
+                        }
+                      >
+                        −
+                      </Button>
                       <Input
                         type="number"
                         min={0}
-                        max={participantsCount}
                         value={addonsQty[a.id] ?? 0}
                         onChange={(e) => {
-                          const v = clamp(parseInt(e.target.value || '0', 10), 0, participantsCount);
+                          const raw = parseInt(e.target.value || '0', 10);
+                          const v = isNaN(raw) ? 0 : Math.max(raw, 0);
                           setAddonsQty((prev) => ({ ...prev, [a.id]: v }));
                         }}
                         className="w-16 text-center"
                       />
-                      <Button type="button" variant="outline" size="icon" aria-label={`Increase ${a.name}`}
-                        onClick={() => setAddonsQty((prev) => ({ ...prev, [a.id]: clamp((prev[a.id] ?? 0) + 1, 0, participantsCount) }))}>+</Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        aria-label={`Increase ${a.name}`}
+                        onClick={() =>
+                          setAddonsQty((prev) => ({ ...prev, [a.id]: (prev[a.id] ?? 0) + 1 }))
+                        }
+                      >
+                        +
+                      </Button>
                     </div>
                   </div>
                 ))}
-                <div className="text-xs text-muted-foreground">You can select up to {participantsCount} units of each add-on.</div>
               </div>
             </section>
           )}

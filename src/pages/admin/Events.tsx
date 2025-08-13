@@ -69,6 +69,7 @@ const AdminEvents = () => {
   const [endsAt, setEndsAt] = useState("");
   const [venueId, setVenueId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState("draft");
+  const [timezone, setTimezone] = useState('America/Los_Angeles');
   
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -204,6 +205,7 @@ const saveVenueEdit = async () => {
       instructions: instructions || null,
       venue_id: venueId || null,
       status: status as any,
+      timezone,
       image_url: imageUrl || null,
       created_by,
     };
