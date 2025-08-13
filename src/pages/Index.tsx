@@ -13,17 +13,17 @@ const Index = () => {
   return (
     <main>
       <Helmet>
-        <title>Eventos | Kyle Lam Sound Healing</title>
-        <meta name="description" content="Compra entradas y descubre eventos de Kyle Lam Sound Healing." />
+        <title>Events | Kyle Lam Sound Healing</title>
+        <meta name="description" content="Buy tickets and discover Kyle Lam Sound Healing events." />
         <link rel="canonical" href={`${baseUrl}/`} />
         <meta property="og:site_name" content="Kyle Lam Sound Healing" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Eventos | Kyle Lam Sound Healing" />
-        <meta property="og:description" content="Compra entradas y descubre eventos de Kyle Lam Sound Healing." />
+        <meta property="og:title" content="Events | Kyle Lam Sound Healing" />
+        <meta property="og:description" content="Buy tickets and discover Kyle Lam Sound Healing events." />
         <meta property="og:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Eventos | Kyle Lam Sound Healing" />
-        <meta name="twitter:description" content="Compra entradas y descubre eventos de Kyle Lam Sound Healing." />
+        <meta name="twitter:title" content="Events | Kyle Lam Sound Healing" />
+        <meta name="twitter:description" content="Buy tickets and discover Kyle Lam Sound Healing events." />
         <meta name="twitter:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>

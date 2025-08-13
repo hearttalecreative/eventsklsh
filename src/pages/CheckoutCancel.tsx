@@ -7,7 +7,7 @@ const CheckoutCancel = () => {
     <main className="container mx-auto py-16">
       <Helmet>
         <title>Payment canceled | Kyle Lam Sound Healing</title>
-        <meta name="description" content="You canceled the payment process" />
+        <meta name="description" content="You canceled the payment process." />
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
       </Helmet>
       <div className="max-w-xl mx-auto text-center space-y-4">

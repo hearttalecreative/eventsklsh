@@ -107,7 +107,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
 
     const { data: event, error: eventErr } = await supabase
       .from("events")
-      .select("id, slug, title, starts_at, ends_at, short_description, instructions, venue_id")
+      .select("id, slug, title, starts_at, ends_at, short_description, instructions, venue_id, timezone")
       .eq("id", cart.eventId)
       .maybeSingle();
     if (eventErr) throw eventErr;
@@ -252,7 +252,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
                 <h2 style="margin:0 0 8px 0;font-size:16px;color:#111827;">Event details</h2>
                 <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;font-size:14px;color:#374151;">
                   <tr><td style="padding:4px 0;width:140px;color:#6b7280;">Title</td><td style="padding:4px 0;">${event.title}</td></tr>
-                  <tr><td style="padding:4px 0;width:140px;color:#6b7280;">Date & time</td><td style="padding:4px 0;">${eventDate.toLocaleString('en-US')}</td></tr>
+                  <tr><td style="padding:4px 0;width:140px;color:#6b7280;">Date & time</td><td style="padding:4px 0;">${new Intl.DateTimeFormat('en-US',{ timeZone: event.timezone || 'America/Los_Angeles', dateStyle:'medium', timeStyle:'short'}).format(eventDate)}</td></tr>
                   ${venue ? `<tr><td style='padding:4px 0;width:140px;color:#6b7280;'>Location</td><td style='padding:4px 0;'>${venue.name} — ${venue.address}</td></tr>` : ''}
                   ${eventUrl ? `<tr><td style='padding:4px 0;width:140px;color:#6b7280;'>Event page</td><td style='padding:4px 0;'><a href='${eventUrl}' style='color:#2563eb;text-decoration:none;'>${eventUrl}</a></td></tr>` : ''}
                 </table>

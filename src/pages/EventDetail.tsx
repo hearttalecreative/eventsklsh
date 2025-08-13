@@ -36,6 +36,18 @@ function formatCurrency(cents: number, currency: string) {
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+
+function formatEventSchedule(startsAt: string, endsAt?: string, timezone?: string) {
+  const tz = timezone || 'America/Los_Angeles';
+  const start = new Date(startsAt);
+  const end = endsAt ? new Date(endsAt) : undefined;
+  const datePart = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).format(start);
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' }).formatToParts(start);
+  const tzName = parts.find(p=>p.type==='timeZoneName')?.value || '';
+  const timeFmt = (d: Date) => new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true }).format(d).toLowerCase().replace(':00','');
+  const range = end ? `${timeFmt(start)} – ${timeFmt(end)}` : timeFmt(start);
+  return `${datePart}, ${range} ${tzName}`;
+}
 const EventDetail = () => {
   const { slugOrId } = useParams();
   const { data: dbEvent } = useSupabaseEventDetail(slugOrId);
@@ -284,13 +296,9 @@ const proceed = async () => {
             <h1 className="text-4xl font-bold">{event.title}</h1>
             <p className="text-muted-foreground">{event.shortDescription}</p>
             <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <div className="p-4 rounded-lg border bg-card">
-                <div className="text-muted-foreground">Starts</div>
-                <div className="font-medium">{new Date(event.startsAt).toLocaleString()}</div>
-              </div>
-              <div className="p-4 rounded-lg border bg-card">
-                <div className="text-muted-foreground">Ends</div>
-                <div className="font-medium">{new Date(event.endsAt).toLocaleString()}</div>
+              <div className="p-4 rounded-lg border bg-card sm:col-span-2">
+                <div className="text-muted-foreground">When</div>
+                <div className="font-medium">{formatEventSchedule(event.startsAt, event.endsAt, event.timezone)}</div>
               </div>
               <div className="p-4 rounded-lg border bg-card sm:col-span-2">
                 <div className="text-muted-foreground">Venue</div>
@@ -331,6 +339,7 @@ const proceed = async () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium">{t.name}{t.zone ? ` — ${t.zone}` : ''}</div>
+                        {t.description && (<div className="text-xs text-muted-foreground mt-1">{t.description}</div>)}
                         <div className="text-xs text-muted-foreground">Capacity: {t.capacityTotal}</div>
                         <div className="text-xs text-muted-foreground">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
                       </div>

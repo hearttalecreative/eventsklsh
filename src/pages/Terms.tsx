@@ -1,8 +1,8 @@
 import { Helmet } from "react-helmet-async";
 
 const Terms = () => {
-  const title = "Términos y Condiciones | Events";
-  const description = "Lee los Términos y Condiciones de nuestros eventos.";
+  const title = "Terms and Conditions | Events";
+  const description = "Read the Terms and Conditions for our events.";
   const canonical = typeof window !== 'undefined' ? `${window.location.origin}/terms` : '/terms';
 
   return (
@@ -13,25 +13,22 @@ const Terms = () => {
         <link rel="canonical" href={canonical} />
       </Helmet>
       <article className="prose max-w-3xl">
-        <h1>Términos y Condiciones</h1>
-        <p className="text-muted-foreground">Última actualización: {new Date().toLocaleDateString()}</p>
+        <h1>Terms and Conditions</h1>
+        <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString('en-US')}</p>
         <p>
-          Esta página describe los términos que aplican a la compra de entradas y la asistencia a nuestros
-          eventos. Este contenido es un placeholder de ejemplo. Personaliza esta sección con tus condiciones
-          reales, incluyendo políticas de cancelación, reembolsos, conducta y privacidad.
+          This page describes the terms that apply to ticket purchases and attendance at our events. This is a sample placeholder. Replace with your real policies, including cancellation, refunds, conduct, and privacy.
         </p>
-        <h2>Uso aceptable</h2>
+        <h2>Acceptable Use</h2>
         <p>
-          El acceso al evento implica el respeto de las normas del recinto y del organizador. El incumplimiento
-          podrá resultar en la expulsión sin reembolso.
+          Access to the event implies respecting the venue and organizer rules. Failure to comply may result in expulsion without refund.
         </p>
-        <h2>Reembolsos</h2>
+        <h2>Refunds</h2>
         <p>
-          Salvo que la ley indique lo contrario, los reembolsos están sujetos a la política del organizador.
+          Unless required by law, refunds are subject to the organizer's policy.
         </p>
-        <h2>Contacto</h2>
+        <h2>Contact</h2>
         <p>
-          Para consultas, contáctanos a través de la página principal.
+          For inquiries, contact us via the main site.
         </p>
       </article>
     </main>

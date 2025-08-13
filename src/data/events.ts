@@ -22,6 +22,7 @@ export const events: EventItem[] = [
     category: "Sound Healing",
     sku: "EV-SH-0001",
     status: "published",
+    timezone: 'America/Los_Angeles',
     tickets: [
       {
         id: "t1",
@@ -33,6 +34,7 @@ export const events: EventItem[] = [
         earlyBirdAmountCents: 3000,
         earlyBirdStart: nowIso,
         earlyBirdEnd: plusDays(2),
+        description: "Standard entry to the session.",
       },
     ],
     addons: [

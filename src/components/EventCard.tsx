@@ -30,6 +30,18 @@ function slugify(text: string) {
   return text.toLowerCase().trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '');
 }
 
+function formatEventSchedule(startsAt: string, endsAt?: string, timezone?: string) {
+  const tz = timezone || 'America/Los_Angeles';
+  const start = new Date(startsAt);
+  const end = endsAt ? new Date(endsAt) : null;
+  const datePart = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).format(start);
+  const fmtParts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' }).formatToParts(start);
+  const tzName = fmtParts.find(p => p.type === 'timeZoneName')?.value || '';
+  const timeFmt = (d: Date) => new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true }).format(d).toLowerCase().replace(':00', '');
+  const range = end ? `${timeFmt(start)} – ${timeFmt(end)}` : timeFmt(start);
+  return `${datePart}, ${range} ${tzName}`;
+}
+
 interface Props {
   event: EventItem;
 }
@@ -62,8 +74,8 @@ export const EventCard = ({ event }: Props) => {
       <CardContent className="px-4 pb-4 mt-auto">
         <div className="space-y-1 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Starts</span>
-            <time className="font-medium" dateTime={event.startsAt}>{new Date(event.startsAt).toLocaleString()}</time>
+            <span className="text-muted-foreground">When</span>
+            <time className="font-medium" dateTime={event.startsAt}>{formatEventSchedule(event.startsAt, event.endsAt, event.timezone)}</time>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Venue</span>

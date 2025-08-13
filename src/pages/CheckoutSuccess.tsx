@@ -51,7 +51,7 @@ const CheckoutSuccess = () => {
     <main className="container mx-auto py-16">
       <Helmet>
         <title>Payment successful | Kyle Lam Sound Healing</title>
-        <meta name="description" content="Purchase confirmation" />
+        <meta name="description" content="Purchase confirmation." />
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
       </Helmet>
       <div className="max-w-xl mx-auto text-center space-y-4">

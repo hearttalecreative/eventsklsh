@@ -96,8 +96,8 @@ const AdminEvents = () => {
   const [eEnds, setEEnds] = useState('');
   const [eVenueId, setEVenueId] = useState<string | undefined>(undefined);
   const [eStatus, setEStatus] = useState('draft');
-  const [eImageUrl, setEImageUrl] = useState('');
   const [eImageFile, setEImageFile] = useState<File | null>(null);
+  const [eTimezone, setETimezone] = useState('America/Los_Angeles');
 
   // Tickets advanced fields
   const [showAdvancedTicketFields, setShowAdvancedTicketFields] = useState(false);
@@ -164,6 +164,7 @@ const AdminEvents = () => {
     setEVenueId(ev.venue_id || undefined);
     setEStatus(ev.status || 'draft');
     setEImageUrl(ev.image_url || '');
+    setETimezone((ev as any).timezone || 'America/Los_Angeles');
     setEditOpen(true);
   };
   const createVenue = async () => {
@@ -261,6 +262,7 @@ const saveVenueEdit = async () => {
       venue_id: eVenueId || null,
       status: eStatus as any,
       image_url: eImageUrl || null,
+      timezone: eTimezone,
     };
 const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
     if (error) return alert(error.message);
@@ -1115,7 +1117,7 @@ const deleteTicket = async (id: string) => {
                 <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
                 <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
               </div>
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-3 gap-3">
                 <Select value={eVenueId} onValueChange={setEVenueId as any}>
                   <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
                   <SelectContent>
@@ -1128,6 +1130,13 @@ const deleteTicket = async (id: string) => {
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
                     <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={eTimezone} onValueChange={setETimezone}>
+                  <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                    <SelectItem value="America/New_York">America/New_York</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

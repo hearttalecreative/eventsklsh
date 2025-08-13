@@ -17,6 +17,7 @@ export interface TicketType {
   earlyBirdAmountCents?: number; // optional discounted price
   earlyBirdStart?: string; // ISO
   earlyBirdEnd?: string; // ISO
+  description?: string; // optional description shown under each ticket
 }
 
 export interface Addon {
@@ -46,4 +47,5 @@ export interface EventItem {
   instructions?: string; // internal, not shown on frontend
   recurrenceRule?: string; // optional iCal RRULE
   recurrenceText?: string; // human-readable recurrence
+  timezone?: string; // IANA timezone, e.g., America/Los_Angeles
 }

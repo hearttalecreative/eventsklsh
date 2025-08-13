@@ -312,6 +312,7 @@ export type Database = {
           slug: string
           starts_at: string
           status: Database["public"]["Enums"]["event_status"]
+          timezone: string | null
           title: string
           updated_at: string
           venue_id: string | null
@@ -334,6 +335,7 @@ export type Database = {
           slug: string
           starts_at: string
           status?: Database["public"]["Enums"]["event_status"]
+          timezone?: string | null
           title: string
           updated_at?: string
           venue_id?: string | null
@@ -356,6 +358,7 @@ export type Database = {
           slug?: string
           starts_at?: string
           status?: Database["public"]["Enums"]["event_status"]
+          timezone?: string | null
           title?: string
           updated_at?: string
           venue_id?: string | null
@@ -509,6 +512,7 @@ export type Database = {
           capacity_total: number
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"]
+          description: string | null
           early_bird_amount_cents: number | null
           early_bird_end: string | null
           early_bird_start: string | null
@@ -524,6 +528,7 @@ export type Database = {
           capacity_total: number
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
+          description?: string | null
           early_bird_amount_cents?: number | null
           early_bird_end?: string | null
           early_bird_start?: string | null
@@ -539,6 +544,7 @@ export type Database = {
           capacity_total?: number
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
+          description?: string | null
           early_bird_amount_cents?: number | null
           early_bird_end?: string | null
           early_bird_start?: string | null

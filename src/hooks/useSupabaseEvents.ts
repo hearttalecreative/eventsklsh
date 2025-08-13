@@ -14,6 +14,7 @@ function mapTicket(row: any): TicketType {
     earlyBirdAmountCents: row.early_bird_amount_cents ?? undefined,
     earlyBirdStart: row.early_bird_start ?? undefined,
     earlyBirdEnd: row.early_bird_end ?? undefined,
+    description: row.description ?? undefined,
   };
 }
 
@@ -46,7 +47,7 @@ export function useSupabaseEventsList() {
       // 1) events (published)
       const { data: evs, error: eErr } = await supabase
         .from('events')
-        .select('id,slug,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku')
+        .select('id,slug,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku,timezone')
         .eq('status', 'published')
         .order('starts_at', { ascending: true });
       if (eErr) {
@@ -59,7 +60,7 @@ export function useSupabaseEventsList() {
       // 2) tickets for all events
       const { data: tks } = await supabase
         .from('tickets')
-        .select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end')
+        .select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description')
         .in('event_id', eventIds);
 
       // 3) addons for all events
@@ -108,6 +109,7 @@ export function useSupabaseEventsList() {
         instructions: undefined,
         recurrenceRule: r.recurrence_rule || undefined,
         recurrenceText: r.recurrence_text || undefined,
+        timezone: r.timezone || 'America/Los_Angeles',
       }));
 
       if (!canceled) { setData(mapped); setLoading(false); }
@@ -134,7 +136,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       const field = isUuid(idOrSlug) ? 'id' : 'slug';
       const { data: e, error } = await supabase
         .from('events')
-        .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total')
+        .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone')
         .eq(field, idOrSlug)
         .maybeSingle();
       if (error || !e) { if (!canceled) setLoading(false); return; }
@@ -142,7 +144,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       const eventId = e.id;
 
       const [{ data: tks }, { data: ads }, { data: v }] = await Promise.all([
-        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end').eq('event_id', eventId),
+        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description').eq('event_id', eventId),
         supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', eventId),
         supabase.from('venues').select('id,name,address').eq('id', e.venue_id).maybeSingle(),
       ]);
@@ -167,6 +169,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
         instructions: undefined,
         recurrenceRule: e.recurrence_rule || undefined,
         recurrenceText: e.recurrence_text || undefined,
+        timezone: e.timezone || 'America/Los_Angeles',
       };
       if (!canceled) { setData(mapped); setLoading(false); }
     }
