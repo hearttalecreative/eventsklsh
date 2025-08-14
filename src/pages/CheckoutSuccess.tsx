@@ -18,9 +18,19 @@ const CheckoutSuccess = () => {
       try {
         const cartRaw = localStorage.getItem("lastCart");
         if (isFree) {
-          setDone(true);
-          toast.success("Free order confirmed.");
-          localStorage.removeItem("lastCart");
+          if (!cartRaw) throw new Error("Missing cart data for free order");
+          const cart = JSON.parse(cartRaw);
+          const { data, error } = await supabase.functions.invoke("process-free-order", {
+            body: { cart },
+          });
+          if (error) throw error as any;
+          if (data?.ok) {
+            setDone(true);
+            toast.success("Free order confirmed. Confirmation emails sent.");
+            localStorage.removeItem("lastCart");
+          } else {
+            throw new Error("Failed to process free order");
+          }
           return;
         }
         if (!sessionId) { setError("Missing session id"); return; }
