@@ -100,9 +100,9 @@ const AdminEvents = () => {
   const [eImageUrl, setEImageUrl] = useState('');
   const [eImageFile, setEImageFile] = useState<File | null>(null);
   const [eTimezone, setETimezone] = useState('America/Los_Angeles');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [eImagePreview, setEImagePreview] = useState<string | null>(null);
 
-  // Tickets advanced fields
-  const [showAdvancedTicketFields, setShowAdvancedTicketFields] = useState(false);
 
   // Venue create dialog state
   const [venueDialogOpen, setVenueDialogOpen] = useState(false);
@@ -640,10 +640,27 @@ const deleteTicket = async (id: string) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid sm:grid-cols-3 gap-3 items-center">
-                <Input type="file" accept="image/*" onChange={(e)=>setImageFile(e.target.files?.[0] || null)} />
-                <Button type="button" variant="secondary" onClick={uploadImage}>Upload image</Button>
-                {imageUrl && <span className="text-xs text-muted-foreground truncate" title={imageUrl}>Uploaded ✓</span>}
+              <div className="space-y-3">
+                <div className="grid sm:grid-cols-3 gap-3 items-center">
+                  <Input type="file" accept="image/*" onChange={(e)=>{
+                    const file = e.target.files?.[0] || null;
+                    setImageFile(file);
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => setImagePreview(reader.result as string);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setImagePreview(null);
+                    }
+                  }} />
+                  <Button type="button" variant="secondary" onClick={uploadImage}>Upload image</Button>
+                  {imageUrl && <span className="text-xs text-muted-foreground truncate" title={imageUrl}>Uploaded ✓</span>}
+                </div>
+                {imagePreview && (
+                  <div className="w-32 h-32 rounded-md overflow-hidden bg-muted">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
               <Button onClick={createEvent}>Create event</Button>
             </CardContent>
@@ -678,9 +695,6 @@ const deleteTicket = async (id: string) => {
                       <Button size="sm" variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
                       <Button size="sm" variant="secondary" onClick={addTicketCombo}>Add combo</Button>
                       <Button size="sm" variant="secondary" onClick={addTicketByZone}>Add by zone</Button>
-                      <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
-                        {showAdvancedTicketFields ? 'Hide advanced' : 'Show advanced'}
-                      </Button>
                     </div>
                   </div>
                   {tickets.length === 0 && (
@@ -696,7 +710,7 @@ const deleteTicket = async (id: string) => {
                             <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                           </div>
                           <div className="sm:col-span-2 space-y-1">
-                            <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
+                            <Label>Price</Label>
                             {(() => {
                               let priceEl: HTMLInputElement | null = null;
                               return (
@@ -724,17 +738,19 @@ const deleteTicket = async (id: string) => {
                               onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
-                          <div className="sm:col-span-2 space-y-1">
-                            <Label>Participants per ticket</Label>
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              min={1}
-                              defaultValue={t.participants_per_ticket || 1}
-                              className="w-full text-right"
-                              onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: Math.max(1, parseInt(e.currentTarget.value || '1', 10)) })}
-                            />
-                          </div>
+                          {(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) && (
+                            <div className="sm:col-span-2 space-y-1">
+                              <Label>Participants per ticket</Label>
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={1}
+                                defaultValue={t.participants_per_ticket || 1}
+                                className="w-full text-right"
+                                onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: Math.max(1, parseInt(e.currentTarget.value || '1', 10)) })}
+                              />
+                            </div>
+                          )}
                           <div className="sm:col-span-1 flex justify-end">
                             <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
                           </div>
@@ -1022,11 +1038,6 @@ const deleteTicket = async (id: string) => {
               <p className="text-sm text-muted-foreground">
                 Define ticket types, prices, capacities and early-bird options. Use “Advanced” for zones and participants per ticket.
               </p>
-              <div className="flex justify-end">
-                <Button size="sm" variant="outline" onClick={()=>setShowAdvancedTicketFields(v=>!v)}>
-                  {showAdvancedTicketFields ? 'Hide advanced' : 'Show advanced'}
-                </Button>
-              </div>
               {tickets.length === 0 && (
                 <p className="text-sm text-muted-foreground">No tickets yet.</p>
               )}
@@ -1040,7 +1051,7 @@ const deleteTicket = async (id: string) => {
                         <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                       </div>
                       <div className="sm:col-span-2 space-y-1">
-                        <Label>Price ({(t.currency || 'usd').toUpperCase()})</Label>
+                        <Label>Price</Label>
                         {(() => {
                           let priceEl: HTMLInputElement | null = null;
                           return (
@@ -1184,10 +1195,27 @@ const deleteTicket = async (id: string) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid sm:grid-cols-3 gap-3 items-center">
-                <Input type="file" accept="image/*" onChange={(e)=>setEImageFile(e.target.files?.[0] || null)} />
-                <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
-                {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
+              <div className="space-y-3">
+                <div className="grid sm:grid-cols-3 gap-3 items-center">
+                  <Input type="file" accept="image/*" onChange={(e)=>{
+                    const file = e.target.files?.[0] || null;
+                    setEImageFile(file);
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => setEImagePreview(reader.result as string);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setEImagePreview(null);
+                    }
+                  }} />
+                  <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
+                  {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
+                </div>
+                {(eImagePreview || eImageUrl) && (
+                  <div className="w-32 h-32 rounded-md overflow-hidden bg-muted">
+                    <img src={eImagePreview || eImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>

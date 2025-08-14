@@ -68,6 +68,7 @@ const App = () => (
                   <Link to="/admin/events" className="story-link">Event management</Link>
                   <Link to="/admin/venues" className="story-link">Venues</Link>
                   <Link to="/admin/coupons" className="story-link">Coupons</Link>
+                  <Link to="/admin/participants" className="story-link">Participants</Link>
                   <Link to="/dashboard" className="story-link">Dashboard</Link>
                   <Link to="/admin/login" className="story-link">Admin access</Link>
                   <a href="https://kylelamsoundhealing.com/" target="_blank" rel="noopener noreferrer" className="story-link">Main site</a>
