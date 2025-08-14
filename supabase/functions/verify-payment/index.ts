@@ -243,10 +243,23 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
         const html = `
           <div style="background:#f6f7fb;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
             <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
-              <div style="padding:24px 24px 0 24px;text-align:center;">
-                <h1 style="margin:0;font-size:22px;line-height:1.3;color:#111827;">Thank you, ${displayName}!</h1>
-                <p style="margin:8px 0 0 0;color:#6b7280;">Your tickets for <strong>${event.title}</strong> are confirmed.</p>
-                <p style="margin:8px 0 0 0;color:#6b7280;">Confirmation code: <strong style="letter-spacing:0.5px;">${confCode}</strong></p>
+              <!-- Header with Logo -->
+              <div style="background:linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);padding:32px 24px;text-align:center;">
+                <div style="background:#ffffff;width:120px;height:36px;margin:0 auto 16px auto;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                  <div style="width:20px;height:20px;background:linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);border-radius:4px;margin-right:8px;"></div>
+                  <span style="font-weight:700;color:#1f2937;font-size:18px;">Events</span>
+                </div>
+                <h1 style="margin:0;font-size:28px;line-height:1.2;color:#ffffff;font-weight:700;">Thank you, ${displayName}!</h1>
+                <p style="margin:12px 0 0 0;color:#e0e7ff;font-size:16px;">Your tickets have been confirmed</p>
+              </div>
+              
+              <!-- Confirmation Code Highlight -->
+              <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:20px 24px;text-align:center;">
+                <p style="margin:0 0 8px 0;color:#64748b;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;">Confirmation Code</p>
+                <div style="background:#ffffff;border:2px solid #3b82f6;border-radius:8px;padding:12px 16px;display:inline-block;">
+                  <span style="font-size:24px;font-weight:700;color:#1e293b;letter-spacing:2px;">${confCode}</span>
+                </div>
+                <p style="margin:8px 0 0 0;color:#64748b;font-size:13px;">Present this code at the event</p>
               </div>
               <div style="padding:24px;">
                 <h2 style="margin:0 0 8px 0;font-size:16px;color:#111827;">Event details</h2>
