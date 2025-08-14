@@ -705,7 +705,7 @@ const deleteTicket = async (id: string) => {
                     return (
                       <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
                         <div className="grid gap-3 sm:grid-cols-12 items-end">
-                          <div className="sm:col-span-5 space-y-1">
+                          <div className="sm:col-span-4 space-y-1">
                             <Label>Name</Label>
                             <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
                           </div>
@@ -739,7 +739,7 @@ const deleteTicket = async (id: string) => {
                             />
                           </div>
                           {(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) && (
-                            <div className="sm:col-span-2 space-y-1">
+                            <div className="sm:col-span-3 space-y-1">
                               <Label>Participants per ticket</Label>
                               <Input
                                 type="number"
@@ -751,8 +751,10 @@ const deleteTicket = async (id: string) => {
                               />
                             </div>
                           )}
-                          <div className="sm:col-span-1 flex justify-end">
-                            <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
+                          <div className={`${(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) ? 'sm:col-span-1' : 'sm:col-span-4'} flex justify-end items-end`}>
+                            <Button variant="destructive" size="icon" onClick={()=>deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
                         <div className="space-y-1">
@@ -840,9 +842,11 @@ const deleteTicket = async (id: string) => {
                            defaultValue={a.max_quantity_per_person || ''} 
                            onBlur={(e)=>updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })} 
                          />
-                         <div className="flex justify-end">
-                           <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
-                         </div>
+                          <div className="flex justify-end">
+                            <Button variant="destructive" size="icon" onClick={()=>deleteAddon(a.id)} title="Delete addon" aria-label="Delete addon">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                        </div>
                        <Textarea
                          placeholder="Brief description (max ~30 words)"
@@ -1006,9 +1010,11 @@ const deleteTicket = async (id: string) => {
                        defaultValue={a.max_quantity_per_person || ''} 
                        onBlur={(e)=>updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })} 
                      />
-                     <div className="flex justify-end">
-                       <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
-                     </div>
+                      <div className="flex justify-end">
+                        <Button variant="destructive" size="icon" onClick={()=>deleteAddon(a.id)} title="Delete addon" aria-label="Delete addon">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                    </div>
                    <Textarea
                      placeholder="Brief description (max ~30 words)"
@@ -1079,8 +1085,10 @@ const deleteTicket = async (id: string) => {
                           onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
                       </div>
-                      <div className="sm:col-span-2 flex justify-end">
-                        <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)}>Delete</Button>
+                      <div className="sm:col-span-1 flex justify-end">
+                        <Button variant="destructive" size="icon" onClick={()=>deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
 
