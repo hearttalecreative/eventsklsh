@@ -298,7 +298,7 @@ const addAddon = async () => {
     await logAdmin('addon_created','addon', data!.id, { name: data!.name, event_id: addonsEventId });
   };
 
-const updateAddonField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number }>) => {
+const updateAddonField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number; max_quantity_per_person: number | null }>) => {
     const { error } = await supabase.from('addons').update(patch).eq('id', id);
     if (error) return alert(error.message);
     setAddons(arr => arr.map(a => a.id===id ? { ...a, ...patch } : a));
@@ -810,24 +810,31 @@ const deleteTicket = async (id: string) => {
                   {addons.length === 0 && (
                     <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
                   )}
-                  {addons.map((a) => (
-                    <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
-                      <div className="grid sm:grid-cols-3 gap-2 items-center">
-                        <Input defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
-                        <Input type="number" step="0.01" min="0" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
-                          onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
-                        />
-                        <div className="flex justify-end">
-                          <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
-                        </div>
-                      </div>
-                      <Textarea
-                        placeholder="Brief description (max ~30 words)"
-                        value={a.description ?? ''}
-                        onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
-                      />
-                    </div>
-                  ))}
+                   {addons.map((a) => (
+                     <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
+                       <div className="grid sm:grid-cols-4 gap-2 items-center">
+                         <Input placeholder="Name" defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
+                         <Input type="number" step="0.01" min="0" placeholder="Price" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
+                           onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                         />
+                         <Input 
+                           type="number" 
+                           min="1" 
+                           placeholder="Max qty per person" 
+                           defaultValue={a.max_quantity_per_person || ''} 
+                           onBlur={(e)=>updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })} 
+                         />
+                         <div className="flex justify-end">
+                           <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
+                         </div>
+                       </div>
+                       <Textarea
+                         placeholder="Brief description (max ~30 words)"
+                         value={a.description ?? ''}
+                         onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
+                       />
+                     </div>
+                   ))}
                   {addons.length > 0 && (
                     <div className="flex justify-end">
                       <Button onClick={saveAddonDescriptions} disabled={savingAddons}>{savingAddons ? 'Saving…' : 'Save descriptions'}</Button>
@@ -969,24 +976,31 @@ const deleteTicket = async (id: string) => {
               {addons.length === 0 && (
                 <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
               )}
-              {addons.map((a) => (
-                <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
-                  <div className="grid sm:grid-cols-3 gap-2 items-center">
-                    <Input defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
-                    <Input type="number" step="0.01" min="0" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
-                      onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
-                    />
-                    <div className="flex justify-end">
-                      <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
-                    </div>
-                  </div>
-                  <Textarea
-                    placeholder="Brief description (max ~30 words)"
-                    value={a.description ?? ''}
-                    onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
-                  />
-                </div>
-              ))}
+               {addons.map((a) => (
+                 <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
+                   <div className="grid sm:grid-cols-4 gap-2 items-center">
+                     <Input placeholder="Name" defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
+                     <Input type="number" step="0.01" min="0" placeholder="Price" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
+                       onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                     />
+                     <Input 
+                       type="number" 
+                       min="1" 
+                       placeholder="Max qty per person" 
+                       defaultValue={a.max_quantity_per_person || ''} 
+                       onBlur={(e)=>updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })} 
+                     />
+                     <div className="flex justify-end">
+                       <Button variant="destructive" size="sm" onClick={()=>deleteAddon(a.id)}>Delete</Button>
+                     </div>
+                   </div>
+                   <Textarea
+                     placeholder="Brief description (max ~30 words)"
+                     value={a.description ?? ''}
+                     onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
+                   />
+                 </div>
+               ))}
             </div>
             <DialogFooter className="flex gap-2">
               <Button variant="secondary" onClick={addAddon}>Add add-on</Button>

@@ -384,13 +384,20 @@ const proceed = async () => {
               <div className="space-y-4">
                 {event.addons.map((a: Addon) => (
                   <div key={a.id} className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-medium">{a.name}</div>
-                      {a.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
-                      )}
-                      <div className="text-sm text-muted-foreground mt-1">{formatCurrency(a.unitAmountCents, currency)}</div>
-                    </div>
+                     <div className="min-w-0">
+                       <div className="font-medium">{a.name}</div>
+                       {a.description && (
+                         <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
+                       )}
+                       <div className="text-sm text-muted-foreground mt-1">
+                         {formatCurrency(a.unitAmountCents, currency)}
+                         {(a as any).max_quantity_per_person && (
+                           <span className="ml-2 text-xs">
+                             (Max {(a as any).max_quantity_per_person} per person)
+                           </span>
+                         )}
+                       </div>
+                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         type="button"
@@ -403,24 +410,34 @@ const proceed = async () => {
                       >
                         −
                       </Button>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={addonsQty[a.id] ?? 0}
-                        onChange={(e) => {
-                          const raw = parseInt(e.target.value || '0', 10);
-                          const v = isNaN(raw) ? 0 : Math.max(raw, 0);
-                          setAddonsQty((prev) => ({ ...prev, [a.id]: v }));
-                        }}
-                        className="w-16 text-center"
-                      />
+                       <Input
+                         type="number"
+                         min={0}
+                         max={(a as any).max_quantity_per_person ? (a as any).max_quantity_per_person * participantsCount : undefined}
+                         value={addonsQty[a.id] ?? 0}
+                         onChange={(e) => {
+                           const raw = parseInt(e.target.value || '0', 10);
+                           const maxPerPerson = (a as any).max_quantity_per_person;
+                           const max = maxPerPerson ? maxPerPerson * participantsCount : undefined;
+                           const v = isNaN(raw) ? 0 : Math.max(raw, 0);
+                           const finalValue = max ? Math.min(v, max) : v;
+                           setAddonsQty((prev) => ({ ...prev, [a.id]: finalValue }));
+                         }}
+                         className="w-16 text-center"
+                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         aria-label={`Increase ${a.name}`}
                         onClick={() =>
-                          setAddonsQty((prev) => ({ ...prev, [a.id]: (prev[a.id] ?? 0) + 1 }))
+                          setAddonsQty((prev) => {
+                            const current = prev[a.id] ?? 0;
+                            const maxPerPerson = (a as any).max_quantity_per_person;
+                            const max = maxPerPerson ? maxPerPerson * participantsCount : undefined;
+                            const newValue = current + 1;
+                            return { ...prev, [a.id]: max ? Math.min(newValue, max) : newValue };
+                          })
                         }
                       >
                         +
@@ -481,7 +498,7 @@ const proceed = async () => {
             <h2 className="text-xl font-semibold mb-4">4. Terms, Coupon & Summary</h2>
             <div className="flex items-center gap-2 mb-4">
               <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(Boolean(v))} />
-              <label htmlFor="terms" className="text-sm">I accept the <a href="/terms" className="underline">Terms and Conditions</a></label>
+              <label htmlFor="terms" className="text-sm">I accept the <a href="https://kylelamsoundhealing.com/refund-and-event-credit-policy/" target="_blank" rel="noopener noreferrer" className="underline">Refund Policy, Privacy Policy & Liability Waiver</a></label>
             </div>
             <div className="flex items-center gap-2 mb-3">
               <Input placeholder="Coupon code" value={coupon} onChange={(e) => { setCoupon(e.target.value); setCouponValid(false); }} className="max-w-xs" />
