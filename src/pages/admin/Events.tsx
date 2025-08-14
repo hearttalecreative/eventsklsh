@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import AdminRoute from "@/routes/AdminRoute";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
@@ -27,6 +29,7 @@ const logAdmin = async (action: string, entity_type?: string, entity_id?: string
 };
 
 const AdminEvents = () => {
+  const isMobile = useIsMobile();
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const [venues, setVenues] = useState<Venue[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -1150,88 +1153,172 @@ const deleteTicket = async (id: string) => {
           </DialogContent>
         </Dialog>
 
-        {/* Edit event dialog */}
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit event</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
-              <div className="space-y-1">
-                <Textarea
-                  placeholder="Short description (max 350 characters)"
-                  value={eShort}
-                  onChange={(e)=>{
-                    const val = e.target.value;
-                    setEShort(val.slice(0, 350));
-                  }}
-                />
-                <p className="text-xs text-muted-foreground text-right">
-                  {eShort.length}/350
-                </p>
-              </div>
-              <div className="space-y-1">
-                <Label>Long description</Label>
-                <RichMarkdownEditor value={eLong} onChange={setELong} />
-              </div>
-              <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={eInstructions} onChange={(e)=>setEInstructions(e.target.value)} />
-              <div className="grid sm:grid-cols-2 gap-3">
-                <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
-                <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
-              </div>
-              <div className="grid sm:grid-cols-3 gap-3">
-                <Select value={eVenueId} onValueChange={setEVenueId as any}>
-                  <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
-                  <SelectContent>
-                    {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={eStatus} onValueChange={setEStatus}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={eTimezone} onValueChange={setETimezone}>
-                  <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
-                    <SelectItem value="America/New_York">America/New_York</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-3">
-                <div className="grid sm:grid-cols-3 gap-3 items-center">
-                  <Input type="file" accept="image/*" onChange={(e)=>{
-                    const file = e.target.files?.[0] || null;
-                    setEImageFile(file);
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = () => setEImagePreview(reader.result as string);
-                      reader.readAsDataURL(file);
-                    } else {
-                      setEImagePreview(null);
-                    }
-                  }} />
-                  <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
-                  {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
+        {/* Edit event dialog - responsive */}
+        {isMobile ? (
+          <Sheet open={editOpen} onOpenChange={setEditOpen}>
+            <SheetContent side="bottom" className="h-[95vh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Edit event</SheetTitle>
+              </SheetHeader>
+              <div className="space-y-3 py-4">
+                <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
+                <div className="space-y-1">
+                  <Textarea
+                    placeholder="Short description (max 350 characters)"
+                    value={eShort}
+                    onChange={(e)=>{
+                      const val = e.target.value;
+                      setEShort(val.slice(0, 350));
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {eShort.length}/350
+                  </p>
                 </div>
-                {(eImagePreview || eImageUrl) && (
-                  <div className="w-32 h-32 rounded-md overflow-hidden bg-muted">
-                    <img src={eImagePreview || eImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <div className="space-y-1">
+                  <Label>Long description</Label>
+                  <RichMarkdownEditor value={eLong} onChange={setELong} />
+                </div>
+                <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={eInstructions} onChange={(e)=>setEInstructions(e.target.value)} />
+                <div className="grid grid-cols-1 gap-3">
+                  <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
+                  <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <Select value={eVenueId} onValueChange={setEVenueId as any}>
+                    <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
+                    <SelectContent>
+                      {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={eStatus} onValueChange={setEStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={eTimezone} onValueChange={setETimezone}>
+                    <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                      <SelectItem value="America/New_York">America/New_York</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 items-start">
+                    <Input type="file" accept="image/*" onChange={(e)=>{
+                      const file = e.target.files?.[0] || null;
+                      setEImageFile(file);
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => setEImagePreview(reader.result as string);
+                        reader.readAsDataURL(file);
+                      } else {
+                        setEImagePreview(null);
+                      }
+                    }} />
+                    <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
+                    {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
                   </div>
-                )}
+                  {(eImagePreview || eImageUrl) && (
+                    <div className="w-32 h-32 rounded-md overflow-hidden bg-muted">
+                      <img src={eImagePreview || eImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="secondary" onClick={()=>setEditOpen(false)}>Cancel</Button>
-              <Button onClick={saveEdit}>Save changes</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <SheetFooter className="gap-2">
+                <Button variant="secondary" onClick={()=>setEditOpen(false)}>Cancel</Button>
+                <Button onClick={saveEdit}>Save changes</Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit event</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
+                <div className="space-y-1">
+                  <Textarea
+                    placeholder="Short description (max 350 characters)"
+                    value={eShort}
+                    onChange={(e)=>{
+                      const val = e.target.value;
+                      setEShort(val.slice(0, 350));
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {eShort.length}/350
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label>Long description</Label>
+                  <RichMarkdownEditor value={eLong} onChange={setELong} />
+                </div>
+                <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={eInstructions} onChange={(e)=>setEInstructions(e.target.value)} />
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
+                  <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
+                </div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <Select value={eVenueId} onValueChange={setEVenueId as any}>
+                    <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
+                    <SelectContent>
+                      {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={eStatus} onValueChange={setEStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={eTimezone} onValueChange={setETimezone}>
+                    <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                      <SelectItem value="America/New_York">America/New_York</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  <div className="grid sm:grid-cols-3 gap-3 items-center">
+                    <Input type="file" accept="image/*" onChange={(e)=>{
+                      const file = e.target.files?.[0] || null;
+                      setEImageFile(file);
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => setEImagePreview(reader.result as string);
+                        reader.readAsDataURL(file);
+                      } else {
+                        setEImagePreview(null);
+                      }
+                    }} />
+                    <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
+                    {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
+                  </div>
+                  {(eImagePreview || eImageUrl) && (
+                    <div className="w-32 h-32 rounded-md overflow-hidden bg-muted">
+                      <img src={eImagePreview || eImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="secondary" onClick={()=>setEditOpen(false)}>Cancel</Button>
+                <Button onClick={saveEdit}>Save changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Attendees dialog */}
         <Dialog open={attendeesOpen} onOpenChange={setAttendeesOpen}>
