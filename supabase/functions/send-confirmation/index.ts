@@ -54,11 +54,38 @@ serve(async (req: Request) => {
       });
     }
 
-    const subject = `Your test ticket for ${eventTitle || "the event"}`;
+    const subject = `Your ticket confirmation for ${eventTitle || "the event"}`;
     const html = `
-      <h1>Thank you, ${name}!</h1>
-      <p>This is a test purchase confirmation for <strong>${eventTitle || "the event"}</strong>.</p>
-      <p>If you received this, Brevo is correctly configured.</p>
+      <div style="background:#f6f7fb;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
+        <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
+          <!-- Header with Logo -->
+          <div style="background:linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);padding:32px 24px;text-align:center;">
+            <div style="background:#ffffff;width:120px;height:36px;margin:0 auto 16px auto;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:20px;height:20px;background:linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);border-radius:4px;margin-right:8px;"></div>
+              <span style="font-weight:700;color:#1f2937;font-size:18px;">Events</span>
+            </div>
+            <h1 style="margin:0;font-size:28px;line-height:1.2;color:#ffffff;font-weight:700;">Thank you, ${name}!</h1>
+            <p style="margin:12px 0 0 0;color:#e0e7ff;font-size:16px;">Your tickets have been confirmed</p>
+          </div>
+          
+          <!-- Event Details -->
+          <div style="padding:24px;">
+            <div style="background:#f8fafc;border-radius:8px;padding:20px;margin-bottom:20px;">
+              <h2 style="margin:0 0 12px 0;font-size:20px;color:#1e293b;">${eventTitle || "the event"}</h2>
+              <p style="margin:0;color:#64748b;">This is a test purchase confirmation to verify that Brevo email service is correctly configured.</p>
+            </div>
+            
+            <div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:16px;text-align:center;">
+              <p style="margin:0;color:#166534;font-weight:600;">✅ Email Configuration Test Successful</p>
+              <p style="margin:8px 0 0 0;color:#15803d;font-size:14px;">Your Brevo integration is working properly!</p>
+            </div>
+            
+            <p style="margin:24px 0 0 0;color:#6b7280;font-size:13px;text-align:center;">
+              If you have any questions about this test, just reply to this email.
+            </p>
+          </div>
+        </div>
+      </div>
     `;
 
     try {
