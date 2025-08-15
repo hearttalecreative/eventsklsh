@@ -191,7 +191,9 @@ serve(async (req) => {
       }
     }
 
-    let total = subtotalBeforeDiscount - discount;
+    const subtotalAfterDiscount = subtotalBeforeDiscount - discount;
+    const processingFee = Math.round(subtotalAfterDiscount * 0.03);
+    let total = subtotalAfterDiscount + processingFee;
 
     // Validate participants count
     const expectedParticipants = (ticket.participants_per_ticket || 1) * cart.ticketQty;
@@ -209,7 +211,7 @@ serve(async (req) => {
         .insert({
           event_id: cart.eventId,
           email: buyer.email,
-          total_amount_cents: 0,
+          total_amount_cents: processingFee,
           currency: 'usd',
           status: 'paid',
         })
@@ -300,7 +302,8 @@ serve(async (req) => {
                 return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''
               }).join('')}
               ${discount>0 ? `<li><strong>Discount:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''}
-              <li><strong>Total:</strong> ${(0/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
+              <li>Processing Fee (3%) — ${(processingFee/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
+              <li><strong>Total:</strong> ${(processingFee/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
             </ul>
             <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
           `;
@@ -344,6 +347,15 @@ serve(async (req) => {
           },
         } as Stripe.Checkout.SessionCreateParams.LineItem;
       }).filter((li) => (li.quantity || 0) > 0),
+      // Add processing fee as separate line item
+      {
+        quantity: 1,
+        price_data: {
+          currency: curr,
+          product_data: { name: 'Processing Fee (3%)' },
+          unit_amount: processingFee,
+        },
+      },
     ];
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {

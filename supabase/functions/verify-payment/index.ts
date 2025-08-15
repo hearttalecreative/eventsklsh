@@ -140,7 +140,9 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
       const d = Number(meta.coupon_discount_cents);
       if (!Number.isNaN(d)) discount = d;
     }
-    const total = ticketsSubtotal + addonsSubtotal - discount;
+    const subtotalAfterDiscount = ticketsSubtotal + addonsSubtotal - discount;
+    const processingFee = Math.round(subtotalAfterDiscount * 0.03);
+    const total = subtotalAfterDiscount + processingFee;
 
     if (typeof session.amount_total === "number" && session.amount_total !== total) {
       console.warn("Amount mismatch:", { session: session.amount_total, computed: total });
@@ -284,6 +286,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
                       return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''
                     }).join('')}
                     ${discount>0 ? `<li><strong>Discount:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''}
+                    <li>Processing Fee (3%) — ${(processingFee/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
                     <li><strong>Total:</strong> ${(total/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
                     <li><strong>Purchase date:</strong> ${purchaseDate.toLocaleString('en-US')}</li>
                   </ul>

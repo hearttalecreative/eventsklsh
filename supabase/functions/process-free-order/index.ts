@@ -77,7 +77,18 @@ serve(async (req: Request) => {
       .select("*")
       .in("id", cart.addons.map((a: any) => a.id));
 
-    // 2) Create order
+    // 2) Calculate processing fee (3% of original total before 100% discount)
+    // For 100% discount events, we still track the processing fee in the order for transparency
+    const unit = ticket.unit_amount_cents;
+    const ticketsSubtotal = unit * (cart.ticketQty || 1);
+    const addonsSubtotal = (cart.addons || []).reduce((sum: number, a: any) => {
+      const addon = (addons || []).find((row: any) => row.id === a.id);
+      return sum + (addon ? addon.unit_amount_cents * (a.qty || 0) : 0);
+    }, 0);
+    const originalTotal = ticketsSubtotal + addonsSubtotal;
+    const processingFee = Math.round(originalTotal * 0.03);
+
+    // Create order
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
@@ -86,7 +97,7 @@ serve(async (req: Request) => {
         email: cart.participants[0]?.email || "guest@example.com",
         status: "paid",
         currency: "usd",
-        total_amount_cents: 0,
+        total_amount_cents: processingFee,
       })
       .select("id")
       .single();
@@ -208,12 +219,15 @@ serve(async (req: Request) => {
                     <p style="margin:8px 0 0 0;color:#15803d;font-size:14px;">You received a 100% discount coupon!</p>
                   </div>
                   <ul style="margin:16px 0 0 18px;color:#374151;">
-                    <li>${ticket.name} × ${cart.ticketQty} — $0.00</li>
+                    <li>${ticket.name} × ${cart.ticketQty} — $${(ticketsSubtotal/100).toFixed(2)}</li>
                     ${(addons || []).map((row: any) => {
                       const qty = cart.addons.find((a: any) => a.id === row.id)?.qty || 0;
-                      return qty > 0 ? `<li>${row.name} × ${qty} — $0.00</li>` : ''
+                      return qty > 0 ? `<li>${row.name} × ${qty} — $${((row.unit_amount_cents * qty)/100).toFixed(2)}</li>` : ''
                     }).join('')}
-                    <li><strong>Total:</strong> $0.00 (FREE)</li>
+                    <li><strong>Subtotal:</strong> $${(originalTotal/100).toFixed(2)}</li>
+                    <li><strong>Discount (100%):</strong> -$${(originalTotal/100).toFixed(2)}</li>
+                    <li>Processing Fee (3%) — $${(processingFee/100).toFixed(2)}</li>
+                    <li><strong>Total:</strong> $${(processingFee/100).toFixed(2)}</li>
                     <li><strong>Purchase date:</strong> ${purchaseDate.toLocaleString('en-US')}</li>
                   </ul>
                 </div>

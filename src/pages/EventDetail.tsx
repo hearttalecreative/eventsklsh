@@ -150,7 +150,9 @@ const EventDetail = () => {
       else discount = Math.min(amt, baseBoth);
     }
   }
-  const total = ticketsSubtotal + addonsSubtotal - discount;
+  const subtotalAfterDiscount = ticketsSubtotal + addonsSubtotal - discount;
+  const processingFee = Math.round(subtotalAfterDiscount * 0.03);
+  const total = subtotalAfterDiscount + processingFee;
 
 
   const eventJsonLd = {
@@ -546,6 +548,10 @@ const proceed = async () => {
                   <span>-{formatCurrency(discount, currency)}</span>
                 </div>
               )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Processing Fee (3%)</span>
+                <span>{formatCurrency(processingFee, currency)}</span>
+              </div>
               <div className="flex justify-between pt-2 border-t font-semibold">
                 <span>Total</span>
                 <span>{formatCurrency(total, currency)}</span>
