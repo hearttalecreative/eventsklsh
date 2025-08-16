@@ -16,8 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
-import { addDays, addMonths } from "date-fns";
-import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2 } from "lucide-react";
+import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface Venue { id: string; name: string; address?: string | null; }
@@ -77,10 +76,10 @@ const AdminEvents = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Recurrence settings
-  const [eventType, setEventType] = useState<'single' | 'recurring'>("single");
-  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]); // 0..6
-  const [recurrenceMonths, setRecurrenceMonths] = useState<number>(1);
+  // Duplicate event dialog state
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicatingEvent, setDuplicatingEvent] = useState<any | null>(null);
+  const [newEventDate, setNewEventDate] = useState("");
 
   // Sorting and filters for events table
   const [evOrderBy, setEvOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>("upcoming");
@@ -214,44 +213,18 @@ const saveVenueEdit = async () => {
     };
 
     try {
-      if (eventType === 'single') {
-        const payload = {
-          ...base,
-          starts_at: startsAt,
-          ends_at: endsAt || null,
-        };
-        const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
-        if (error) throw error;
-        setEvents((arr) => [data!, ...arr]);
-        await logAdmin('event_created','event', data!.id, { title });
-      } else {
-        if (recurrenceDays.length === 0) return alert('Select at least one weekday for recurrence');
-        const startBase = new Date(startsAt);
-        const durationMs = endsAt ? (new Date(endsAt).getTime() - startBase.getTime()) : 0;
-        const endWindow = addMonths(startBase, recurrenceMonths);
-        const rows: any[] = [];
-        for (let d = new Date(startBase); d <= endWindow; d = addDays(d, 1)) {
-          if (!recurrenceDays.includes(d.getDay())) continue;
-          const s = new Date(d);
-          s.setHours(startBase.getHours(), startBase.getMinutes(), 0, 0);
-          const e = durationMs ? new Date(s.getTime() + durationMs) : null;
-          rows.push({
-            ...base,
-            starts_at: s.toISOString(),
-            ends_at: e ? e.toISOString() : null,
-            recurrence_text: `Repeats on ${recurrenceDays.map(i=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]).join(', ')} for ${recurrenceMonths} month(s)`,
-          });
-        }
-        if (rows.length === 0) return alert('No dates generated with the selected options.');
-        const { data, error } = await supabase.from('events').insert(rows).select('*');
-        if (error) throw error;
-        setEvents(arr => [ ...(data || []), ...arr ]);
-        await logAdmin('events_bulk_created','event', (data && data[0]?.id) || null, { count: data?.length, title });
-      }
+      const payload = {
+        ...base,
+        starts_at: startsAt,
+        ends_at: endsAt || null,
+      };
+      const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
+      if (error) throw error;
+      setEvents((arr) => [data!, ...arr]);
+      await logAdmin('event_created','event', data!.id, { title });
 
       // Reset form
       setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setTimezone('America/Los_Angeles'); setImageUrl("");
-      setEventType('single'); setRecurrenceDays([]); setRecurrenceMonths(1);
     } catch (error: any) {
       alert(error.message || 'Failed to create event(s)');
     }
@@ -276,6 +249,121 @@ const { data, error } = await supabase.from('events').update(payload).eq('id', e
     await logAdmin('event_updated','event', editingEvent.id, payload);
     setEditOpen(false);
     setEditingEvent(null);
+  };
+
+  const openDuplicate = (event: any) => {
+    setDuplicatingEvent(event);
+    setNewEventDate("");
+    setDuplicateOpen(true);
+  };
+
+  const duplicateEvent = async () => {
+    if (!duplicatingEvent || !newEventDate) {
+      alert('Please select a date for the new event');
+      return;
+    }
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const created_by = session.session?.user?.id || null;
+
+      // Calculate duration from original event
+      const originalStart = new Date(duplicatingEvent.starts_at);
+      const originalEnd = duplicatingEvent.ends_at ? new Date(duplicatingEvent.ends_at) : null;
+      const durationMs = originalEnd ? (originalEnd.getTime() - originalStart.getTime()) : 0;
+
+      // Set new dates
+      const newStart = new Date(newEventDate);
+      const newEnd = durationMs > 0 ? new Date(newStart.getTime() + durationMs) : null;
+
+      // Create new event with same data but new dates
+      const eventPayload: any = {
+        title: `${duplicatingEvent.title} (Copy)`,
+        short_description: duplicatingEvent.short_description,
+        description: duplicatingEvent.description,
+        instructions: duplicatingEvent.instructions,
+        starts_at: newStart.toISOString(),
+        ends_at: newEnd ? newEnd.toISOString() : null,
+        venue_id: duplicatingEvent.venue_id,
+        status: 'draft',
+        timezone: duplicatingEvent.timezone,
+        image_url: duplicatingEvent.image_url,
+        created_by,
+      };
+
+      const { data: newEvent, error: eventError } = await supabase
+        .from('events')
+        .insert(eventPayload)
+        .select('*')
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Duplicate tickets
+      const { data: originalTickets } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('event_id', duplicatingEvent.id);
+
+      if (originalTickets && originalTickets.length > 0) {
+        const ticketsPayload = originalTickets.map(ticket => ({
+          event_id: newEvent.id,
+          name: ticket.name,
+          unit_amount_cents: ticket.unit_amount_cents,
+          capacity_total: ticket.capacity_total,
+          participants_per_ticket: ticket.participants_per_ticket,
+          zone: ticket.zone,
+          currency: ticket.currency,
+          early_bird_amount_cents: ticket.early_bird_amount_cents,
+          early_bird_start: ticket.early_bird_start,
+          early_bird_end: ticket.early_bird_end,
+          description: ticket.description,
+        }));
+
+        const { error: ticketsError } = await supabase
+          .from('tickets')
+          .insert(ticketsPayload);
+
+        if (ticketsError) throw ticketsError;
+      }
+
+      // Duplicate addons
+      const { data: originalAddons } = await supabase
+        .from('addons')
+        .select('*')
+        .eq('event_id', duplicatingEvent.id);
+
+      if (originalAddons && originalAddons.length > 0) {
+        const addonsPayload = originalAddons.map(addon => ({
+          event_id: newEvent.id,
+          name: addon.name,
+          unit_amount_cents: addon.unit_amount_cents,
+          description: addon.description,
+          max_quantity_per_person: addon.max_quantity_per_person,
+        }));
+
+        const { error: addonsError } = await supabase
+          .from('addons')
+          .insert(addonsPayload);
+
+        if (addonsError) throw addonsError;
+      }
+
+      // Add to events list
+      setEvents(arr => [newEvent, ...arr]);
+      await logAdmin('event_duplicated', 'event', newEvent.id, { 
+        original_event_id: duplicatingEvent.id, 
+        original_title: duplicatingEvent.title,
+        new_date: newEventDate
+      });
+
+      setDuplicateOpen(false);
+      setDuplicatingEvent(null);
+      setNewEventDate("");
+      toast.success('Event duplicated successfully');
+    } catch (error: any) {
+      alert(error.message || 'Failed to duplicate event');
+    }
   };
 
   const openAddons = async (eventId: string) => {
@@ -580,42 +668,6 @@ const deleteTicket = async (id: string) => {
                 <Input type="datetime-local" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
                 <Input type="datetime-local" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label>Event type</Label>
-                <Select value={eventType} onValueChange={(v)=>setEventType(v as any)}>
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="single">Single</SelectItem>
-                    <SelectItem value="recurring">Recurring</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {eventType === 'recurring' && (
-                <div className="rounded-md border bg-muted/30 p-3 space-y-3">
-                  <div className="space-y-1">
-                    <Label>Select weekdays</Label>
-                    <div className="grid grid-cols-7 gap-2">
-                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d, idx) => (
-                        <label key={idx} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={recurrenceDays.includes(idx)}
-                            onCheckedChange={(v)=>{
-                              const checked = Boolean(v);
-                              setRecurrenceDays(prev => checked ? Array.from(new Set([...prev, idx])) : prev.filter(i => i!==idx));
-                            }}
-                          />
-                          <span>{d}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Repeat for how many months?</Label>
-                    <Input type="number" min={1} max={12} value={recurrenceMonths} onChange={(e)=>setRecurrenceMonths(Math.max(1, Math.min(12, parseInt(e.target.value||'1',10))))} />
-                    <p className="text-xs text-muted-foreground">We will create identical events on the selected weekdays for the next {recurrenceMonths} month(s) using the same start time.</p>
-                  </div>
-                </div>
-              )}
 
               <div className="grid sm:grid-cols-2 gap-3">
                 <Select value={venueId} onValueChange={setVenueId as any}>
@@ -970,6 +1022,9 @@ const deleteTicket = async (id: string) => {
                       </Button>
                       <Button size="icon" variant="outline" title="Edit" aria-label="Edit" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>
                         <Edit3 className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" onClick={()=>openDuplicate(ev)}>
+                        <Copy className="w-4 h-4" />
                       </Button>
                       <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" onClick={()=>openAttendees(ev.id)}>
                         <Users className="w-4 h-4" />
@@ -1369,6 +1424,41 @@ const deleteTicket = async (id: string) => {
             <DialogFooter>
               <Button variant="secondary" onClick={()=>setVenueEditOpen(false)}>Cancel</Button>
               <Button onClick={saveVenueEdit}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Duplicate event dialog */}
+        <Dialog open={duplicateOpen} onOpenChange={setDuplicateOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Duplicate Event</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Creating a copy of: <strong>{duplicatingEvent?.title}</strong>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This will duplicate the event with all its tickets and add-ons, but with a new date.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label>New event date and time</Label>
+                <Input 
+                  type="datetime-local" 
+                  value={newEventDate} 
+                  onChange={(e) => setNewEventDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setDuplicateOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={duplicateEvent} disabled={!newEventDate}>
+                Duplicate Event
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
