@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import AdminRoute from "@/routes/AdminRoute";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -80,6 +81,11 @@ const AdminEvents = () => {
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicatingEvent, setDuplicatingEvent] = useState<any | null>(null);
   const [newEventDate, setNewEventDate] = useState("");
+  const [newEventTitle, setNewEventTitle] = useState("");
+
+  // Delete confirmation dialog state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<any | null>(null);
 
   // Sorting and filters for events table
   const [evOrderBy, setEvOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>("upcoming");
@@ -254,12 +260,13 @@ const { data, error } = await supabase.from('events').update(payload).eq('id', e
   const openDuplicate = (event: any) => {
     setDuplicatingEvent(event);
     setNewEventDate("");
+    setNewEventTitle(`${event.title} (Copy)`);
     setDuplicateOpen(true);
   };
 
   const duplicateEvent = async () => {
-    if (!duplicatingEvent || !newEventDate) {
-      alert('Please select a date for the new event');
+    if (!duplicatingEvent || !newEventDate || !newEventTitle.trim()) {
+      alert('Please provide a title and date for the new event');
       return;
     }
 
@@ -278,7 +285,7 @@ const { data, error } = await supabase.from('events').update(payload).eq('id', e
 
       // Create new event with same data but new dates
       const eventPayload: any = {
-        title: `${duplicatingEvent.title} (Copy)`,
+        title: newEventTitle,
         short_description: duplicatingEvent.short_description,
         description: duplicatingEvent.description,
         instructions: duplicatingEvent.instructions,
@@ -360,6 +367,7 @@ const { data, error } = await supabase.from('events').update(payload).eq('id', e
       setDuplicateOpen(false);
       setDuplicatingEvent(null);
       setNewEventDate("");
+      setNewEventTitle("");
       toast.success('Event duplicated successfully');
     } catch (error: any) {
       alert(error.message || 'Failed to duplicate event');
@@ -511,14 +519,29 @@ const deleteTicket = async (id: string) => {
   };
 
   // Delete event
-  const deleteEvent = async (eventId: string) => {
-    if (!confirm('Delete this event? This action cannot be undone.')) return;
-    await supabase.from('tickets').delete().eq('event_id', eventId);
-    await supabase.from('addons').delete().eq('event_id', eventId);
-    const { error } = await supabase.from('events').delete().eq('id', eventId);
-    if (error) return alert(error.message);
-    setEvents(arr => arr.filter(e => e.id !== eventId));
-    await logAdmin('event_deleted','event', eventId);
+  const confirmDeleteEvent = (event: any) => {
+    setEventToDelete(event);
+    setDeleteConfirmOpen(true);
+  };
+
+  const deleteEvent = async () => {
+    if (!eventToDelete) return;
+    
+    try {
+      await supabase.from('tickets').delete().eq('event_id', eventToDelete.id);
+      await supabase.from('addons').delete().eq('event_id', eventToDelete.id);
+      const { error } = await supabase.from('events').delete().eq('id', eventToDelete.id);
+      if (error) throw error;
+      
+      setEvents(arr => arr.filter(e => e.id !== eventToDelete.id));
+      await logAdmin('event_deleted','event', eventToDelete.id);
+      toast.success('Event deleted successfully');
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete event');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setEventToDelete(null);
+    }
   };
 
   // Bulk actions
@@ -1034,7 +1057,7 @@ const deleteTicket = async (id: string) => {
                           <Eye className="w-4 h-4" />
                         </a>
                       </Button>
-                      <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" onClick={()=>deleteEvent(ev.id)}>
+                      <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" onClick={()=>confirmDeleteEvent(ev)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </td>
@@ -1440,8 +1463,17 @@ const deleteTicket = async (id: string) => {
                   Creating a copy of: <strong>{duplicatingEvent?.title}</strong>
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This will duplicate the event with all its tickets and add-ons, but with a new date.
+                  This will duplicate the event with all its tickets and add-ons.
                 </p>
+              </div>
+              <div className="space-y-1">
+                <Label>New event title</Label>
+                <Input 
+                  type="text" 
+                  value={newEventTitle} 
+                  onChange={(e) => setNewEventTitle(e.target.value)}
+                  placeholder="Enter new event title"
+                />
               </div>
               <div className="space-y-1">
                 <Label>New event date and time</Label>
@@ -1456,12 +1488,36 @@ const deleteTicket = async (id: string) => {
               <Button variant="secondary" onClick={() => setDuplicateOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={duplicateEvent} disabled={!newEventDate}>
+              <Button onClick={duplicateEvent} disabled={!newEventDate || !newEventTitle.trim()}>
                 Duplicate Event
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete confirmation dialog */}
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Event Deletion</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the event "<strong>{eventToDelete?.title}</strong>"?
+                <br />
+                <span className="text-destructive font-medium">⚠️ This action cannot be undone.</span>
+                <br />
+                <span className="text-xs text-muted-foreground">
+                  This will permanently delete the event, all its tickets, add-ons, and registrations.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={deleteEvent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete Event
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <VenueCreateDialog
           open={venueDialogOpen}

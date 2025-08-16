@@ -81,12 +81,6 @@ export const EventCard = ({ event }: Props) => {
             <span className="text-muted-foreground">Venue</span>
             <span className="font-medium truncate max-w-[60%]" title={`${event.venue.name} — ${event.venue.address}`}>{event.venue.name}</span>
           </div>
-          {maxPax > 1 && (
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Multi-participant</span>
-              <span className="font-medium">Up to {maxPax} per ticket</span>
-            </div>
-          )}
           {hasTickets ? (
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">From</span>
