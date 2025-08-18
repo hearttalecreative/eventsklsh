@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -172,27 +174,13 @@ const AdminEvents = () => {
     
     // Convert UTC datetime to timezone-specific datetime for editing
     const formatDateForInput = (isoString: string, timezone: string) => {
-      const date = new Date(isoString);
+      const utcDate = new Date(isoString);
       
-      // Format in the event's timezone
-      const formatter = new Intl.DateTimeFormat('sv-SE', {
-        timeZone: timezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
+      // Convert UTC date to the event's timezone
+      const zonedDate = toZonedTime(utcDate, timezone);
       
-      const parts = formatter.formatToParts(date);
-      const year = parts.find(p => p.type === 'year')?.value;
-      const month = parts.find(p => p.type === 'month')?.value;
-      const day = parts.find(p => p.type === 'day')?.value;
-      const hour = parts.find(p => p.type === 'hour')?.value;
-      const minute = parts.find(p => p.type === 'minute')?.value;
-      
-      return `${year}-${month}-${day}T${hour}:${minute}`;
+      // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+      return format(zonedDate, "yyyy-MM-dd'T'HH:mm");
     };
     
     const eventTimezone = (ev as any).timezone || 'America/Los_Angeles';
@@ -272,46 +260,18 @@ const saveVenueEdit = async () => {
   const convertToUTC = (localDateString: string, timezone: string): string => {
     if (!localDateString) return localDateString;
     
-    // Parse the local datetime string
+    // Parse the datetime and treat it as being in the specified timezone
     const [datePart, timePart] = localDateString.split('T');
     const [year, month, day] = datePart.split('-').map(Number);
     const [hours, minutes] = timePart.split(':').map(Number);
     
-    // Create a date object representing the local time in the specified timezone
-    // We use a specific known date to calculate the offset
-    const tempDate = new Date(year, month - 1, day, hours, minutes);
+    // Create a date object representing the local time in the timezone
+    const zonedDate = new Date(year, month - 1, day, hours, minutes);
     
-    // Get what this time would be if interpreted as the target timezone
-    const utcMs = tempDate.getTime();
-    const offsetMs = tempDate.getTimezoneOffset() * 60 * 1000;
-    const localMs = utcMs + offsetMs;
+    // Convert from the specified timezone to UTC
+    const utcDate = fromZonedTime(zonedDate, timezone);
     
-    // Now we need to adjust for the target timezone
-    const testDate = new Date(localMs);
-    const utcTime = new Intl.DateTimeFormat('sv-SE', {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(testDate);
-    
-    const timezoneTime = new Intl.DateTimeFormat('sv-SE', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(testDate);
-    
-    const utcDate = new Date(utcTime);
-    const tzDate = new Date(timezoneTime);
-    const tzOffsetMs = utcDate.getTime() - tzDate.getTime();
-    
-    const finalDate = new Date(tempDate.getTime() + tzOffsetMs);
-    return finalDate.toISOString();
+    return utcDate.toISOString();
   };
 
   const saveEdit = async () => {
