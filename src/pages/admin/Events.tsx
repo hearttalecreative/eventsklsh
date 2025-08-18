@@ -169,11 +169,26 @@ const AdminEvents = () => {
     setEShort(ev.short_description || '');
     setELong(ev.description || '');
     setEInstructions(ev.instructions || '');
-    setEStarts(ev.starts_at ? ev.starts_at.slice(0,16) : '');
-    setEEnds(ev.ends_at ? ev.ends_at.slice(0,16) : '');
+    
+    // Fix date/time handling to prevent random changes
+    const formatDateForInput = (isoString: string) => {
+      const date = new Date(isoString);
+      // Format as YYYY-MM-DDTHH:MM for datetime-local input
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+    
+    setEStarts(ev.starts_at ? formatDateForInput(ev.starts_at) : '');
+    setEEnds(ev.ends_at ? formatDateForInput(ev.ends_at) : '');
     setEVenueId(ev.venue_id || undefined);
     setEStatus(ev.status || 'draft');
     setEImageUrl(ev.image_url || '');
+    setEImagePreview(null); // Reset image preview
+    setEImageFile(null); // Reset file input
     setETimezone((ev as any).timezone || 'America/Los_Angeles');
     setEditOpen(true);
   };
@@ -242,11 +257,11 @@ const saveVenueEdit = async () => {
       short_description: eShort,
       description: eLong || null,
       instructions: eInstructions || null,
-      starts_at: eStarts ? new Date(eStarts).toISOString() : null,
-      ends_at: eEnds ? new Date(eEnds).toISOString() : null,
+      starts_at: eStarts ? new Date(eStarts).toISOString() : editingEvent.starts_at,
+      ends_at: eEnds ? new Date(eEnds).toISOString() : editingEvent.ends_at,
       venue_id: eVenueId || null,
       status: eStatus as any,
-      image_url: eImageUrl || null,
+      image_url: eImageUrl || editingEvent.image_url,
       timezone: eTimezone,
     };
 const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
