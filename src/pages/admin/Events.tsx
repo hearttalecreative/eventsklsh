@@ -1013,7 +1013,7 @@ const deleteTicket = async (id: string) => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground border-b">
-                  <th className="py-3 pr-4 w-10">
+                  <th className="py-3 pr-4 w-12">
                     <Checkbox
                       checked={displayedEvents.length>0 && selectedIds.length === displayedEvents.length}
                       onCheckedChange={(v)=>{
@@ -1023,61 +1023,84 @@ const deleteTicket = async (id: string) => {
                       aria-label="Select all"
                     />
                   </th>
-                  <th className="py-3 pr-4">Title</th>
-                  <th className="py-3 pr-4">Start</th>
-                  <th className="py-3 pr-4">Venue</th>
-                  <th className="py-3 pr-4">Status</th>
-                  <th className="py-3 pr-4">Actions</th>
+                  <th className="py-3 pr-4 min-w-48">Title</th>
+                  <th className="py-3 pr-4 min-w-40">Start</th>
+                  <th className="py-3 pr-4 min-w-36">Venue</th>
+                  <th className="py-3 pr-4 min-w-24">Status</th>
+                  <th className="py-3 pr-4 min-w-72">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {displayedEvents.map(ev => (
-                  <tr key={ev.id} className="border-b">
-                    <td className="py-3 pr-4">
-                      <Checkbox
-                        checked={selectedIds.includes(ev.id)}
-                        onCheckedChange={(v)=>{
-                          const checked = Boolean(v);
-                          setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
-                        }}
-                        aria-label={`Select ${ev.title}`}
-                      />
-                    </td>
-                    <td className="py-3 pr-4 font-medium">{ev.title}</td>
-                    <td className="py-3 pr-4">{new Date(ev.starts_at).toLocaleString()}</td>
-                    <td className="py-3 pr-4">{ev.venues?.name || '-'}</td>
-                    <td className="py-3 pr-4 capitalize">{ev.status}</td>
-                    <td className="py-3 pr-4 flex flex-wrap gap-2">
-                      <Button size="icon" variant="outline" title="Toggle publish" aria-label="Toggle publish" onClick={async ()=>{
-                        const next = ev.status === 'published' ? 'draft' : 'published';
-                        const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                        if (!error) {
-                          setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
-                          await logAdmin('event_status_toggled','event', ev.id, { from: ev.status, to: next });
-                        }
-                      }}>
-                        <Megaphone className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="outline" title="Edit" aria-label="Edit" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>
-                        <Edit3 className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" onClick={()=>openDuplicate(ev)}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" onClick={()=>openAttendees(ev.id)}>
-                        <Users className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" asChild title="View" aria-label="View">
-                        <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
-                          <Eye className="w-4 h-4" />
-                        </a>
-                      </Button>
-                      <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" onClick={()=>confirmDeleteEvent(ev)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {displayedEvents.map(ev => {
+                  // Format date with timezone consideration
+                  const eventDate = new Date(ev.starts_at);
+                  const formattedDate = eventDate.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                  
+                  return (
+                    <tr key={ev.id} className="border-b">
+                      <td className="py-3 pr-4">
+                        <Checkbox
+                          checked={selectedIds.includes(ev.id)}
+                          onCheckedChange={(v)=>{
+                            const checked = Boolean(v);
+                            setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
+                          }}
+                          aria-label={`Select ${ev.title}`}
+                        />
+                      </td>
+                      <td className="py-3 pr-4 font-medium max-w-48 truncate" title={ev.title}>{ev.title}</td>
+                      <td className="py-3 pr-4 text-nowrap">{formattedDate}</td>
+                      <td className="py-3 pr-4 max-w-36 truncate" title={ev.venues?.name || '-'}>{ev.venues?.name || '-'}</td>
+                      <td className="py-3 pr-4 capitalize">
+                        <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                          ev.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                          ev.status === 'draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                        }`}>
+                          {ev.status}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="outline" title="Toggle publish" aria-label="Toggle publish" className="h-8 w-8" onClick={async ()=>{
+                            const next = ev.status === 'published' ? 'draft' : 'published';
+                            const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                            if (!error) {
+                              setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                              await logAdmin('event_status_toggled','event', ev.id, { from: ev.status, to: next });
+                            }
+                          }}>
+                            <Megaphone className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>
+                            <Edit3 className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-8 w-8" onClick={()=>openDuplicate(ev)}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-8 w-8" onClick={()=>openAttendees(ev.id)}>
+                            <Users className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="outline" title="View" aria-label="View" className="h-8 w-8" asChild>
+                            <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
+                              <Eye className="w-3 h-3" />
+                            </a>
+                          </Button>
+                          <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" className="h-8 w-8" onClick={()=>confirmDeleteEvent(ev)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

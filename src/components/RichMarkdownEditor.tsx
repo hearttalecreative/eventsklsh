@@ -13,11 +13,11 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
       <MDEditor
         value={value}
         onChange={(val) => onChange(val || '')}
-        preview="edit"
+        preview="live"
         hideToolbar={false}
         visibleDragbar={false}
         textareaProps={{
-          placeholder: "Enter markdown text...",
+          placeholder: "Enter markdown text with **bold**, *italic*, and line breaks...",
           style: { fontSize: '14px', fontFamily: 'inherit' }
         }}
         height={300}
