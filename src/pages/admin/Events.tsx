@@ -170,20 +170,34 @@ const AdminEvents = () => {
     setELong(ev.description || '');
     setEInstructions(ev.instructions || '');
     
-    // Fix date/time handling to prevent random changes
-    const formatDateForInput = (isoString: string) => {
+    // Convert UTC datetime to timezone-specific datetime for editing
+    const formatDateForInput = (isoString: string, timezone: string) => {
       const date = new Date(isoString);
-      // Format as YYYY-MM-DDTHH:MM for datetime-local input
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
+      
+      // Format in the event's timezone
+      const formatter = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      
+      const parts = formatter.formatToParts(date);
+      const year = parts.find(p => p.type === 'year')?.value;
+      const month = parts.find(p => p.type === 'month')?.value;
+      const day = parts.find(p => p.type === 'day')?.value;
+      const hour = parts.find(p => p.type === 'hour')?.value;
+      const minute = parts.find(p => p.type === 'minute')?.value;
+      
+      return `${year}-${month}-${day}T${hour}:${minute}`;
     };
     
-    setEStarts(ev.starts_at ? formatDateForInput(ev.starts_at) : '');
-    setEEnds(ev.ends_at ? formatDateForInput(ev.ends_at) : '');
+    const eventTimezone = (ev as any).timezone || 'America/Los_Angeles';
+    setEStarts(ev.starts_at ? formatDateForInput(ev.starts_at, eventTimezone) : '');
+    setEEnds(ev.ends_at ? formatDateForInput(ev.ends_at, eventTimezone) : '');
     setEVenueId(ev.venue_id || undefined);
     setEStatus(ev.status || 'draft');
     setEImageUrl(ev.image_url || '');
@@ -220,6 +234,10 @@ const saveVenueEdit = async () => {
     const { data: session } = await supabase.auth.getSession();
     const created_by = session.session?.user?.id || null;
 
+    // Convert timezone-specific datetime to UTC for storage
+    const startsAtUTC = convertToUTC(startsAt, timezone);
+    const endsAtUTC = endsAt ? convertToUTC(endsAt, timezone) : null;
+
     // Base payload template
     const base: any = {
       title,
@@ -236,8 +254,8 @@ const saveVenueEdit = async () => {
     try {
       const payload = {
         ...base,
-        starts_at: startsAt,
-        ends_at: endsAt || null,
+        starts_at: startsAtUTC,
+        ends_at: endsAtUTC,
       };
       const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
       if (error) throw error;
@@ -250,15 +268,65 @@ const saveVenueEdit = async () => {
       alert(error.message || 'Failed to create event(s)');
     }
   };
+  // Convert timezone-specific datetime to UTC for storage
+  const convertToUTC = (localDateString: string, timezone: string): string => {
+    if (!localDateString) return localDateString;
+    
+    // Parse the local datetime string
+    const [datePart, timePart] = localDateString.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hours, minutes] = timePart.split(':').map(Number);
+    
+    // Create a date object representing the local time in the specified timezone
+    // We use a specific known date to calculate the offset
+    const tempDate = new Date(year, month - 1, day, hours, minutes);
+    
+    // Get what this time would be if interpreted as the target timezone
+    const utcMs = tempDate.getTime();
+    const offsetMs = tempDate.getTimezoneOffset() * 60 * 1000;
+    const localMs = utcMs + offsetMs;
+    
+    // Now we need to adjust for the target timezone
+    const testDate = new Date(localMs);
+    const utcTime = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(testDate);
+    
+    const timezoneTime = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(testDate);
+    
+    const utcDate = new Date(utcTime);
+    const tzDate = new Date(timezoneTime);
+    const tzOffsetMs = utcDate.getTime() - tzDate.getTime();
+    
+    const finalDate = new Date(tempDate.getTime() + tzOffsetMs);
+    return finalDate.toISOString();
+  };
+
   const saveEdit = async () => {
     if (!editingEvent) return;
+    
+    const startsAtUTC = eStarts ? convertToUTC(eStarts, eTimezone) : editingEvent.starts_at;
+    const endsAtUTC = eEnds ? convertToUTC(eEnds, eTimezone) : editingEvent.ends_at;
+    
     const payload: any = {
       title: eTitle,
       short_description: eShort,
       description: eLong || null,
       instructions: eInstructions || null,
-      starts_at: eStarts ? new Date(eStarts).toISOString() : editingEvent.starts_at,
-      ends_at: eEnds ? new Date(eEnds).toISOString() : editingEvent.ends_at,
+      starts_at: startsAtUTC,
+      ends_at: endsAtUTC,
       venue_id: eVenueId || null,
       status: eStatus as any,
       image_url: eImageUrl || editingEvent.image_url,
