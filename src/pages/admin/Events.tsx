@@ -94,7 +94,30 @@ export default function EventsAdmin() {
           variant: "destructive",
         })
       }
-      setEvents(data)
+      // Transform database data to match EventItem interface
+      const transformedEvents = data?.map(event => ({
+        id: event.id,
+        title: event.title,
+        slug: event.slug,
+        shortDescription: event.short_description || '',
+        description: event.description || '',
+        imageUrl: event.image_url || '',
+        startsAt: event.starts_at,
+        endsAt: event.ends_at,
+        venue: { name: '', address: '' }, // Will be populated later if needed
+        category: event.category,
+        sku: event.sku,
+        status: event.status,
+        tickets: [],
+        addons: [],
+        capacityTotal: event.capacity_total,
+        couponCode: event.coupon_code,
+        instructions: event.instructions,
+        recurrenceRule: event.recurrence_rule,
+        recurrenceText: event.recurrence_text,
+        timezone: event.timezone
+      })) || []
+      setEvents(transformedEvents)
       setLoading(false)
     }
     load()
@@ -129,14 +152,43 @@ export default function EventsAdmin() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true)
     try {
+      const payload = {
+        title: values.title,
+        slug: values.slug,
+        short_description: values.short_description,
+        starts_at: new Date().toISOString() // Default start time
+      }
       const { data, error } = await supabase
         .from('events')
-        .insert([values])
+        .insert([payload])
         .select()
       if (error) {
         throw error
       }
-      setEvents(prev => [...(prev || []), ...data])
+      // Transform the returned data to match EventItem interface
+      const transformedEvents = data.map(event => ({
+        id: event.id,
+        title: event.title,
+        slug: event.slug,
+        shortDescription: event.short_description || '',
+        description: event.description || '',
+        imageUrl: event.image_url || '',
+        startsAt: event.starts_at,
+        endsAt: event.ends_at,
+        venue: { name: '', address: '' },
+        category: event.category,
+        sku: event.sku,
+        status: event.status,
+        tickets: [],
+        addons: [],
+        capacityTotal: event.capacity_total,
+        couponCode: event.coupon_code,
+        instructions: event.instructions,
+        recurrenceRule: event.recurrence_rule,
+        recurrenceText: event.recurrence_text,
+        timezone: event.timezone
+      }))
+      setEvents(prev => [...(prev || []), ...transformedEvents])
       toast({
         title: "Evento creado",
         description: "El evento se ha creado correctamente.",
@@ -184,7 +236,7 @@ export default function EventsAdmin() {
     setEditingEvent(ev);
     setETitle(ev.title);
     setESlug(ev.slug || '');
-    setEShort(ev.short_description || '');
+    setEShort(ev.shortDescription || '');
     setELong(ev.description || '');
     setEInstructions(ev.instructions || '');
     
@@ -196,14 +248,14 @@ export default function EventsAdmin() {
       return localDate.toISOString().slice(0, 16);
     };
     
-    setEStarts(ev.starts_at ? formatDateTimeForInput(ev.starts_at, ev.timezone) : '');
-    setEEnds(ev.ends_at ? formatDateTimeForInput(ev.ends_at, ev.timezone) : '');
-    setEVenueId(ev.venue_id || undefined);
+    setEStarts(ev.startsAt ? formatDateTimeForInput(ev.startsAt, ev.timezone) : '');
+    setEEnds(ev.endsAt ? formatDateTimeForInput(ev.endsAt, ev.timezone) : '');
+    setEVenueId(undefined); // EventItem doesn't have venue_id, will need to be handled separately
     setEStatus(ev.status || 'draft');
-    setEImageUrl(ev.image_url || '');
+    setEImageUrl(ev.imageUrl || '');
     setEImagePreview(null); // Reset image preview
     setEImageFile(null); // Reset file input
-    setETimezone((ev as any).timezone || 'America/Los_Angeles');
+    setETimezone(ev.timezone || 'America/Los_Angeles');
     setEditOpen(true);
   };
 
@@ -420,7 +472,7 @@ export default function EventsAdmin() {
                 <TableCell className="font-medium">{event.id}</TableCell>
                 <TableCell>{event.title}</TableCell>
                 <TableCell>{event.slug}</TableCell>
-                <TableCell>{event.short_description}</TableCell>
+                <TableCell>{event.shortDescription}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="secondary" size="sm" onClick={() => handleEdit(event)}>
                     Editar
