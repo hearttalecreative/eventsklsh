@@ -17,10 +17,23 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
         hideToolbar={false}
         visibleDragbar={false}
         textareaProps={{
-          placeholder: "Enter markdown text with **bold**, *italic*, and line breaks...",
-          style: { fontSize: '14px', fontFamily: 'inherit' }
+          placeholder: "Presiona Enter para saltos de línea. Usa **negrita**, *cursiva*, y listas:\n• Elemento 1\n• Elemento 2\n\nPárrafos separados...",
+          style: { 
+            fontSize: '14px', 
+            fontFamily: 'inherit',
+            lineHeight: '1.5',
+            whiteSpace: 'pre-wrap'
+          }
         }}
         height={300}
+        previewOptions={{
+          remarkPlugins: [],
+          rehypePlugins: [],
+          components: {
+            p: ({ children }) => <p style={{ marginBottom: '1rem', lineHeight: '1.6' }}>{children}</p>,
+            br: () => <br style={{ marginBottom: '0.5rem' }} />,
+          }
+        }}
       />
     </div>
   );

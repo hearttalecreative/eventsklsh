@@ -313,7 +313,16 @@ const proceed = async () => {
               <GoogleMapDisplay address={event.venue.address} name={`${event.title} — ${event.venue.name}`} />
             </div>
             <div className="prose max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-4">{children}</p>,
+                  br: () => <br className="mb-2" />,
+                  ul: ({ children }) => <ul className="mb-4 list-disc pl-6">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-4 list-decimal pl-6">{children}</ol>,
+                  li: ({ children }) => <li className="mb-1">{children}</li>
+                }}
+              >
                 {(showFullDesc || !isLong) ? (event.description || '') : `${shortDesc}...`}
               </ReactMarkdown>
               {isLong && (
