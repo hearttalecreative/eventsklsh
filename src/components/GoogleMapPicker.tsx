@@ -89,7 +89,13 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
         <div className="w-full h-full">
           <div className="p-2">
             <Autocomplete onLoad={onAutoLoad} onPlaceChanged={onAutoPlaceChanged}>
-              <input ref={inputRef} defaultValue={address || ''} placeholder="Busca una dirección" className="w-full px-3 py-2 rounded border bg-background text-foreground" />
+              <input 
+                ref={inputRef} 
+                value={address || ''} 
+                onChange={(e) => onAddressChange(e.target.value)}
+                placeholder="Busca una dirección" 
+                className="w-full px-3 py-2 rounded border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary" 
+              />
             </Autocomplete>
           </div>
           <GoogleMap mapContainerStyle={containerStyle} center={mapCenter} zoom={(marker || center) ? 14 : 2} onClick={onMapClick} options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}>

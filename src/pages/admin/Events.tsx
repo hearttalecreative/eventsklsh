@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
+import GoogleMapPicker from "@/components/GoogleMapPicker";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1515,9 +1516,16 @@ const deleteTicket = async (id: string) => {
             <DialogHeader>
               <DialogTitle>Edit venue</DialogTitle>
             </DialogHeader>
-            <div className="space-y-3">
-              <Input placeholder="Name" value={vName} onChange={(e)=>setVName(e.target.value)} />
-              <Input placeholder="Address" value={vAddress} onChange={(e)=>setVAddress(e.target.value)} />
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label>Name</Label>
+                <Input placeholder="Name" value={vName} onChange={(e)=>setVName(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Address & Location</Label>
+                <p className="text-xs text-muted-foreground">Type an address in the search box below or click on the map</p>
+                <GoogleMapPicker address={vAddress} onAddressChange={setVAddress} heightClass="h-64" />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="secondary" onClick={()=>setVenueEditOpen(false)}>Cancel</Button>

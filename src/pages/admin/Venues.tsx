@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
+import GoogleMapPicker from "@/components/GoogleMapPicker";
 import { toast } from "sonner";
 
 interface Venue {
@@ -137,16 +138,21 @@ const VenuesPage = () => {
             <DialogHeader>
               <DialogTitle>Edit venue</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2">
+            <div className="space-y-4">
+              <div className="space-y-1">
                 <Label>Name</Label>
                 <Input value={edit?.name ?? ''} onChange={(e)=>setEdit(prev=>prev?{...prev, name:e.target.value}:prev)} />
               </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label>Address</Label>
-                <Input value={edit?.address ?? ''} onChange={(e)=>setEdit(prev=>prev?{...prev, address:e.target.value}:prev)} />
+              <div className="space-y-1">
+                <Label>Address & Location</Label>
+                <p className="text-xs text-muted-foreground">Type an address in the search box below or click on the map</p>
+                <GoogleMapPicker 
+                  address={edit?.address ?? ''} 
+                  onAddressChange={(addr) => setEdit(prev=>prev?{...prev, address:addr}:prev)} 
+                  heightClass="h-64" 
+                />
               </div>
-              <div className="space-y-1 sm:col-span-2">
+              <div className="space-y-1">
                 <Label>Capacity</Label>
                 <Input value={edit?.capacity_total ?? ''} onChange={(e)=>setEdit(prev=>prev?{...prev, capacity_total:parseInt(e.target.value)||null}:prev)} />
               </div>
