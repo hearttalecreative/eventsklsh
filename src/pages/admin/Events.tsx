@@ -729,7 +729,10 @@ const deleteTicket = async (id: string) => {
                 <Label>Long description</Label>
                 <RichMarkdownEditor value={longDesc} onChange={setLongDesc} />
               </div>
-              <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={instructions} onChange={(e)=>setInstructions(e.target.value)} />
+              <div className="space-y-1">
+                <Label>Event instructions (shown to buyers after purchase)</Label>
+                <RichMarkdownEditor value={instructions} onChange={setInstructions} />
+              </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <Input type="datetime-local" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
                 <Input type="datetime-local" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
@@ -1323,7 +1326,10 @@ const deleteTicket = async (id: string) => {
                   <Label>Long description</Label>
                   <RichMarkdownEditor value={eLong} onChange={setELong} />
                 </div>
-                <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={eInstructions} onChange={(e)=>setEInstructions(e.target.value)} />
+                <div className="space-y-1">
+                  <Label>Event instructions (shown to buyers after purchase)</Label>
+                  <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
+                </div>
                 <div className="grid grid-cols-1 gap-3">
                   <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
                   <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
@@ -1405,7 +1411,10 @@ const deleteTicket = async (id: string) => {
                   <Label>Long description</Label>
                   <RichMarkdownEditor value={eLong} onChange={setELong} />
                 </div>
-                <Textarea placeholder="Event instructions (shown to buyers after purchase)" value={eInstructions} onChange={(e)=>setEInstructions(e.target.value)} />
+                <div className="space-y-1">
+                  <Label>Event instructions (shown to buyers after purchase)</Label>
+                  <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
+                </div>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
                   <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />

@@ -17,18 +17,22 @@ const GoogleMapDisplay: React.FC<GoogleMapDisplayProps> = ({ lat, lng, address, 
   const { isLoaded, loadError } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(lat != null && lng != null ? { lat, lng } : null);
 
-  // Geocode address when no lat/lng provided
+  // Geocode address when no lat/lng provided or when address changes
   useEffect(() => {
-    if (!isLoaded || center || !address) return;
+    if (!isLoaded || !address) return;
+    
+    // Always geocode the address to get accurate coordinates
     // @ts-ignore
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ address }, (results: any, status: string) => {
       if (status === 'OK' && results?.[0]?.geometry?.location) {
         const loc = results[0].geometry.location;
         setCenter({ lat: loc.lat(), lng: loc.lng() });
+      } else {
+        console.warn('Geocoding failed:', status, address);
       }
     });
-  }, [isLoaded, address, center]);
+  }, [isLoaded, address]);
 
   const mapCenter = useMemo(() => center || { lat: 0, lng: 0 }, [center]);
 

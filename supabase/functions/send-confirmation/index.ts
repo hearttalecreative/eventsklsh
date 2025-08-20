@@ -36,6 +36,9 @@ interface Payload {
   name: string;
   email: string;
   eventTitle?: string;
+  eventDate?: string;
+  eventVenue?: string;
+  instructions?: string;
 }
 
 serve(async (req: Request) => {
@@ -43,7 +46,7 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
-    const { name, email, eventTitle }: Payload = await req.json();
+    const { name, email, eventTitle, eventDate, eventVenue, instructions }: Payload = await req.json();
     console.log("send-confirmation invoked with:", { name, email, eventTitle });
 
     if (!email || !name) {
@@ -54,35 +57,72 @@ serve(async (req: Request) => {
       });
     }
 
-    const subject = `Your ticket confirmation for ${eventTitle || "the event"}`;
+    // Format instructions if provided (convert markdown-like formatting to HTML)
+    const formatInstructions = (text: string) => {
+      if (!text) return '';
+      
+      return text
+        // Bold text **text** to <strong>
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Italic text *text* to <em>
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Line breaks
+        .replace(/\n/g, '<br>')
+        // Lists (- item) to bullet points
+        .replace(/^- (.+)$/gm, '• $1')
+        // Code `code` to inline code
+        .replace(/`(.*?)`/g, '<code style="background:#f3f4f6;padding:2px 4px;border-radius:4px;font-family:monospace;font-size:14px;">$1</code>');
+    };
+
+    const subject = `Confirmation: ${eventTitle || "Event Registration"}`;
     const html = `
-      <div style="background:#f6f7fb;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
-        <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
-          <!-- Header with Logo -->
-          <div style="background:linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);padding:32px 24px;text-align:center;">
-            <div style="background:#ffffff;width:120px;height:36px;margin:0 auto 16px auto;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-              <div style="width:20px;height:20px;background:linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);border-radius:4px;margin-right:8px;"></div>
-              <span style="font-weight:700;color:#1f2937;font-size:18px;">Events</span>
+      <div style="background:#f8fafc;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;color:#1f2937;line-height:1.6;">
+        <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+          
+          <!-- Header -->
+          <div style="background:linear-gradient(135deg,#8b5cf6 0%,#3b82f6 100%);padding:40px 32px;text-align:center;">
+            <div style="background:#ffffff;width:140px;height:40px;margin:0 auto 20px auto;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+              <div style="width:24px;height:24px;background:linear-gradient(135deg,#8b5cf6 0%,#3b82f6 100%);border-radius:6px;margin-right:8px;"></div>
+              <span style="font-weight:700;color:#1f2937;font-size:16px;">Sound Healing</span>
             </div>
-            <h1 style="margin:0;font-size:28px;line-height:1.2;color:#ffffff;font-weight:700;">Thank you, ${name}!</h1>
-            <p style="margin:12px 0 0 0;color:#e0e7ff;font-size:16px;">Your tickets have been confirmed</p>
+            <h1 style="margin:0;font-size:32px;line-height:1.2;color:#ffffff;font-weight:700;">¡Gracias, ${name}!</h1>
+            <p style="margin:16px 0 0 0;color:#e0e7ff;font-size:18px;font-weight:500;">Tu registro ha sido confirmado</p>
           </div>
           
           <!-- Event Details -->
-          <div style="padding:24px;">
-            <div style="background:#f8fafc;border-radius:8px;padding:20px;margin-bottom:20px;">
-              <h2 style="margin:0 0 12px 0;font-size:20px;color:#1e293b;">${eventTitle || "the event"}</h2>
-              <p style="margin:0;color:#64748b;">This is a test purchase confirmation to verify that Brevo email service is correctly configured.</p>
+          <div style="padding:32px;">
+            <!-- Event Info Card -->
+            <div style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:24px;">
+              <h2 style="margin:0 0 16px 0;font-size:24px;color:#1e293b;font-weight:600;">${eventTitle || "Evento"}</h2>
+              ${eventDate ? `<div style="margin:8px 0;color:#475569;font-size:16px;"><strong>📅 Fecha y hora:</strong> ${eventDate}</div>` : ''}
+              ${eventVenue ? `<div style="margin:8px 0;color:#475569;font-size:16px;"><strong>📍 Lugar:</strong> ${eventVenue}</div>` : ''}
             </div>
             
-            <div style="background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:16px;text-align:center;">
-              <p style="margin:0;color:#166534;font-weight:600;">✅ Email Configuration Test Successful</p>
-              <p style="margin:8px 0 0 0;color:#15803d;font-size:14px;">Your Brevo integration is working properly!</p>
+            ${instructions ? `
+            <!-- Instructions -->
+            <div style="background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:24px;margin-bottom:24px;">
+              <h3 style="margin:0 0 16px 0;font-size:20px;color:#92400e;font-weight:600;display:flex;align-items:center;">
+                <span style="font-size:24px;margin-right:8px;">📋</span>
+                Instrucciones Importantes
+              </h3>
+              <div style="color:#78350f;font-size:16px;line-height:1.8;">
+                ${formatInstructions(instructions)}
+              </div>
+            </div>
+            ` : ''}
+            
+            <!-- Success Message -->
+            <div style="background:linear-gradient(135deg,#dcfce7 0%,#bbf7d0 100%);border:1px solid #86efac;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+              <div style="font-size:32px;margin-bottom:8px;">✨</div>
+              <p style="margin:0;color:#15803d;font-weight:600;font-size:18px;">¡Todo listo para tu experiencia!</p>
+              <p style="margin:8px 0 0 0;color:#166534;font-size:14px;">Nos vemos pronto en esta hermosa práctica</p>
             </div>
             
-            <p style="margin:24px 0 0 0;color:#6b7280;font-size:13px;text-align:center;">
-              If you have any questions about this test, just reply to this email.
-            </p>
+            <!-- Contact -->
+            <div style="text-align:center;padding:16px 0;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 8px 0;color:#64748b;font-size:14px;">¿Preguntas? Responde a este email</p>
+              <p style="margin:0;color:#94a3b8;font-size:12px;">Con amor y luz 🙏</p>
+            </div>
           </div>
         </div>
       </div>
