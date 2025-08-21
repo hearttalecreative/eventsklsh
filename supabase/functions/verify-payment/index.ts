@@ -236,17 +236,43 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
     const locationStr = venue ? `${venue.name} — ${venue.address}` : '';
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(event.short_description || '')}${eventUrl ? encodeURIComponent('\n' + eventUrl) : ''}&location=${encodeURIComponent(locationStr)}`;
 
+    // Send confirmation emails only for successful payments
     await Promise.allSettled(
-      cart.participants.map(async (p) => {
+      cart.participants.map(async (p, index) => {
         try {
+          const attendee = insertedAttendees[index];
           await supabase.functions.invoke('send-confirmation', {
             body: {
-              name: p.name || 'Guest',
+              name: p.fullName || 'Guest',
               email: p.email,
+              phone: p.phone,
               eventTitle: event.title,
+              eventDescription: event.short_description,
               eventDate: event.starts_at,
-              eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : (event.address || 'Location TBD'),
-              instructions: event.instructions
+              eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
+              instructions: event.instructions,
+              confirmationCode: attendee?.confirmation_code,
+              orderDetails: {
+                orderId: order.id,
+                totalAmount: total,
+                currency: orderCurrency,
+                tickets: [{
+                  name: ticket.name,
+                  quantity: cart.ticketQty,
+                  unitPrice: unit
+                }],
+                addons: addonsRows.filter(row => {
+                  const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
+                  return qty > 0;
+                }).map(row => {
+                  const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
+                  return {
+                    name: row.name,
+                    quantity: qty,
+                    unitPrice: row.unit_amount_cents
+                  };
+                })
+              }
             }
           });
         } catch (e) {

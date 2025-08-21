@@ -170,24 +170,49 @@ serve(async (req: Request) => {
     const locationStr = venue ? `${venue.name} — ${venue.address}` : '';
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(event.short_description || '')}${eventUrl ? encodeURIComponent('\n' + eventUrl) : ''}&location=${encodeURIComponent(locationStr)}`;
 
-    await Promise.allSettled(
-      cart.participants.map(async (p: any) => {
-        try {
-          await supabase.functions.invoke('send-confirmation', {
-            body: {
-              name: p.name || 'Guest',
-              email: p.email,
-              eventTitle: event.title,
-              eventDate: event.starts_at,
-              eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : (event.address || 'Location TBD'),
-              instructions: event.instructions
-            }
-          });
-        } catch (e) {
-          console.error('[process-free-order send-confirmation] failed for', p.email, e);
-        }
-      })
-    );
+    // Send confirmation emails only for valid FREE100 coupon usage
+    if (cart.coupon === 'FREE100') {
+      await Promise.allSettled(
+        cart.participants.map(async (p: any, index: number) => {
+          try {
+            const attendee = insertedAttendees[index];
+            await supabase.functions.invoke('send-confirmation', {
+              body: {
+                name: p.fullName || 'Guest',
+                email: p.email,
+                phone: p.phone,
+                eventTitle: event.title,
+                eventDescription: event.short_description,
+                eventDate: event.starts_at,
+                eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
+                instructions: event.instructions,
+                confirmationCode: attendee?.confirmation_code,
+                orderDetails: {
+                  orderId: order.id,
+                  totalAmount: 0, // Free order
+                  currency: 'usd',
+                  tickets: [{
+                    name: ticket.name,
+                    quantity: cart.ticketQty || 1,
+                    unitPrice: 0 // Free
+                  }],
+                  addons: (cart.addons || []).filter((a: any) => a.qty > 0).map((a: any) => {
+                    const addon = (addons || []).find((row: any) => row.id === a.id);
+                    return {
+                      name: addon?.name || 'Add-on',
+                      quantity: a.qty,
+                      unitPrice: 0 // Free
+                    };
+                  })
+                }
+              }
+            });
+          } catch (e) {
+            console.error('[process-free-order send-confirmation] failed for', p.email, e);
+          }
+        })
+      );
+    }
 
     return new Response(JSON.stringify({ ok: true, orderId: order.id }), {
       status: 200,
