@@ -176,6 +176,14 @@ serve(async (req: Request) => {
         cart.participants.map(async (p: any, index: number) => {
           try {
             const attendee = insertedAttendees[index];
+            
+            // Fetch the attendee with QR code from database
+            const { data: attendeeWithQR } = await supabase
+              .from("attendees")
+              .select("qr_code")
+              .eq("id", attendee.id)
+              .single();
+
             await supabase.functions.invoke('send-confirmation', {
               body: {
                 name: p.fullName || 'Guest',
@@ -187,6 +195,7 @@ serve(async (req: Request) => {
                 eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
                 instructions: event.instructions,
                 confirmationCode: attendee?.confirmation_code,
+                qrCode: attendeeWithQR?.qr_code,
                 orderDetails: {
                   orderId: order.id,
                   totalAmount: 0, // Free order
