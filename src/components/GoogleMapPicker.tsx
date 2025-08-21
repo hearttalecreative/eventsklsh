@@ -94,8 +94,14 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
     const loc = place?.geometry?.location;
     if (loc) {
       const pos = { lat: loc.lat(), lng: loc.lng() };
+      console.log('Setting position from autocomplete:', pos);
       setCenter(pos);
       setMarker(pos);
+      
+      // Clear the autocomplete input after selection
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
     }
     
     const fmt = place?.formatted_address || place?.name || '';

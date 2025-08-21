@@ -280,35 +280,17 @@ serve(async (req) => {
         if (error) throw error;
       }
 
-      // Send confirmation emails via Brevo (free order)
-      const addOnsSummary = addonsRows
-        .map((row) => {
-          const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
-          return qty > 0 ? `<li>${row.name} × ${qty}</li>` : '';
-        })
-        .filter(Boolean)
-        .join('');
+      // Send confirmation emails via send-confirmation function (free order)
       await Promise.allSettled(
         cart.participants.map(async (p) => {
-          const currencyUpper = (curr || 'usd').toUpperCase();
-          const html = `
-            <h1>Hi ${p.fullName}, your tickets for ${event.title}</h1>
-            <p>Thank you for your purchase. Here are your attendance details.</p>
-            <h2>Order summary</h2>
-            <ul>
-              <li>${ticket.name} × ${cart.ticketQty} — ${(unit/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
-              ${addonsRows.map(row=>{
-                const qty = cart.addons.find(a=>a.id===row.id)?.qty || 0;
-                return qty>0 ? `<li>${row.name} × ${qty} — ${(row.unit_amount_cents/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''
-              }).join('')}
-              ${discount>0 ? `<li><strong>Discount:</strong> -${(discount/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>` : ''}
-              <li>Processing Fee (3%) — ${(processingFee/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
-              <li><strong>Total:</strong> ${(processingFee/100).toLocaleString('en-US',{style:'currency',currency:currencyUpper})}</li>
-            </ul>
-            <p>This email serves as your confirmation. If you have any questions, reply to this email.</p>
-          `;
           try {
-            await sendBrevoEmail(p.email, p.fullName, `Order confirmation: ${event.title}`, html);
+            await supabase.functions.invoke('send-confirmation', {
+              body: {
+                name: p.fullName,
+                email: p.email,
+                instructions: `Your free tickets for ${event.title} have been confirmed!`
+              }
+            });
           } catch (e) {
             console.error('[free-order email] failed', e);
           }
@@ -371,6 +353,9 @@ serve(async (req) => {
         coupon_apply_to: chosen.apply_to,
         coupon_discount_cents: String(discount),
       } : undefined,
+      // Disable automatic emails from Stripe since we handle them ourselves
+      automatic_tax: { enabled: false },
+      invoice_creation: { enabled: false },
     };
 
     // Apply discounts either by adjusting items or via Stripe coupon (for 'both')
