@@ -181,11 +181,11 @@ serve(async (req: Request) => {
               <h3 style="margin:0 0 16px 0;color:#ffffff;font-size:18px;font-weight:600;">Your Ticket</h3>
               
               ${qrCode ? `
-              <div style="background:#ffffff;border-radius:8px;padding:16px;margin-bottom:16px;display:inline-block;">
-                <div style="width:120px;height:120px;background:#f8f6f4;border:2px dashed #a0662f;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:40px;color:#a0662f;margin:0 auto;">
-                  📱
-                </div>
-                <p style="margin:8px 0 0 0;color:#52433a;font-size:11px;font-weight:500;">QR Code: ${qrCode}</p>
+              <div style="background:#ffffff;border-radius:12px;padding:20px;margin-bottom:16px;display:inline-block;border:1px solid #e7e3e0;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrCode)}" 
+                     alt="QR Code for check-in" 
+                     style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px;" />
+                <p style="margin:12px 0 0 0;color:#52433a;font-size:12px;font-weight:500;text-align:center;font-family:monospace;">${qrCode}</p>
               </div>
               ` : ''}
               

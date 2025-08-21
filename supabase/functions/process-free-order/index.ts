@@ -145,58 +145,9 @@ serve(async (req: Request) => {
     const locationStr = venue ? `${venue.name} — ${venue.address}` : '';
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(event.short_description || '')}${eventUrl ? encodeURIComponent('\n' + eventUrl) : ''}&location=${encodeURIComponent(locationStr)}`;
 
-    // Send confirmation emails only for valid FREE100 coupon usage
-    if (cart.coupon === 'FREE100') {
-      await Promise.allSettled(
-        cart.participants.map(async (p: any, index: number) => {
-          try {
-            const attendee = insertedAttendees[index];
-            
-            // Fetch the attendee with QR code from database
-            const { data: attendeeWithQR } = await supabase
-              .from("attendees")
-              .select("qr_code")
-              .eq("id", attendee.id)
-              .single();
-
-            await supabase.functions.invoke('send-confirmation', {
-              body: {
-                name: p.fullName || 'Guest',
-                email: p.email,
-                phone: p.phone,
-                eventTitle: event.title,
-                eventDescription: event.short_description,
-                eventDate: event.starts_at,
-                eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
-                instructions: event.instructions,
-                confirmationCode: attendee?.confirmation_code,
-                qrCode: attendeeWithQR?.qr_code,
-                orderDetails: {
-                  orderId: order.id,
-                  totalAmount: 0, // Free order
-                  currency: 'usd',
-                  tickets: [{
-                    name: ticket.name,
-                    quantity: cart.ticketQty || 1,
-                    unitPrice: 0 // Free
-                  }],
-                  addons: (cart.addons || []).filter((a: any) => a.qty > 0).map((a: any) => {
-                    const addon = (addons || []).find((row: any) => row.id === a.id);
-                    return {
-                      name: addon?.name || 'Add-on',
-                      quantity: a.qty,
-                      unitPrice: 0 // Free
-                    };
-                  })
-                }
-              }
-            });
-          } catch (e) {
-            console.error('[process-free-order send-confirmation] failed for', p.email, e);
-          }
-        })
-      );
-    }
+    // Only send confirmation email for the first participant to avoid duplicates
+    // The verify-payment function will handle paid orders
+    console.log(`[process-free-order] Created free order ${order.id} for ${cart.participants.length} attendees`);
 
     return new Response(JSON.stringify({ ok: true, orderId: order.id }), {
       status: 200,
