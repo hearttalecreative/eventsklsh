@@ -10,8 +10,6 @@ interface GoogleMapPickerProps {
   heightClass?: string;
 }
 
-const containerStyle: React.CSSProperties = { width: '100%', height: '100%' };
-
 const libraries: ("places")[] = ['places'];
 
 const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressChange, heightClass = 'h-64' }) => {
@@ -30,18 +28,18 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
   // If we have an address initially, geocode it
   useEffect(() => {
     if (!isLoaded || !address || center) return;
-    console.log('Geocoding address:', address);
+    console.log('Geocoding initial address:', address);
     // @ts-ignore
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ address }, (results: any, status: string) => {
-      console.log('Geocoding result:', status, results);
+      console.log('Initial geocoding result:', status, results);
       if (status === 'OK' && results?.[0]?.geometry?.location) {
         const loc = results[0].geometry.location;
         const c = { lat: loc.lat(), lng: loc.lng() };
         setCenter(c);
         setMarker(c);
       } else {
-        console.warn('Geocoding failed:', status, address);
+        console.warn('Initial geocoding failed:', status, address);
       }
     });
   }, [isLoaded, address, center]);
@@ -87,49 +85,56 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
   };
 
   const onAutoPlaceChanged = () => {
-    console.log('Place changed');
+    console.log('Autocomplete place changed');
     const place = autoRef.current?.getPlace();
     console.log('Selected place:', place);
     
+    // Get location from the selected place
     const loc = place?.geometry?.location;
     if (loc) {
       const pos = { lat: loc.lat(), lng: loc.lng() };
-      console.log('Setting position from autocomplete:', pos);
+      console.log('Setting map position from autocomplete:', pos);
+      
+      // Update both center and marker immediately
       setCenter(pos);
       setMarker(pos);
-      
-      // Clear the autocomplete input after selection
-      if (inputRef.current) {
-        inputRef.current.value = '';
-      }
     }
     
+    // Get formatted address from the selected place
     const fmt = place?.formatted_address || place?.name || '';
     if (fmt) {
       console.log('Setting address from autocomplete:', fmt);
       setManualAddress(fmt);
       onAddressChange(fmt);
     }
+    
+    // Clear the autocomplete input after selection
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   const handleManualAddressChange = (value: string) => {
     setManualAddress(value);
     onAddressChange(value);
-  };
-
-  const geocodeManualAddress = async () => {
-    if (!isLoaded || !manualAddress.trim()) return;
     
-    // @ts-ignore
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ address: manualAddress }, (results: any, status: string) => {
-      if (status === 'OK' && results?.[0]?.geometry?.location) {
-        const loc = results[0].geometry.location;
-        const pos = { lat: loc.lat(), lng: loc.lng() };
-        setCenter(pos);
-        setMarker(pos);
-      }
-    });
+    // If manual address is changed, try to geocode it automatically (debounced)
+    if (value.trim() && isLoaded) {
+      const timeoutId = setTimeout(() => {
+        // @ts-ignore
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ address: value }, (results: any, status: string) => {
+          if (status === 'OK' && results?.[0]?.geometry?.location) {
+            const loc = results[0].geometry.location;
+            const pos = { lat: loc.lat(), lng: loc.lng() };
+            setCenter(pos);
+            setMarker(pos);
+          }
+        });
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
+    }
   };
 
   const mapCenter = useMemo(() => marker || center || { lat: 34.0522, lng: -118.2437 }, [marker, center]);
@@ -140,11 +145,11 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
       <div className="w-full p-4 border rounded-md">
         <p className="text-red-500 text-sm">Error loading Google Maps</p>
         <div className="mt-2">
-          <Label>Manual Address Input</Label>
+          <Label>Dirección Manual</Label>
           <Input 
             value={manualAddress} 
             onChange={(e) => handleManualAddressChange(e.target.value)}
-            placeholder="Enter address manually" 
+            placeholder="Escribe la dirección manualmente" 
           />
         </div>
       </div>
@@ -152,76 +157,72 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
   }
 
   return (
-    <div className="space-y-3">
-      {/* Manual Address Input */}
-      <div className="space-y-1">
-        <Label>Dirección Manual</Label>
-        <div className="flex gap-2">
-          <Input 
-            value={manualAddress} 
-            onChange={(e) => handleManualAddressChange(e.target.value)}
-            placeholder="Escribe la dirección completa aquí" 
-            className="flex-1"
-          />
-          <button
-            type="button"
-            onClick={geocodeManualAddress}
-            className="px-3 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+    <div className="space-y-4">
+      {/* Google Places Autocomplete - Separate from manual input */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Buscar en Google Maps</Label>
+        {!isLoaded ? (
+          <div className="w-full p-3 border rounded-md bg-muted text-sm text-muted-foreground">
+            Cargando Google Places...
+          </div>
+        ) : (
+          <Autocomplete 
+            onLoad={onAutoLoad} 
+            onPlaceChanged={onAutoPlaceChanged}
+            options={{
+              componentRestrictions: { country: ['us', 'mx'] },
+              fields: ['formatted_address', 'geometry', 'name', 'place_id'],
+              types: ['establishment', 'geocode']
+            }}
           >
-            Buscar
-          </button>
-        </div>
+            <Input
+              ref={inputRef} 
+              placeholder="Busca un lugar específico (ej: Starbucks, Hotel Marriott, etc.)" 
+              className="w-full"
+            />
+          </Autocomplete>
+        )}
+        <p className="text-xs text-muted-foreground">Selecciona una opción del menú desplegable para ubicar automáticamente en el mapa</p>
       </div>
 
-      {/* Google Maps with Autocomplete */}
+      {/* Manual Address Input - Completely separate */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Dirección Manual</Label>
+        <Input 
+          value={manualAddress} 
+          onChange={(e) => handleManualAddressChange(e.target.value)}
+          placeholder="Escribe la dirección completa manualmente" 
+        />
+        <p className="text-xs text-muted-foreground">Escribe la dirección si no la encuentras en la búsqueda de Google</p>
+      </div>
+
+      {/* Google Map */}
       <div className={`w-full ${heightClass} rounded-md overflow-hidden border`}> 
         {!isLoaded ? (
           <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
             Cargando mapa de Google...
           </div>
         ) : (
-          <div className="w-full h-full">
-            <div className="p-2 bg-muted/30">
-              <Label className="text-xs text-muted-foreground mb-1 block">Búsqueda con Google Places</Label>
-              <Autocomplete 
-                onLoad={onAutoLoad} 
-                onPlaceChanged={onAutoPlaceChanged}
-                options={{
-                  componentRestrictions: { country: ['us', 'mx'] },
-                  fields: ['formatted_address', 'geometry', 'name', 'place_id'],
-                  types: ['establishment', 'geocode']
-                }}
-              >
-                <input 
-                  ref={inputRef} 
-                  placeholder="Busca un lugar específico..." 
-                  className="w-full px-3 py-2 text-sm rounded border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary" 
-                />
-              </Autocomplete>
-            </div>
-            <div style={{ height: 'calc(100% - 70px)' }}>
-              <GoogleMap 
-                mapContainerStyle={{ width: '100%', height: '100%' }} 
-                center={mapCenter} 
-                zoom={(marker || center) ? 15 : 10} 
-                onClick={onMapClick} 
-                options={{ 
-                  streetViewControl: false, 
-                  mapTypeControl: false, 
-                  fullscreenControl: false 
-                }}
-              >
-                {marker && (
-                  <Marker 
-                    position={marker} 
-                    draggable 
-                    onDragEnd={onMarkerDragEnd}
-                    title={manualAddress || 'Ubicación seleccionada'} 
-                  />
-                )}
-              </GoogleMap>
-            </div>
-          </div>
+          <GoogleMap 
+            mapContainerStyle={{ width: '100%', height: '100%' }} 
+            center={mapCenter} 
+            zoom={(marker || center) ? 15 : 10} 
+            onClick={onMapClick} 
+            options={{ 
+              streetViewControl: false, 
+              mapTypeControl: false, 
+              fullscreenControl: false 
+            }}
+          >
+            {marker && (
+              <Marker 
+                position={marker} 
+                draggable 
+                onDragEnd={onMarkerDragEnd}
+                title={manualAddress || 'Ubicación seleccionada'} 
+              />
+            )}
+          </GoogleMap>
         )}
       </div>
     </div>
