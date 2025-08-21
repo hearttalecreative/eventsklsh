@@ -145,11 +145,11 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
       <div className="w-full p-4 border rounded-md">
         <p className="text-red-500 text-sm">Error loading Google Maps</p>
         <div className="mt-2">
-          <Label>Dirección Manual</Label>
+          <Label>Manual Address</Label>
           <Input 
             value={manualAddress} 
             onChange={(e) => handleManualAddressChange(e.target.value)}
-            placeholder="Escribe la dirección manualmente" 
+            placeholder="Type the address manually" 
           />
         </div>
       </div>
@@ -160,10 +160,10 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
     <div className="space-y-4">
       {/* Google Places Autocomplete - Separate from manual input */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Buscar en Google Maps</Label>
+        <Label className="text-sm font-medium">Search on Google Maps</Label>
         {!isLoaded ? (
           <div className="w-full p-3 border rounded-md bg-muted text-sm text-muted-foreground">
-            Cargando Google Places...
+            Loading Google Places...
           </div>
         ) : (
           <Autocomplete 
@@ -177,30 +177,31 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
           >
             <Input
               ref={inputRef} 
-              placeholder="Busca un lugar específico (ej: Starbucks, Hotel Marriott, etc.)" 
-              className="w-full"
+              placeholder="Search for a specific place (e.g. Starbucks, Hotel Marriott, etc.)" 
+              className="w-full pac-target-input"
+              autoComplete="off"
             />
           </Autocomplete>
         )}
-        <p className="text-xs text-muted-foreground">Selecciona una opción del menú desplegable para ubicar automáticamente en el mapa</p>
+        <p className="text-xs text-muted-foreground">Select an option from the dropdown to automatically locate on the map</p>
       </div>
 
       {/* Manual Address Input - Completely separate */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Dirección Manual</Label>
+        <Label className="text-sm font-medium">Manual Address</Label>
         <Input 
           value={manualAddress} 
           onChange={(e) => handleManualAddressChange(e.target.value)}
-          placeholder="Escribe la dirección completa manualmente" 
+          placeholder="Type the complete address manually" 
         />
-        <p className="text-xs text-muted-foreground">Escribe la dirección si no la encuentras en la búsqueda de Google</p>
+        <p className="text-xs text-muted-foreground">Type the address if you can't find it in Google Search</p>
       </div>
 
       {/* Google Map */}
       <div className={`w-full ${heightClass} rounded-md overflow-hidden border`}> 
-        {!isLoaded ? (
+      {!isLoaded ? (
           <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-            Cargando mapa de Google...
+            Loading Google Map...
           </div>
         ) : (
           <GoogleMap 
@@ -219,7 +220,7 @@ const GoogleMapPicker: React.FC<GoogleMapPickerProps> = ({ address, onAddressCha
                 position={marker} 
                 draggable 
                 onDragEnd={onMarkerDragEnd}
-                title={manualAddress || 'Ubicación seleccionada'} 
+                title={manualAddress || 'Selected location'} 
               />
             )}
           </GoogleMap>
