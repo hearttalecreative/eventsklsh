@@ -129,46 +129,46 @@ serve(async (req: Request) => {
       }).format(amount);
     };
 
-    const subject = `Confirmación de Ticket - ${eventTitle || "Evento"}`;
+    const subject = `Event Ticket Confirmation - ${eventTitle || "Event"}`;
     const html = `
-      <div style="background:hsl(35, 40%, 98%);padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;color:hsl(24, 30%, 15%);line-height:1.6;">
-        <div style="max-width:600px;margin:0 auto;background:hsl(0, 0%, 100%);border-radius:16px;overflow:hidden;box-shadow:0 4px 12px -4px rgba(0,0,0,0.15);">
+      <div style="background:#fafaf9;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen','Ubuntu','Cantarell',sans-serif;color:#2c1810;line-height:1.6;">
+        <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           
           <!-- Header -->
-          <div style="background:linear-gradient(135deg, hsl(30, 60%, 42%) 0%, hsl(30, 55%, 35%) 100%);padding:40px 32px;text-align:center;">
-            <div style="background:hsl(0, 0%, 100%);width:160px;height:50px;margin:0 auto 24px auto;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-              <div style="width:28px;height:28px;background:linear-gradient(135deg, hsl(30, 60%, 42%) 0%, hsl(30, 55%, 35%) 100%);border-radius:8px;margin-right:12px;"></div>
-              <span style="font-weight:700;color:hsl(24, 30%, 15%);font-size:18px;">Events</span>
+          <div style="background:#a0662f;padding:32px 24px;text-align:center;">
+            <div style="background:#ffffff;width:140px;height:40px;margin:0 auto 20px auto;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+              <div style="width:20px;height:20px;background:#a0662f;border-radius:4px;margin-right:8px;"></div>
+              <span style="font-weight:600;color:#2c1810;font-size:16px;">Events</span>
             </div>
-            <h1 style="margin:0;font-size:32px;line-height:1.2;color:hsl(0, 0%, 100%);font-weight:700;">¡Gracias, ${name}!</h1>
-            <p style="margin:16px 0 0 0;color:hsl(0, 0%, 100%);opacity:0.95;font-size:18px;font-weight:500;">Tu ticket ha sido confirmado</p>
+            <h1 style="margin:0;font-size:24px;line-height:1.3;color:#ffffff;font-weight:600;">Thank you, ${name}!</h1>
+            <p style="margin:12px 0 0 0;color:#ffffff;opacity:0.9;font-size:16px;">Your ticket has been confirmed</p>
           </div>
           
           <!-- Main Content -->
-          <div style="padding:32px;">
+          <div style="padding:24px;">
             
             <!-- Event Information -->
-            <div style="background:hsl(35, 30%, 96%);border:1px solid hsl(35, 18%, 88%);border-radius:12px;padding:24px;margin-bottom:24px;">
-              <h2 style="margin:0 0 16px 0;font-size:24px;color:hsl(24, 30%, 15%);font-weight:600;">${eventTitle || "Evento"}</h2>
-              ${eventDescription ? `<p style="margin:0 0 16px 0;color:hsl(24, 20%, 25%);font-size:16px;line-height:1.6;">${eventDescription}</p>` : ''}
+            <div style="background:#f8f6f4;border-radius:8px;padding:20px;margin-bottom:20px;">
+              <h2 style="margin:0 0 12px 0;font-size:20px;color:#2c1810;font-weight:600;">${eventTitle || "Event"}</h2>
+              ${eventDescription ? `<p style="margin:0 0 16px 0;color:#52433a;font-size:14px;line-height:1.5;">${eventDescription}</p>` : ''}
               
-              <div style="display:grid;gap:16px;margin-top:20px;">
+              <div style="display:grid;gap:12px;margin-top:16px;">
                 ${eventDate ? `
-                <div style="display:flex;align-items:flex-start;color:hsl(24, 20%, 25%);font-size:16px;">
-                  <span style="margin-right:12px;font-size:20px;margin-top:2px;">📅</span>
+                <div style="display:flex;align-items:flex-start;color:#52433a;font-size:14px;">
+                  <span style="margin-right:8px;font-size:16px;margin-top:1px;">📅</span>
                   <div>
-                    <strong style="color:hsl(24, 30%, 15%);">Fecha y Hora:</strong><br>
-                    <span style="color:hsl(30, 60%, 42%);font-weight:500;">${formatEventDate(eventDate)}</span>
+                    <strong style="color:#2c1810;">Date & Time:</strong><br>
+                    <span style="color:#a0662f;font-weight:500;">${formatEventDate(eventDate)}</span>
                   </div>
                 </div>
                 ` : ''}
                 
                 ${eventVenue ? `
-                <div style="display:flex;align-items:flex-start;color:hsl(24, 20%, 25%);font-size:16px;">
-                  <span style="margin-right:12px;font-size:20px;margin-top:2px;">📍</span>
+                <div style="display:flex;align-items:flex-start;color:#52433a;font-size:14px;">
+                  <span style="margin-right:8px;font-size:16px;margin-top:1px;">📍</span>
                   <div>
-                    <strong style="color:hsl(24, 30%, 15%);">Ubicación:</strong><br>
-                    <span style="color:hsl(30, 60%, 42%);font-weight:500;">${eventVenue}</span>
+                    <strong style="color:#2c1810;">Location:</strong><br>
+                    <span style="color:#a0662f;font-weight:500;">${eventVenue}</span>
                   </div>
                 </div>
                 ` : ''}
@@ -177,51 +177,51 @@ serve(async (req: Request) => {
 
             <!-- QR Code and Confirmation -->
             ${(qrCode || confirmationCode) ? `
-            <div style="background:linear-gradient(135deg, hsl(30, 60%, 42%) 0%, hsl(30, 55%, 35%) 100%);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;">
-              <h3 style="margin:0 0 20px 0;color:hsl(0, 0%, 100%);font-size:22px;font-weight:600;">Tu Ticket</h3>
+            <div style="background:#a0662f;border-radius:8px;padding:24px;text-align:center;margin-bottom:20px;">
+              <h3 style="margin:0 0 16px 0;color:#ffffff;font-size:18px;font-weight:600;">Your Ticket</h3>
               
               ${qrCode ? `
-              <div style="background:hsl(0, 0%, 100%);border-radius:12px;padding:20px;margin-bottom:20px;display:inline-block;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-                <div style="width:160px;height:160px;background:hsl(35, 30%, 96%);border:2px dashed hsl(30, 60%, 42%);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:52px;color:hsl(30, 60%, 42%);margin:0 auto;">
+              <div style="background:#ffffff;border-radius:8px;padding:16px;margin-bottom:16px;display:inline-block;">
+                <div style="width:120px;height:120px;background:#f8f6f4;border:2px dashed #a0662f;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:40px;color:#a0662f;margin:0 auto;">
                   📱
                 </div>
-                <p style="margin:12px 0 0 0;color:hsl(24, 20%, 25%);font-size:13px;font-weight:500;">Código QR: ${qrCode}</p>
+                <p style="margin:8px 0 0 0;color:#52433a;font-size:11px;font-weight:500;">QR Code: ${qrCode}</p>
               </div>
               ` : ''}
               
               ${confirmationCode ? `
-              <div style="background:hsl(0, 0%, 100%);color:hsl(30, 60%, 42%);padding:16px 24px;border-radius:10px;font-family:monospace;font-size:22px;font-weight:bold;letter-spacing:3px;display:inline-block;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+              <div style="background:#ffffff;color:#a0662f;padding:12px 20px;border-radius:6px;font-family:monospace;font-size:18px;font-weight:bold;letter-spacing:2px;display:inline-block;margin-bottom:8px;">
                 ${confirmationCode}
               </div>
               ` : ''}
               
-              <p style="margin:12px 0 0 0;color:hsl(0, 0%, 100%);opacity:0.95;font-size:15px;font-weight:500;">
-                ${qrCode ? 'Presenta este código QR o código de confirmación en el check-in' : 'Presenta este código de confirmación en el evento'}
+              <p style="margin:8px 0 0 0;color:#ffffff;opacity:0.9;font-size:13px;">
+                ${qrCode ? 'Present this QR code or confirmation code at check-in' : 'Present this confirmation code at the event'}
               </p>
             </div>
             ` : ''}
 
             <!-- Order Details -->
             ${orderDetails ? `
-            <div style="background:hsl(35, 30%, 96%);border:1px solid hsl(35, 18%, 88%);border-radius:12px;padding:24px;margin-bottom:24px;">
-              <h3 style="margin:0 0 20px 0;font-size:20px;color:hsl(24, 30%, 15%);font-weight:600;">Detalles de la Compra</h3>
+            <div style="background:#f8f6f4;border-radius:8px;padding:20px;margin-bottom:20px;">
+              <h3 style="margin:0 0 16px 0;font-size:18px;color:#2c1810;font-weight:600;">Order Details</h3>
               
-              <div style="margin-bottom:20px;">
-                <strong style="color:hsl(24, 20%, 25%);">ID de Orden:</strong> 
-                <span style="font-family:monospace;background:hsl(0, 0%, 100%);padding:4px 8px;border-radius:6px;color:hsl(30, 60%, 42%);font-weight:600;">${orderDetails.orderId}</span>
+              <div style="margin-bottom:16px;">
+                <strong style="color:#52433a;">Order ID:</strong> 
+                <span style="font-family:monospace;background:#ffffff;padding:2px 6px;border-radius:4px;color:#a0662f;font-weight:600;font-size:12px;">${orderDetails.orderId}</span>
               </div>
 
               <!-- Tickets -->
               ${orderDetails.tickets?.length ? `
-              <div style="margin-bottom:20px;">
-                <h4 style="margin:0 0 12px 0;color:hsl(24, 30%, 15%);font-size:16px;font-weight:600;">Tickets:</h4>
+              <div style="margin-bottom:16px;">
+                <h4 style="margin:0 0 8px 0;color:#2c1810;font-size:14px;font-weight:600;">Tickets:</h4>
                 ${orderDetails.tickets.map(ticket => `
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid hsl(35, 18%, 88%);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e7e3e0;">
                     <div>
-                      <span style="font-weight:600;color:hsl(24, 30%, 15%);">${ticket.name}</span>
-                      <span style="color:hsl(24, 20%, 40%);margin-left:8px;">× ${ticket.quantity}</span>
+                      <span style="font-weight:500;color:#2c1810;font-size:13px;">${ticket.name}</span>
+                      <span style="color:#52433a;margin-left:6px;font-size:12px;">× ${ticket.quantity}</span>
                     </div>
-                    <span style="font-weight:700;color:hsl(30, 60%, 42%);">${formatAmount(ticket.unitPrice * ticket.quantity, orderDetails.currency)}</span>
+                    <span style="font-weight:600;color:#a0662f;font-size:13px;">${formatAmount(ticket.unitPrice * ticket.quantity, orderDetails.currency)}</span>
                   </div>
                 `).join('')}
               </div>
@@ -229,65 +229,65 @@ serve(async (req: Request) => {
 
               <!-- Add-ons -->
               ${orderDetails.addons?.length ? `
-              <div style="margin-bottom:20px;">
-                <h4 style="margin:0 0 12px 0;color:hsl(24, 30%, 15%);font-size:16px;font-weight:600;">Add-ons:</h4>
+              <div style="margin-bottom:16px;">
+                <h4 style="margin:0 0 8px 0;color:#2c1810;font-size:14px;font-weight:600;">Add-ons:</h4>
                 ${orderDetails.addons.map(addon => `
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid hsl(35, 18%, 88%);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e7e3e0;">
                     <div>
-                      <span style="font-weight:600;color:hsl(24, 30%, 15%);">${addon.name}</span>
-                      <span style="color:hsl(24, 20%, 40%);margin-left:8px;">× ${addon.quantity}</span>
+                      <span style="font-weight:500;color:#2c1810;font-size:13px;">${addon.name}</span>
+                      <span style="color:#52433a;margin-left:6px;font-size:12px;">× ${addon.quantity}</span>
                     </div>
-                    <span style="font-weight:700;color:hsl(30, 60%, 42%);">${formatAmount(addon.unitPrice * addon.quantity, orderDetails.currency)}</span>
+                    <span style="font-weight:600;color:#a0662f;font-size:13px;">${formatAmount(addon.unitPrice * addon.quantity, orderDetails.currency)}</span>
                   </div>
                 `).join('')}
               </div>
               ` : ''}
 
               <!-- Total -->
-              <div style="border-top:2px solid hsl(30, 60%, 42%);padding-top:16px;margin-top:16px;">
+              <div style="border-top:2px solid #a0662f;padding-top:12px;margin-top:12px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <span style="font-size:18px;font-weight:600;color:hsl(24, 30%, 15%);">Total:</span>
-                  <span style="font-size:22px;font-weight:700;color:hsl(30, 60%, 42%);">${formatAmount(orderDetails.totalAmount, orderDetails.currency)}</span>
+                  <span style="font-size:16px;font-weight:600;color:#2c1810;">Total:</span>
+                  <span style="font-size:18px;font-weight:700;color:#a0662f;">${formatAmount(orderDetails.totalAmount, orderDetails.currency)}</span>
                 </div>
               </div>
             </div>
             ` : ''}
 
             <!-- Customer Information -->
-            <div style="background:hsl(35, 30%, 96%);border:1px solid hsl(35, 18%, 88%);border-radius:12px;padding:24px;margin-bottom:24px;">
-              <h3 style="margin:0 0 20px 0;font-size:20px;color:hsl(24, 30%, 15%);font-weight:600;">Información del Cliente</h3>
+            <div style="background:#f8f6f4;border-radius:8px;padding:20px;margin-bottom:20px;">
+              <h3 style="margin:0 0 16px 0;font-size:18px;color:#2c1810;font-weight:600;">Customer Information</h3>
               
-              <div style="display:grid;gap:12px;">
-                <div><strong style="color:hsl(24, 30%, 15%);">Nombre:</strong> <span style="color:hsl(30, 60%, 42%);font-weight:500;">${name}</span></div>
-                <div><strong style="color:hsl(24, 30%, 15%);">Email:</strong> <span style="color:hsl(30, 60%, 42%);font-weight:500;">${email}</span></div>
-                ${phone ? `<div><strong style="color:hsl(24, 30%, 15%);">Teléfono:</strong> <span style="color:hsl(30, 60%, 42%);font-weight:500;">${phone}</span></div>` : ''}
+              <div style="display:grid;gap:8px;">
+                <div style="font-size:14px;"><strong style="color:#2c1810;">Name:</strong> <span style="color:#a0662f;font-weight:500;">${name}</span></div>
+                <div style="font-size:14px;"><strong style="color:#2c1810;">Email:</strong> <span style="color:#a0662f;font-weight:500;">${email}</span></div>
+                ${phone ? `<div style="font-size:14px;"><strong style="color:#2c1810;">Phone:</strong> <span style="color:#a0662f;font-weight:500;">${phone}</span></div>` : ''}
               </div>
             </div>
 
             ${instructions ? `
             <!-- Event Instructions -->
-            <div style="background:hsl(45, 100%, 96%);border:1px solid hsl(45, 86%, 83%);border-radius:12px;padding:24px;margin-bottom:24px;">
-              <h3 style="margin:0 0 16px 0;font-size:20px;color:hsl(30, 60%, 42%);font-weight:600;display:flex;align-items:center;">
-                <span style="font-size:24px;margin-right:8px;">📋</span>
-                Instrucciones Importantes
+            <div style="background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:20px;margin-bottom:20px;">
+              <h3 style="margin:0 0 12px 0;font-size:18px;color:#a0662f;font-weight:600;display:flex;align-items:center;">
+                <span style="font-size:20px;margin-right:6px;">📋</span>
+                Important Instructions
               </h3>
-              <div style="color:hsl(24, 30%, 20%);font-size:16px;line-height:1.8;">
+              <div style="color:#2c1810;font-size:14px;line-height:1.6;">
                 ${formatInstructions(instructions)}
               </div>
             </div>
             ` : ''}
             
             <!-- Success Message -->
-            <div style="background:linear-gradient(135deg, hsl(30, 60%, 42%) 0%, hsl(30, 55%, 35%) 100%);border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;">
-              <div style="font-size:36px;margin-bottom:16px;">✨</div>
-              <h3 style="margin:0 0 12px 0;color:hsl(0, 0%, 100%);font-size:22px;font-weight:600;">¡Todo listo!</h3>
-              <p style="margin:0;color:hsl(0, 0%, 100%);opacity:0.95;font-size:16px;font-weight:500;">Esperamos verte en el evento</p>
+            <div style="background:#a0662f;border-radius:8px;padding:24px;text-align:center;margin-bottom:20px;">
+              <div style="font-size:32px;margin-bottom:12px;">✨</div>
+              <h3 style="margin:0 0 8px 0;color:#ffffff;font-size:18px;font-weight:600;">All Set!</h3>
+              <p style="margin:0;color:#ffffff;opacity:0.9;font-size:14px;">We look forward to seeing you at the event</p>
             </div>
             
             <!-- Contact -->
-            <div style="text-align:center;padding:24px 0;border-top:1px solid hsl(35, 18%, 88%);">
-              <p style="margin:0 0 8px 0;color:hsl(24, 20%, 40%);font-size:14px;">¿Preguntas? Responde a este email</p>
-              <p style="margin:0;color:hsl(24, 20%, 40%);opacity:0.8;font-size:12px;">¡Gracias por elegirnos!</p>
+            <div style="text-align:center;padding:20px 0;border-top:1px solid #e7e3e0;">
+              <p style="margin:0 0 6px 0;color:#52433a;font-size:12px;">Questions? Reply to this email</p>
+              <p style="margin:0;color:#52433a;opacity:0.7;font-size:11px;">Thank you for choosing us!</p>
             </div>
           </div>
         </div>
