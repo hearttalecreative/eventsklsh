@@ -42,6 +42,7 @@ interface Payload {
   eventVenue?: string;
   instructions?: string;
   confirmationCode?: string;
+  qrCode?: string;
   orderDetails?: {
     orderId: string;
     totalAmount: number;
@@ -74,6 +75,7 @@ serve(async (req: Request) => {
       eventVenue, 
       instructions, 
       confirmationCode,
+      qrCode,
       orderDetails 
     }: Payload = await req.json();
     console.log("send-confirmation invoked with:", { name, email, eventTitle });
@@ -173,14 +175,29 @@ serve(async (req: Request) => {
               </div>
             </div>
 
-            <!-- Confirmation Code -->
-            ${confirmationCode ? `
-            <div style="background:hsl(142, 76%, 36%);background:linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(158, 64%, 52%) 100%);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-              <h3 style="margin:0 0 8px 0;color:hsl(0, 0%, 100%);font-size:18px;font-weight:600;">Confirmation Code</h3>
-              <div style="background:hsl(0, 0%, 100%);color:hsl(142, 76%, 36%);padding:12px 20px;border-radius:8px;font-family:monospace;font-size:24px;font-weight:bold;letter-spacing:2px;display:inline-block;">
+            <!-- QR Code and Confirmation -->
+            ${(qrCode || confirmationCode) ? `
+            <div style="background:hsl(142, 76%, 36%);background:linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(158, 64%, 52%) 100%);border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+              <h3 style="margin:0 0 16px 0;color:hsl(0, 0%, 100%);font-size:20px;font-weight:600;">Your Ticket</h3>
+              
+              ${qrCode ? `
+              <div style="background:hsl(0, 0%, 100%);border-radius:12px;padding:16px;margin-bottom:16px;display:inline-block;">
+                <div style="width:150px;height:150px;background:hsl(210, 40%, 98%);border:2px dashed hsl(214, 32%, 91%);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:48px;color:hsl(215, 13%, 34%);margin:0 auto;">
+                  📱
+                </div>
+                <p style="margin:8px 0 0 0;color:hsl(215, 13%, 34%);font-size:12px;">QR Code: ${qrCode}</p>
+              </div>
+              ` : ''}
+              
+              ${confirmationCode ? `
+              <div style="background:hsl(0, 0%, 100%);color:hsl(142, 76%, 36%);padding:12px 20px;border-radius:8px;font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:2px;display:inline-block;margin-bottom:8px;">
                 ${confirmationCode}
               </div>
-              <p style="margin:8px 0 0 0;color:hsl(0, 0%, 100%);opacity:0.9;font-size:14px;">Present this code at the event</p>
+              ` : ''}
+              
+              <p style="margin:8px 0 0 0;color:hsl(0, 0%, 100%);opacity:0.9;font-size:14px;">
+                ${qrCode ? 'Show this QR code or confirmation code at check-in' : 'Present this confirmation code at the event'}
+              </p>
             </div>
             ` : ''}
 

@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
 import GoogleMapPicker from "@/components/GoogleMapPicker";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
 import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy } from "lucide-react";
@@ -49,21 +49,7 @@ const AdminEvents = () => {
   const [ticketsEventId, setTicketsEventId] = useState<string | null>(null);
   const [tickets, setTickets] = useState<any[]>([]);
 
-// Attendees modal state
-  const [attendeesOpen, setAttendeesOpen] = useState(false);
-  const [attendeesEventId, setAttendeesEventId] = useState<string | null>(null);
-  const [attendees, setAttendees] = useState<any[]>([]);
-  const [attendeesSearch, setAttendeesSearch] = useState('');
-  const filteredAttendees = useMemo(() => {
-    const q = attendeesSearch.trim().toLowerCase();
-    if (!q) return attendees;
-    return attendees.filter((a)=>
-      (a.name || '').toLowerCase().includes(q) ||
-      (a.email || '').toLowerCase().includes(q) ||
-      (a.phone || '').toLowerCase().includes(q) ||
-      (a.confirmation_code || '').toLowerCase().includes(q)
-    );
-  }, [attendees, attendeesSearch]);
+  // Remove attendees modal - now handled by separate page
   const [manageEventId, setManageEventId] = useState<string | undefined>(undefined);
 
   // Form state for quick create
@@ -549,18 +535,7 @@ const deleteTicket = async (id: string) => {
     await logAdmin('ticket_deleted','ticket', id);
   };
 
-  // Attendees
-  const openAttendees = async (eventId: string) => {
-    setAttendeesEventId(eventId);
-    const { data, error } = await supabase
-      .from('attendees')
-      .select('id,confirmation_code,name,email,phone,created_at')
-      .eq('event_id', eventId)
-      .order('created_at', { ascending: false });
-    if (error) return alert(error.message);
-    setAttendees(data || []);
-    setAttendeesOpen(true);
-  };
+  // Attendees functionality moved to separate page
 
   // Delete event
   const confirmDeleteEvent = (event: any) => {
@@ -610,29 +585,7 @@ const deleteTicket = async (id: string) => {
     setSelectedIds([]);
   };
 
-  // Export attendees as CSV
-  const exportAttendeesCsv = () => {
-    const headers = ['Confirmation code','Name','Email','Phone','Created at'];
-    const rows = attendees.map((a) => [
-      a.confirmation_code || '',
-      a.name || '',
-      a.email || '',
-      a.phone || '',
-      a.created_at ? new Date(a.created_at).toISOString() : '',
-    ]);
-    const csv = [headers, ...rows]
-      .map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `attendees-${attendeesEventId || 'event'}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  // CSV export functionality moved to EventAttendees page
 
   // Image upload to Supabase Storage
   const uploadImage = async () => {
@@ -1117,8 +1070,10 @@ const deleteTicket = async (id: string) => {
                           <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-8 w-8" onClick={()=>openDuplicate(ev)}>
                             <Copy className="w-3 h-3" />
                           </Button>
-                          <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-8 w-8" onClick={()=>openAttendees(ev.id)}>
-                            <Users className="w-3 h-3" />
+                          <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-8 w-8" asChild>
+                            <Link to={`/admin/events/${ev.id}/attendees`}>
+                              <Users className="w-3 h-3" />
+                            </Link>
                           </Button>
                           <Button size="icon" variant="outline" title="View" aria-label="View" className="h-8 w-8" asChild>
                             <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
@@ -1474,43 +1429,7 @@ const deleteTicket = async (id: string) => {
           </Dialog>
         )}
 
-        {/* Attendees dialog */}
-        <Dialog open={attendeesOpen} onOpenChange={setAttendeesOpen}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Attendees ({attendees.length})</DialogTitle>
-            </DialogHeader>
-            <div className="mb-3">
-              <Input placeholder="Search by name, email or code" value={attendeesSearch} onChange={(e)=>setAttendeesSearch(e.target.value)} />
-            </div>
-            <div className="max-h-[60vh] overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-muted-foreground border-b">
-                    <th className="py-2 pr-3">Code</th>
-                    <th className="py-2 pr-3">Name</th>
-                    <th className="py-2 pr-3">Email</th>
-                    <th className="py-2 pr-3">Phone</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAttendees.map(a => (
-                    <tr key={a.id} className="border-b">
-                      <td className="py-2 pr-3 font-mono">{a.confirmation_code || '-'}</td>
-                      <td className="py-2 pr-3">{a.name || '-'}</td>
-                      <td className="py-2 pr-3">{a.email || '-'}</td>
-                      <td className="py-2 pr-3">{a.phone || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={exportAttendeesCsv}>Export CSV</Button>
-              <Button variant="secondary" onClick={()=>setAttendeesOpen(false)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Attendees functionality moved to separate page */}
         <Dialog open={venueEditOpen} onOpenChange={setVenueEditOpen}>
           <DialogContent>
             <DialogHeader>

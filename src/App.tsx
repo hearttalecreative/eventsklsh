@@ -17,7 +17,8 @@ import CheckoutCancel from "./pages/CheckoutCancel";
 import CouponsPage from "./pages/admin/Coupons";
 import AddAttendeePage from "./pages/admin/AddAttendee";
 import VenuesPage from "./pages/admin/Venues";
-import ParticipantsPage from "./pages/admin/Participants";
+import EventAttendeesPage from "./pages/admin/EventAttendees";
+import QRCheckInPage from "./pages/admin/QRCheckIn";
 
 const queryClient = new QueryClient();
 
@@ -50,7 +51,9 @@ const App = () => (
             <Route path="/admin/coupons" element={<AdminRoute><CouponsPage /></AdminRoute>} />
             <Route path="/admin/venues" element={<AdminRoute><VenuesPage /></AdminRoute>} />
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
-            <Route path="/admin/participants" element={<AdminRoute><ParticipantsPage /></AdminRoute>} />
+            <Route path="/admin/events/:eventId/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />
+            <Route path="/admin/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />
+            <Route path="/admin/qr/:qrCode" element={<QRCheckInPage />} />
             <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/checkout/success" element={<CheckoutSuccess />} />
@@ -68,7 +71,7 @@ const App = () => (
                   <Link to="/admin/events" className="story-link">Event management</Link>
                   <Link to="/admin/venues" className="story-link">Venues</Link>
                   <Link to="/admin/coupons" className="story-link">Coupons</Link>
-                  <Link to="/admin/participants" className="story-link">Participants</Link>
+                  <Link to="/admin/attendees" className="story-link">Attendees</Link>
                   <Link to="/dashboard" className="story-link">Dashboard</Link>
                   <Link to="/admin/login" className="story-link">Admin access</Link>
                   <a href="https://kylelamsoundhealing.com/" target="_blank" rel="noopener noreferrer" className="story-link">Main site</a>
