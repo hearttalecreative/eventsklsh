@@ -18,7 +18,7 @@ import CouponsPage from "./pages/admin/Coupons";
 import AddAttendeePage from "./pages/admin/AddAttendee";
 import VenuesPage from "./pages/admin/Venues";
 import EventAttendeesPage from "./pages/admin/EventAttendees";
-import QRCheckInPage from "./pages/admin/QRCheckIn";
+import QRCheckIn from "./pages/QRCheckIn";
 
 const queryClient = new QueryClient();
 
@@ -53,7 +53,7 @@ const App = () => (
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
             <Route path="/admin/events/:eventId/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />
             <Route path="/admin/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />
-            <Route path="/admin/qr/:qrCode" element={<QRCheckInPage />} />
+            <Route path="/qr/:qrCode" element={<QRCheckIn />} />
             <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/checkout/success" element={<CheckoutSuccess />} />

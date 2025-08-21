@@ -182,7 +182,7 @@ serve(async (req: Request) => {
               
               ${qrCode ? `
               <div style="background:#ffffff;border-radius:12px;padding:20px;margin-bottom:16px;display:inline-block;border:1px solid #e7e3e0;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrCode)}" 
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://84cc940b-a739-45bf-848d-a311528aac1a.sandbox.lovable.dev/qr/${qrCode}`)}" 
                      alt="QR Code for check-in" 
                      style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px;" />
                 <p style="margin:12px 0 0 0;color:#52433a;font-size:12px;font-weight:500;text-align:center;font-family:monospace;">${qrCode}</p>
