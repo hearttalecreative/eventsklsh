@@ -47,9 +47,11 @@ const VenueCreateDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =
           </div>
           <div className="space-y-1">
             <Label>Address & Location</Label>
-            <p className="text-xs text-muted-foreground">Type an address in the search box below or click on the map</p>
+            <p className="text-xs text-muted-foreground">Search for an address using Google Maps or click on the map</p>
           </div>
-          <GoogleMapPicker address={address} onAddressChange={setAddress} heightClass="h-72" />
+          <div className="space-y-2">
+            <GoogleMapPicker address={address} onAddressChange={setAddress} heightClass="h-72" />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={()=>onOpenChange(false)}>Cancel</Button>

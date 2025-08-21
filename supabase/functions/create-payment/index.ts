@@ -192,7 +192,7 @@ serve(async (req) => {
     }
 
     const subtotalAfterDiscount = subtotalBeforeDiscount - discount;
-    const processingFee = Math.round(subtotalAfterDiscount * 0.03);
+    const processingFee = Math.round(subtotalAfterDiscount * 0.035);
     let total = subtotalAfterDiscount + processingFee;
 
     // Validate participants count

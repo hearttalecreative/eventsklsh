@@ -141,7 +141,7 @@ async function sendBrevoEmail(toEmail: string, toName: string, subject: string, 
       if (!Number.isNaN(d)) discount = d;
     }
     const subtotalAfterDiscount = ticketsSubtotal + addonsSubtotal - discount;
-    const processingFee = Math.round(subtotalAfterDiscount * 0.03);
+    const processingFee = Math.round(subtotalAfterDiscount * 0.035);
     const total = subtotalAfterDiscount + processingFee;
 
     if (typeof session.amount_total === "number" && session.amount_total !== total) {

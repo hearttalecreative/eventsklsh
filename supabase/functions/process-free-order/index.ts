@@ -77,7 +77,7 @@ serve(async (req: Request) => {
       .select("*")
       .in("id", cart.addons.map((a: any) => a.id));
 
-    // 2) Calculate processing fee (3% of original total before 100% discount)
+    // 2) Calculate processing fee (3.5% of original total before 100% discount)
     // For 100% discount events, we still track the processing fee in the order for transparency
     const unit = ticket.unit_amount_cents;
     const ticketsSubtotal = unit * (cart.ticketQty || 1);
@@ -86,7 +86,7 @@ serve(async (req: Request) => {
       return sum + (addon ? addon.unit_amount_cents * (a.qty || 0) : 0);
     }, 0);
     const originalTotal = ticketsSubtotal + addonsSubtotal;
-    const processingFee = Math.round(originalTotal * 0.03);
+    const processingFee = Math.round(originalTotal * 0.035);
 
     // Create order
     const { data: order, error: orderError } = await supabase
