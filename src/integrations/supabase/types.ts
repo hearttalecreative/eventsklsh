@@ -118,6 +118,7 @@ export type Database = {
           name: string | null
           order_item_id: string | null
           phone: string | null
+          qr_code: string | null
           seat: string | null
           zone: string | null
         }
@@ -131,6 +132,7 @@ export type Database = {
           name?: string | null
           order_item_id?: string | null
           phone?: string | null
+          qr_code?: string | null
           seat?: string | null
           zone?: string | null
         }
@@ -144,6 +146,7 @@ export type Database = {
           name?: string | null
           order_item_id?: string | null
           phone?: string | null
+          qr_code?: string | null
           seat?: string | null
           zone?: string | null
         }
@@ -669,6 +672,10 @@ export type Database = {
       }
       generate_confirmation_code: {
         Args: { _len?: number }
+        Returns: string
+      }
+      generate_qr_code: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_event_sales_summary_admin: {
