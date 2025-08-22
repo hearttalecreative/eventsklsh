@@ -145,7 +145,7 @@ serve(async (req: Request) => {
     const locationStr = venue ? `${venue.name} — ${venue.address}` : '';
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(event.short_description || '')}${eventUrl ? encodeURIComponent('\n' + eventUrl) : ''}&location=${encodeURIComponent(locationStr)}`;
 
-    // Send confirmation emails for free orders with complete information
+    // Send confirmation emails for free orders
     await Promise.allSettled(
       cart.participants.map(async (p: any, index: number) => {
         try {

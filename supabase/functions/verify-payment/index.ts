@@ -211,9 +211,58 @@ serve(async (req) => {
     const locationStr = venue ? `${venue.name} — ${venue.address}` : '';
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(event.short_description || '')}${eventUrl ? encodeURIComponent('\n' + eventUrl) : ''}&location=${encodeURIComponent(locationStr)}`;
 
-    // Email will be sent by process-free-order for free orders
-    // Only send email for paid orders here
-    console.log(`[verify-payment] Created paid order ${order.id} for ${cart.participants.length} attendees`);
+    // Send confirmation emails for paid orders
+    await Promise.allSettled(
+      cart.participants.map(async (p: any, index: number) => {
+        try {
+          const attendee = insertedAttendees[index];
+          
+          // Fetch the attendee with QR code from database
+          const { data: attendeeWithQR } = await supabase
+            .from("attendees")
+            .select("qr_code")
+            .eq("id", attendee.id)
+            .single();
+
+          await supabase.functions.invoke('send-confirmation', {
+            body: {
+              name: p.fullName || 'Guest',
+              email: p.email,
+              phone: p.phone,
+              eventTitle: event.title,
+              eventDescription: event.short_description,
+              eventDate: event.starts_at,
+              eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
+              instructions: event.instructions,
+              confirmationCode: attendee?.confirmation_code,
+              qrCode: attendeeWithQR?.qr_code,
+              orderDetails: {
+                orderId: order.id,
+                totalAmount: total,
+                currency: orderCurrency,
+                tickets: [{
+                  name: ticket.name,
+                  quantity: cart.ticketQty,
+                  unitPrice: unit
+                }],
+                addons: (cart.addons || []).filter((a: any) => a.qty > 0).map((a: any) => {
+                  const addon = addonsRows.find((row: any) => row.id === a.id);
+                  return {
+                    name: addon?.name || 'Add-on',
+                    quantity: a.qty,
+                    unitPrice: addon?.unit_amount_cents || 0
+                  };
+                })
+              }
+            }
+          });
+        } catch (e) {
+          console.error('[verify-payment send-confirmation] failed for', p.email, e);
+        }
+      })
+    );
+
+    console.log(`[verify-payment] Created paid order ${order.id} for ${cart.participants.length} attendees and sent confirmation emails`);
 
     return new Response(JSON.stringify({ ok: true, orderId: order.id }), {
       status: 200,

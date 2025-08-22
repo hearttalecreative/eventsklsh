@@ -181,11 +181,13 @@ serve(async (req: Request) => {
               <h3 style="margin:0 0 16px 0;color:#ffffff;font-size:18px;font-weight:600;">Your Ticket</h3>
               
               ${qrCode ? `
-              <div style="background:#ffffff;border-radius:12px;padding:20px;margin-bottom:16px;display:inline-block;border:1px solid #e7e3e0;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://84cc940b-a739-45bf-848d-a311528aac1a.sandbox.lovable.dev/qr/${qrCode}`)}" 
+              <div style="background:#ffffff;border-radius:16px;padding:24px;margin:0 auto 20px auto;max-width:220px;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid #f8f6f4;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`https://events.kylelamsoundhealing.com/qr/${qrCode}`)}" 
                      alt="QR Code for check-in" 
-                     style="width:150px;height:150px;display:block;margin:0 auto;border-radius:8px;" />
-                <p style="margin:12px 0 0 0;color:#52433a;font-size:12px;font-weight:500;text-align:center;font-family:monospace;">${qrCode}</p>
+                     style="width:160px;height:160px;display:block;margin:0 auto 16px auto;border-radius:12px;border:1px solid #e7e3e0;" />
+                <div style="text-align:center;">
+                  <p style="margin:0;color:#52433a;font-size:11px;font-weight:600;text-align:center;font-family:monospace;letter-spacing:0.5px;line-height:1.4;">${qrCode}</p>
+                </div>
               </div>
               ` : ''}
               
