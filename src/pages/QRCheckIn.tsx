@@ -52,6 +52,8 @@ const QRCheckIn = () => {
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  console.log("QRCheckIn component loaded with qrCode:", qrCode);
+
   useEffect(() => {
     if (qrCode) {
       fetchAttendeeData();

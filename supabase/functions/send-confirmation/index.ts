@@ -132,43 +132,45 @@ serve(async (req: Request) => {
     const subject = `Event Ticket Confirmation - ${eventTitle || "Event"}`;
     const html = `
       <div style="background:#fafaf9;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen','Ubuntu','Cantarell',sans-serif;color:#2c1810;line-height:1.6;">
-        <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
           
-          <!-- Header -->
-          <div style="background:#a0662f;padding:32px 24px;text-align:center;">
-            <div style="background:#ffffff;width:140px;height:40px;margin:0 auto 20px auto;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-              <div style="width:20px;height:20px;background:#a0662f;border-radius:4px;margin-right:8px;"></div>
-              <span style="font-weight:600;color:#2c1810;font-size:16px;">Events</span>
+          <!-- Header with Logo -->
+          <div style="background:linear-gradient(135deg, #a0662f 0%, #8b5a2b 100%);padding:40px 24px 32px 24px;text-align:center;position:relative;">
+            <div style="background:#ffffff;width:200px;height:60px;margin:0 auto 24px auto;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+              <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing" style="height:40px;width:auto;" />
             </div>
-            <h1 style="margin:0;font-size:24px;line-height:1.3;color:#ffffff;font-weight:600;">Thank you, ${name}!</h1>
-            <p style="margin:12px 0 0 0;color:#ffffff;opacity:0.9;font-size:16px;">Your ticket has been confirmed</p>
+            <h1 style="margin:0 0 8px 0;font-size:28px;line-height:1.2;color:#ffffff;font-weight:700;letter-spacing:-0.5px;">Thank you, ${name}!</h1>
+            <p style="margin:0;color:#ffffff;opacity:0.95;font-size:18px;font-weight:500;">Your Sound Healing journey awaits</p>
+            <div style="margin-top:16px;padding:12px 24px;background:rgba(255,255,255,0.15);border-radius:50px;display:inline-block;">
+              <p style="margin:0;color:#ffffff;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Ticket Confirmed</p>
+            </div>
           </div>
           
           <!-- Main Content -->
-          <div style="padding:24px;">
+          <div style="padding:32px 24px;">
             
             <!-- Event Information -->
-            <div style="background:#f8f6f4;border-radius:8px;padding:20px;margin-bottom:20px;">
-              <h2 style="margin:0 0 12px 0;font-size:20px;color:#2c1810;font-weight:600;">${eventTitle || "Event"}</h2>
-              ${eventDescription ? `<p style="margin:0 0 16px 0;color:#52433a;font-size:14px;line-height:1.5;">${eventDescription}</p>` : ''}
+            <div style="background:linear-gradient(135deg, #f8f6f4 0%, #f5f2ef 100%);border-radius:12px;padding:24px;margin-bottom:24px;border:1px solid #e7e3e0;">
+              <h2 style="margin:0 0 16px 0;font-size:22px;color:#2c1810;font-weight:700;letter-spacing:-0.3px;">${eventTitle || "Sound Healing Event"}</h2>
+              ${eventDescription ? `<p style="margin:0 0 20px 0;color:#52433a;font-size:15px;line-height:1.6;">${eventDescription}</p>` : ''}
               
-              <div style="display:grid;gap:12px;margin-top:16px;">
+              <div style="display:grid;gap:16px;margin-top:20px;">
                 ${eventDate ? `
-                <div style="display:flex;align-items:flex-start;color:#52433a;font-size:14px;">
-                  <span style="margin-right:8px;font-size:16px;margin-top:1px;">📅</span>
+                <div style="display:flex;align-items:center;color:#52433a;font-size:15px;background:#ffffff;padding:16px;border-radius:8px;border:1px solid #e7e3e0;">
+                  <div style="background:#a0662f;color:#ffffff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;margin-right:12px;font-size:14px;">📅</div>
                   <div>
-                    <strong style="color:#2c1810;">Date & Time:</strong><br>
-                    <span style="color:#a0662f;font-weight:500;">${formatEventDate(eventDate)}</span>
+                    <strong style="color:#2c1810;font-size:16px;display:block;margin-bottom:4px;">Date & Time</strong>
+                    <span style="color:#a0662f;font-weight:600;font-size:15px;">${formatEventDate(eventDate)}</span>
                   </div>
                 </div>
                 ` : ''}
                 
                 ${eventVenue ? `
-                <div style="display:flex;align-items:flex-start;color:#52433a;font-size:14px;">
-                  <span style="margin-right:8px;font-size:16px;margin-top:1px;">📍</span>
+                <div style="display:flex;align-items:center;color:#52433a;font-size:15px;background:#ffffff;padding:16px;border-radius:8px;border:1px solid #e7e3e0;">
+                  <div style="background:#a0662f;color:#ffffff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;margin-right:12px;font-size:14px;">📍</div>
                   <div>
-                    <strong style="color:#2c1810;">Location:</strong><br>
-                    <span style="color:#a0662f;font-weight:500;">${eventVenue}</span>
+                    <strong style="color:#2c1810;font-size:16px;display:block;margin-bottom:4px;">Location</strong>
+                    <span style="color:#a0662f;font-weight:600;font-size:15px;">${eventVenue}</span>
                   </div>
                 </div>
                 ` : ''}
@@ -177,28 +179,29 @@ serve(async (req: Request) => {
 
             <!-- QR Code and Confirmation -->
             ${(qrCode || confirmationCode) ? `
-            <div style="background:#a0662f;border-radius:8px;padding:24px;text-align:center;margin-bottom:20px;">
-              <h3 style="margin:0 0 16px 0;color:#ffffff;font-size:18px;font-weight:600;">Your Ticket</h3>
+            <div style="background:linear-gradient(135deg, #a0662f 0%, #8b5a2b 100%);border-radius:12px;padding:32px;text-align:center;margin-bottom:24px;position:relative;overflow:hidden;">
+              <h3 style="margin:0 0 20px 0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Your Sacred Ticket</h3>
               
               ${qrCode ? `
-              <div style="background:#ffffff;border-radius:16px;padding:24px;margin:0 auto 20px auto;max-width:220px;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:2px solid #f8f6f4;">
+              <div style="background:#ffffff;border-radius:16px;padding:24px;margin:0 auto 20px auto;max-width:220px;box-shadow:0 8px 24px rgba(0,0,0,0.15);border:2px solid #f8f6f4;position:relative;">
+                <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#a0662f;color:#ffffff;padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Sound Healing</div>
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`https://events.kylelamsoundhealing.com/qr/${qrCode}`)}" 
                      alt="QR Code for check-in" 
-                     style="width:160px;height:160px;display:block;margin:0 auto 16px auto;border-radius:12px;border:1px solid #e7e3e0;" />
+                     style="width:160px;height:160px;display:block;margin:16px auto 20px auto;border-radius:12px;border:1px solid #e7e3e0;" />
                 <div style="text-align:center;">
-                  <p style="margin:0;color:#52433a;font-size:11px;font-weight:600;text-align:center;font-family:monospace;letter-spacing:0.5px;line-height:1.4;">${qrCode}</p>
+                  <p style="margin:0;color:#52433a;font-size:11px;font-weight:700;text-align:center;font-family:monospace;letter-spacing:1px;line-height:1.4;background:#f8f6f4;padding:8px;border-radius:6px;">${qrCode}</p>
                 </div>
               </div>
               ` : ''}
               
               ${confirmationCode ? `
-              <div style="background:#ffffff;color:#a0662f;padding:12px 20px;border-radius:6px;font-family:monospace;font-size:18px;font-weight:bold;letter-spacing:2px;display:inline-block;margin-bottom:8px;">
+              <div style="background:#ffffff;color:#a0662f;padding:16px 24px;border-radius:10px;font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:3px;display:inline-block;margin-bottom:12px;border:2px solid #f8f6f4;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
                 ${confirmationCode}
               </div>
               ` : ''}
               
-              <p style="margin:8px 0 0 0;color:#ffffff;opacity:0.9;font-size:13px;">
-                ${qrCode ? 'Present this QR code or confirmation code at check-in' : 'Present this confirmation code at the event'}
+              <p style="margin:12px 0 0 0;color:#ffffff;opacity:0.95;font-size:14px;font-weight:500;line-height:1.5;">
+                ${qrCode ? 'Present this QR code or confirmation code at check-in for your transformative Sound Healing experience' : 'Present this confirmation code at the event for your healing journey'}
               </p>
             </div>
             ` : ''}
@@ -279,17 +282,20 @@ serve(async (req: Request) => {
             </div>
             ` : ''}
             
-            <!-- Success Message -->
-            <div style="background:#a0662f;border-radius:8px;padding:24px;text-align:center;margin-bottom:20px;">
-              <div style="font-size:32px;margin-bottom:12px;">✨</div>
-              <h3 style="margin:0 0 8px 0;color:#ffffff;font-size:18px;font-weight:600;">All Set!</h3>
-              <p style="margin:0;color:#ffffff;opacity:0.9;font-size:14px;">We look forward to seeing you at the event</p>
+            <!-- Success Message with Branding -->
+            <div style="background:linear-gradient(135deg, #a0662f 0%, #8b5a2b 100%);border-radius:12px;padding:32px;text-align:center;margin-bottom:24px;position:relative;">
+              <div style="font-size:36px;margin-bottom:16px;">🎵</div>
+              <h3 style="margin:0 0 12px 0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Ready for Your Sound Healing Journey!</h3>
+              <p style="margin:0 0 16px 0;color:#ffffff;opacity:0.95;font-size:15px;font-weight:500;line-height:1.5;">Kyle Lam Sound Healing welcomes you to a transformative experience</p>
+              <a href="https://kylelamsoundhealing.com" target="_blank" style="color:#ffffff;text-decoration:none;background:rgba(255,255,255,0.2);padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;display:inline-block;margin-top:8px;border:1px solid rgba(255,255,255,0.3);">Visit Our Website →</a>
             </div>
             
-            <!-- Contact -->
-            <div style="text-align:center;padding:20px 0;border-top:1px solid #e7e3e0;">
-              <p style="margin:0 0 6px 0;color:#52433a;font-size:12px;">Questions? Reply to this email</p>
-              <p style="margin:0;color:#52433a;opacity:0.7;font-size:11px;">Thank you for choosing us!</p>
+            <!-- Contact & Footer -->
+            <div style="text-align:center;padding:24px 0;border-top:2px solid #f0ede9;">
+              <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing" style="height:32px;width:auto;margin:0 auto 16px auto;opacity:0.8;" />
+              <p style="margin:0 0 8px 0;color:#52433a;font-size:14px;font-weight:600;">Kyle Lam Sound Healing</p>
+              <p style="margin:0 0 12px 0;color:#52433a;font-size:13px;">Questions about your booking? Reply to this email</p>
+              <a href="https://kylelamsoundhealing.com" target="_blank" style="color:#a0662f;text-decoration:none;font-size:13px;font-weight:600;">kylelamsoundhealing.com</a>
             </div>
           </div>
         </div>
