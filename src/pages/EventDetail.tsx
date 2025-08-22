@@ -151,7 +151,7 @@ const EventDetail = () => {
     }
   }
   const subtotalAfterDiscount = ticketsSubtotal + addonsSubtotal - discount;
-  const processingFee = Math.round(subtotalAfterDiscount * 0.03);
+  const processingFee = Math.round(subtotalAfterDiscount * 0.035);
   const total = subtotalAfterDiscount + processingFee;
 
 
@@ -558,7 +558,7 @@ const proceed = async () => {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Processing Fee (3%)</span>
+                <span className="text-muted-foreground">Processing Fee (3.5%)</span>
                 <span>{formatCurrency(processingFee, currency)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t font-semibold">

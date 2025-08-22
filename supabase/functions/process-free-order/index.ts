@@ -158,7 +158,7 @@ serve(async (req: Request) => {
             .select("qr_code")
             .eq("id", attendee.id)
             .single();
-
+          console.log(`[process-free-order] Sending confirmation email to ${p.email} for attendee ${attendee.id}`);
           await supabase.functions.invoke('send-confirmation', {
             body: {
               name: p.fullName || 'Guest',
@@ -197,6 +197,7 @@ serve(async (req: Request) => {
               }
             }
           });
+          console.log(`[process-free-order] Successfully sent confirmation email to ${p.email}`);
         } catch (e) {
           console.error('[process-free-order send-confirmation] failed for', p.email, e);
         }
