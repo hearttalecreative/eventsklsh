@@ -252,89 +252,21 @@ serve(async (req) => {
         }
       }
 
-      // Attendees
-      const attendees = cart.participants.map((p) => ({
-        event_id: cart.eventId,
-        order_item_id: ticketItem.id,
-        name: p.fullName,
-        email: p.email,
-        phone: p.phone || null,
-        zone: ticket.zone || null,
-        seat: null,
-      }));
-      if (attendees.length > 0) {
-        const { data: insertedAttendees, error } = await supabase
-          .from('attendees')
-          .insert(attendees)
-          .select('id, confirmation_code, qr_code, name, email');
-        if (error) throw error;
-        
-        // Send confirmation emails immediately after creating attendees
-        await Promise.allSettled(
-          cart.participants.map(async (p: any, index: number) => {
-            try {
-              const attendee = insertedAttendees[index];
-              
-              await supabase.functions.invoke('send-confirmation', {
-                body: {
-                  name: p.fullName || 'Guest',
-                  email: p.email,
-                  phone: p.phone,
-                  eventTitle: event.title,
-                  eventDescription: event.short_description,
-                  eventDate: event.starts_at,
-                  eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
-                  instructions: event.instructions,
-                  confirmationCode: attendee?.confirmation_code,
-                  qrCode: attendee?.qr_code,
-                  orderDetails: {
-                    orderId: order.id,
-                    totalAmount: total,
-                    currency: 'usd',
-                    tickets: [{
-                      name: ticket.name,
-                      quantity: cart.ticketQty || 1,
-                      unitPrice: unit
-                    }],
-                    addons: (cart.addons || []).filter((a: any) => (a.qty || 0) > 0).map((a: any) => {
-                      const addon = addonRows.find((row: any) => row.id === a.id);
-                      return {
-                        name: addon?.name || 'Add-on',
-                        quantity: a.qty,
-                        unitPrice: addon?.unit_amount_cents || 0
-                      };
-                    }),
-                    discountInfo: discount > 0 ? {
-                      couponCode: chosen?.code || 'Discount Applied',
-                      discountAmount: discount,
-                      originalAmount: subtotalBeforeDiscount,
-                      finalAmount: subtotalAfterDiscount
-                    } : null
-                  }
-                }
-              });
-            } catch (e) {
-              console.error('[create-payment send-confirmation] failed for', p.email, e);
-            }
-          })
-        );
-      }
-
-      // Record redemption
+      // Don't create attendees here for free orders - process-free-order handles them
+      // Just record the coupon redemption if applicable
       if (chosen) {
         const { error } = await supabase.from('coupon_redemptions').insert({
           coupon_id: chosen.id,
           order_id: order.id,
           event_id: cart.eventId,
           user_id: null,
-          amount_discount_cents: subtotalBeforeDiscount, // full discount to zero
+          amount_discount_cents: discount,
           email: buyer.email,
         });
         if (error) throw error;
       }
 
-      // Email will be sent by process-free-order function for free orders
-      console.log(`[create-payment] Created free order for ${cart.participants.length} attendees - confirmation emails will be sent by process-free-order`);
+      console.log(`[create-payment] Created free order ${order.id} - attendees will be created by process-free-order`);
 
       return new Response(JSON.stringify({ url: `${origin}/checkout/success?free=1` }), {
         status: 200,
@@ -373,7 +305,7 @@ serve(async (req) => {
         quantity: 1,
         price_data: {
           currency: curr,
-          product_data: { name: 'Processing Fee (3%)' },
+          product_data: { name: 'Processing Fee (3.5%)' },
           unit_amount: processingFee,
         },
       },

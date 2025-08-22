@@ -187,7 +187,13 @@ serve(async (req: Request) => {
                     quantity: a.qty,
                     unitPrice: 0 // Free
                   };
-                })
+                }),
+                discountInfo: cart.coupon ? {
+                  couponCode: cart.coupon,
+                  discountAmount: originalTotal,
+                  originalAmount: originalTotal,
+                  finalAmount: 0
+                } : null
               }
             }
           });
