@@ -172,9 +172,87 @@ serve(async (req) => {
       }
     }
 
-    // Attendees are created by create-payment function, not here
-    // This function only verifies payment status
-    console.log(`[verify-payment] Payment verified for order, attendees already created by create-payment`);
+    // Create attendees for paid orders
+    const attendees = cart.participants.map((p) => ({
+      event_id: cart.eventId,
+      order_item_id: ticketItem.id,
+      name: p.fullName,
+      email: p.email,
+      phone: p.phone || null,
+      zone: ticket.zone || null,
+      seat: null,
+    }));
+    
+    const { data: insertedAttendees, error: attendeesErr } = await supabase
+      .from('attendees')
+      .insert(attendees)
+      .select('id, confirmation_code, qr_code, name, email, phone');
+    if (attendeesErr) throw attendeesErr;
+
+    // Record coupon redemption if applicable
+    if (meta.coupon_id) {
+      const { error: redemptionErr } = await supabase.from('coupon_redemptions').insert({
+        coupon_id: meta.coupon_id,
+        order_id: order.id,
+        event_id: cart.eventId,
+        user_id: null,
+        amount_discount_cents: discount,
+        email: session.customer_details?.email || cart.participants[0]?.email,
+      });
+      if (redemptionErr) console.error('Failed to record coupon redemption:', redemptionErr);
+    }
+
+    // Send confirmation emails
+    await Promise.allSettled(
+      cart.participants.map(async (p: any, index: number) => {
+        try {
+          const attendee = insertedAttendees[index];
+          
+          await supabase.functions.invoke('send-confirmation', {
+            body: {
+              name: p.fullName || 'Guest',
+              email: p.email,
+              phone: p.phone,
+              eventTitle: event.title,
+              eventDescription: event.short_description,
+              eventDate: event.starts_at,
+              eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
+              instructions: event.instructions,
+              confirmationCode: attendee?.confirmation_code,
+              qrCode: attendee?.qr_code,
+              orderDetails: {
+                orderId: order.id,
+                totalAmount: total,
+                currency: orderCurrency,
+                tickets: [{
+                  name: ticket.name,
+                  quantity: cart.ticketQty || 1,
+                  unitPrice: unit
+                }],
+                addons: (cart.addons || []).filter((a: any) => (a.qty || 0) > 0).map((a: any) => {
+                  const addon = addonsRows.find((row: any) => row.id === a.id);
+                  return {
+                    name: addon?.name || 'Add-on',
+                    quantity: a.qty,
+                    unitPrice: addon?.unit_amount_cents || 0
+                  };
+                }),
+                discountInfo: discount > 0 ? {
+                  couponCode: meta.coupon_code || 'Discount Applied',
+                  discountAmount: discount,
+                  originalAmount: ticketsSubtotal + addonsSubtotal,
+                  finalAmount: subtotalAfterDiscount
+                } : null
+              }
+            }
+          });
+        } catch (e) {
+          console.error('[verify-payment send-confirmation] failed for', p.email, e);
+        }
+      })
+    );
+
+    console.log(`[verify-payment] Created paid order ${order.id} for ${cart.participants.length} attendees`);
 
     // 5) Send personalized emails to each participant
     const eventDate = new Date(event.starts_at);

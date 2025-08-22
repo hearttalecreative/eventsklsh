@@ -57,6 +57,12 @@ interface Payload {
       quantity: number;
       unitPrice: number;
     }>;
+    discountInfo?: {
+      couponCode: string;
+      discountAmount: number;
+      originalAmount: number;
+      finalAmount: number;
+    };
   };
 }
 
@@ -136,7 +142,7 @@ serve(async (req: Request) => {
           
           <!-- Header with Logo -->
           <div style="text-align:center;margin-bottom:48px;">
-            <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing" style="height:40px;width:auto;margin-bottom:24px;" />
+            <img src="https://kylelamsoundhealing.com/wp-content/uploads/2025/08/400px-1.png" alt="Kyle Lam Sound Healing" style="height:60px;width:auto;margin-bottom:24px;" />
             <h1 style="margin:0 0 12px 0;font-size:32px;line-height:1.2;color:#2c1810;font-weight:300;letter-spacing:-0.5px;">Thank you, ${name}</h1>
             <p style="margin:0;color:#8a7766;font-size:16px;font-weight:400;">Your Sound Healing journey awaits</p>
           </div>
@@ -230,6 +236,24 @@ serve(async (req: Request) => {
             </div>
             ` : ''}
 
+            <!-- Discount Information -->
+            ${orderDetails.discountInfo ? `
+            <div style="margin-bottom:20px;padding:16px;background:#f9f7f4;border-radius:6px;border:1px solid #e8e2d8;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:14px;color:#8a7766;">Subtotal</span>
+                <span style="font-size:14px;color:#2c1810;">${formatAmount(orderDetails.discountInfo.originalAmount, orderDetails.currency)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:14px;color:#a0662f;font-weight:500;">Discount (${orderDetails.discountInfo.couponCode})</span>
+                <span style="font-size:14px;color:#a0662f;font-weight:500;">-${formatAmount(orderDetails.discountInfo.discountAmount, orderDetails.currency)}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #e8e2d8;">
+                <span style="font-size:15px;color:#2c1810;font-weight:400;">Amount Paid</span>
+                <span style="font-size:15px;color:#2c1810;font-weight:500;">${formatAmount(orderDetails.discountInfo.finalAmount, orderDetails.currency)}</span>
+              </div>
+            </div>
+            ` : ''}
+
             <!-- Total -->
             <div style="border-top:1px solid #a0662f;padding-top:16px;margin-top:16px;text-align:center;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -272,7 +296,7 @@ serve(async (req: Request) => {
               <a href="https://kylelamsoundhealing.com" target="_blank" style="color:#a0662f;text-decoration:none;font-size:14px;font-weight:400;border-bottom:1px solid #a0662f;">Visit Kyle Lam Sound Healing →</a>
             </div>
             
-            <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Kyle Lam Sound Healing" style="height:28px;width:auto;opacity:0.7;" />
+            <img src="https://kylelamsoundhealing.com/wp-content/uploads/2025/08/400px-1.png" alt="Kyle Lam Sound Healing" style="height:32px;width:auto;opacity:0.7;" />
             <p style="margin:16px 0 0 0;color:#8a7766;font-size:12px;">Questions? Reply to this email</p>
           </div>
         </div>

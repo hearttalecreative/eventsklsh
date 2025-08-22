@@ -303,7 +303,13 @@ serve(async (req) => {
                         quantity: a.qty,
                         unitPrice: addon?.unit_amount_cents || 0
                       };
-                    })
+                    }),
+                    discountInfo: discount > 0 ? {
+                      couponCode: chosen?.code || 'Discount Applied',
+                      discountAmount: discount,
+                      originalAmount: subtotalBeforeDiscount,
+                      finalAmount: subtotalAfterDiscount
+                    } : null
                   }
                 }
               });
