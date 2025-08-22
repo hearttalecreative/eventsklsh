@@ -55,6 +55,9 @@ const QRCheckIn = () => {
   useEffect(() => {
     if (qrCode) {
       fetchAttendeeData();
+    } else {
+      setError("No QR code provided");
+      setLoading(false);
     }
   }, [qrCode]);
 
@@ -99,7 +102,8 @@ const QRCheckIn = () => {
         .single();
 
       if (error) {
-        throw new Error("QR code not found or invalid");
+        console.error("Supabase error:", error);
+        throw new Error(`QR code not found: ${error.message}`);
       }
 
       // Fetch addons for this order

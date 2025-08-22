@@ -280,22 +280,8 @@ serve(async (req) => {
         if (error) throw error;
       }
 
-      // Send confirmation emails via send-confirmation function (free order)
-      await Promise.allSettled(
-        cart.participants.map(async (p) => {
-          try {
-            await supabase.functions.invoke('send-confirmation', {
-              body: {
-                name: p.fullName,
-                email: p.email,
-                instructions: `Your free tickets for ${event.title} have been confirmed!`
-              }
-            });
-          } catch (e) {
-            console.error('[free-order email] failed', e);
-          }
-        })
-      );
+      // Email will be sent by process-free-order function for free orders
+      console.log(`[create-payment] Created free order for ${cart.participants.length} attendees - confirmation emails will be sent by process-free-order`);
 
       return new Response(JSON.stringify({ url: `${origin}/checkout/success?free=1` }), {
         status: 200,
