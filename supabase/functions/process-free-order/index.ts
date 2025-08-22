@@ -111,6 +111,7 @@ serve(async (req: Request) => {
       order_item_id: ticketItem.id,
       name: p.fullName,
       email: p.email,
+      phone: p.phone || null,
       zone: ticket.zone || null,
       seat: null,
     }));

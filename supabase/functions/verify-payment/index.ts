@@ -172,24 +172,9 @@ serve(async (req) => {
       }
     }
 
-    // Attendees
-    const attendees = cart.participants.map((p) => ({
-      event_id: cart.eventId,
-      order_item_id: ticketItem.id,
-      name: p.fullName,
-      email: p.email,
-      zone: ticket.zone || null,
-      seat: null,
-    }));
-    let insertedAttendees: { id: string; confirmation_code: string; name: string | null; email: string | null }[] = [];
-    if (attendees.length > 0) {
-      const { data: ins, error } = await supabase
-        .from("attendees")
-        .insert(attendees)
-        .select("id, confirmation_code, name, email");
-      if (error) throw error;
-      insertedAttendees = ins || [];
-    }
+    // Attendees are created by create-payment function, not here
+    // This function only verifies payment status
+    console.log(`[verify-payment] Payment verified for order, attendees already created by create-payment`);
 
     // 5) Send personalized emails to each participant
     const eventDate = new Date(event.starts_at);

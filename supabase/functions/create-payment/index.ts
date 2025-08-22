@@ -263,8 +263,55 @@ serve(async (req) => {
         seat: null,
       }));
       if (attendees.length > 0) {
-        const { error } = await supabase.from('attendees').insert(attendees);
+        const { data: insertedAttendees, error } = await supabase
+          .from('attendees')
+          .insert(attendees)
+          .select('id, confirmation_code, qr_code, name, email');
         if (error) throw error;
+        
+        // Send confirmation emails immediately after creating attendees
+        await Promise.allSettled(
+          cart.participants.map(async (p: any, index: number) => {
+            try {
+              const attendee = insertedAttendees[index];
+              
+              await supabase.functions.invoke('send-confirmation', {
+                body: {
+                  name: p.fullName || 'Guest',
+                  email: p.email,
+                  phone: p.phone,
+                  eventTitle: event.title,
+                  eventDescription: event.short_description,
+                  eventDate: event.starts_at,
+                  eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
+                  instructions: event.instructions,
+                  confirmationCode: attendee?.confirmation_code,
+                  qrCode: attendee?.qr_code,
+                  orderDetails: {
+                    orderId: order.id,
+                    totalAmount: total,
+                    currency: 'usd',
+                    tickets: [{
+                      name: ticket.name,
+                      quantity: cart.ticketQty || 1,
+                      unitPrice: unit
+                    }],
+                    addons: (cart.addons || []).filter((a: any) => (a.qty || 0) > 0).map((a: any) => {
+                      const addon = addonRows.find((row: any) => row.id === a.id);
+                      return {
+                        name: addon?.name || 'Add-on',
+                        quantity: a.qty,
+                        unitPrice: addon?.unit_amount_cents || 0
+                      };
+                    })
+                  }
+                }
+              });
+            } catch (e) {
+              console.error('[create-payment send-confirmation] failed for', p.email, e);
+            }
+          })
+        );
       }
 
       // Record redemption
