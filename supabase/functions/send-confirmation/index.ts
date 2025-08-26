@@ -88,7 +88,7 @@ serve(async (req: Request) => {
       eventImageUrl,
       eventSlug 
     }: Payload = await req.json();
-    console.log("send-confirmation invoked with:", { name, email, eventTitle });
+    console.log("send-confirmation invoked with:", { name, email, eventTitle, eventImageUrl });
 
     if (!email || !name) {
       console.error("Missing fields", { name, email });
@@ -289,17 +289,6 @@ serve(async (req: Request) => {
           </div>
           ` : ''}
 
-          <!-- Customer Information -->
-          <div style="background:#fdfcfb;border:1px solid #f0ede8;border-radius:8px;padding:24px;margin-bottom:32px;text-align:center;">
-            <h3 style="margin:0 0 20px 0;font-size:18px;color:#2c1810;font-weight:300;">Contact Information</h3>
-            
-            <div style="space-y:12px;">
-              <div style="margin-bottom:12px;"><span style="color:#8a7766;font-size:14px;">Name: </span><span style="color:#2c1810;font-weight:400;">${name}</span></div>
-              <div style="margin-bottom:12px;"><span style="color:#8a7766;font-size:14px;">Email: </span><span style="color:#2c1810;font-weight:400;">${email}</span></div>
-              ${phone ? `<div style="margin-bottom:12px;"><span style="color:#8a7766;font-size:14px;">Phone: </span><span style="color:#2c1810;font-weight:400;">${phone}</span></div>` : ''}
-            </div>
-          </div>
-
           ${instructions ? `
           <!-- Event Instructions -->
           <div style="background:#fdfcfb;border:1px solid #f0ede8;border-radius:8px;padding:24px;margin-bottom:32px;">
@@ -314,12 +303,11 @@ serve(async (req: Request) => {
           <div style="background:#fdfcfb;border:1px solid #f0ede8;border-radius:8px;padding:24px;margin-bottom:32px;text-align:center;">
             <h3 style="margin:0 0 16px 0;font-size:18px;color:#2c1810;font-weight:300;">Share this Experience</h3>
             <p style="margin:0 0 20px 0;color:#8a7766;font-size:15px;line-height:1.6;">
-              Know someone who would love this Sound Healing experience? Invite them to join!
+              Know someone who would love this Sound Healing experience? Forward this email to them!
             </p>
-            <a href="${typeof Deno !== 'undefined' && Deno.env.get('PUBLIC_SITE_URL') ? Deno.env.get('PUBLIC_SITE_URL') : 'https://events.kylelamsoundhealing.com'}/event/${eventSlug || 'event'}" 
-               target="_blank" 
+            <a href="mailto:?subject=${encodeURIComponent(`Join me at ${eventTitle || 'this Sound Healing event'}`)}&body=${encodeURIComponent(`Hi! I wanted to share this amazing Sound Healing event with you:\n\n${eventTitle || 'Sound Healing Event'}\n${eventDate ? `Date: ${formatEventDate(eventDate)}\n` : ''}${eventVenue ? `Location: ${eventVenue}\n` : ''}\n${eventDescription ? `\n${eventDescription}\n` : ''}\nI think you'd really enjoy this experience. Hope to see you there!\n\nEvent details: ${typeof Deno !== 'undefined' && Deno.env.get('PUBLIC_SITE_URL') ? Deno.env.get('PUBLIC_SITE_URL') : 'https://events.kylelamsoundhealing.com'}/event/${eventSlug || 'event'}`)}" 
                style="display:inline-block;background:#a0662f;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:500;">
-              Invite Friends to this Event
+              Forward this Email to Friends
             </a>
           </div>
           
