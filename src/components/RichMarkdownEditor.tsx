@@ -23,7 +23,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
     
     onChange(newValue);
     
-    // Restaurar foco y selección
+    // Restore focus and selection
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, start + before.length + selectedText.length);
@@ -32,14 +32,14 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
 
   return (
     <div className="border rounded-md bg-background overflow-hidden">
-      {/* Toolbar personalizada */}
+      {/* Custom toolbar */}
       <div className="flex items-center gap-1 p-2 border-b bg-muted/50">
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={() => insertMarkdown('**', '**')}
-          title="Negrita"
+          title="Bold"
         >
           <Bold className="w-4 h-4" />
         </Button>
@@ -48,7 +48,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => insertMarkdown('*', '*')}
-          title="Cursiva"
+          title="Italic"
         >
           <Italic className="w-4 h-4" />
         </Button>
@@ -57,7 +57,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => insertMarkdown('\n- ', '')}
-          title="Lista"
+          title="List"
         >
           <List className="w-4 h-4" />
         </Button>
@@ -66,7 +66,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => insertMarkdown('\n1. ', '')}
-          title="Lista numerada"
+          title="Numbered List"
         >
           <ListOrdered className="w-4 h-4" />
         </Button>
@@ -75,7 +75,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => insertMarkdown('\n> ', '')}
-          title="Cita"
+          title="Quote"
         >
           <Quote className="w-4 h-4" />
         </Button>
@@ -84,7 +84,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => insertMarkdown('`', '`')}
-          title="Código"
+          title="Code"
         >
           <Code className="w-4 h-4" />
         </Button>
@@ -93,7 +93,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => insertMarkdown('[', '](url)')}
-          title="Enlace"
+          title="Link"
         >
           <Link className="w-4 h-4" />
         </Button>
@@ -103,7 +103,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
           variant="ghost"
           size="sm"
           onClick={() => setShowPreview(!showPreview)}
-          title={showPreview ? "Ocultar vista previa" : "Mostrar vista previa"}
+          title={showPreview ? "Hide preview" : "Show preview"}
         >
           {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </Button>
@@ -116,7 +116,7 @@ export default function RichMarkdownEditor({ value, onChange }: Props) {
         hideToolbar
         visibleDragbar={false}
         textareaProps={{
-          placeholder: "Escribe aquí...\n\nUsa **negrita**, *cursiva*, listas:\n- Elemento 1\n- Elemento 2\n\nPresiona Enter dos veces para párrafos nuevos.",
+          placeholder: "Write here...\n\nUse **bold**, *italic*, lists:\n- Item 1\n- Item 2\n\nPress Enter twice for new paragraphs.",
           style: { 
             fontSize: '14px', 
             fontFamily: 'inherit',

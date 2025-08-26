@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CheckCircle, XCircle, Search, Filter, ArrowLeft } from "lucide-react";
 
@@ -37,6 +38,7 @@ const EventAttendeesPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [checkInFilter, setCheckInFilter] = useState<"all" | "checked-in" | "not-checked-in">("all");
+  const [processingCheckIn, setProcessingCheckIn] = useState<Record<string, boolean>>({});
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -112,6 +114,32 @@ const EventAttendeesPage = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleManualCheckIn = async (attendeeId: string, isChecked: boolean) => {
+    setProcessingCheckIn(prev => ({ ...prev, [attendeeId]: true }));
+    
+    try {
+      const { error } = await supabase
+        .from('attendees')
+        .update({ 
+          checked_in_at: isChecked ? new Date().toISOString() : null 
+        })
+        .eq('id', attendeeId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setAttendees(prev => prev.map(attendee => 
+        attendee.id === attendeeId 
+          ? { ...attendee, checked_in_at: isChecked ? new Date().toISOString() : null }
+          : attendee
+      ));
+    } catch (error: any) {
+      alert(`Failed to update check-in status: ${error.message}`);
+    } finally {
+      setProcessingCheckIn(prev => ({ ...prev, [attendeeId]: false }));
+    }
   };
 
   if (loading && selectedEventId) {
@@ -251,19 +279,35 @@ const EventAttendeesPage = () => {
                         <div key={attendee.id} className="border rounded-lg p-4 space-y-2">
                           <div className="flex items-center justify-between">
                             <h3 className="font-medium">{attendee.name || "No name"}</h3>
-                            <Badge variant={attendee.checked_in_at ? "default" : "secondary"} className="flex items-center gap-1">
-                              {attendee.checked_in_at ? (
-                                <>
-                                  <CheckCircle className="h-3 w-3" />
-                                  Checked In
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="h-3 w-3" />
-                                  Pending
-                                </>
-                              )}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`checkin-mobile-${attendee.id}`}
+                                  checked={!!attendee.checked_in_at}
+                                  onCheckedChange={(checked) => handleManualCheckIn(attendee.id, !!checked)}
+                                  disabled={processingCheckIn[attendee.id]}
+                                />
+                                <label 
+                                  htmlFor={`checkin-mobile-${attendee.id}`}
+                                  className="text-sm font-medium cursor-pointer"
+                                >
+                                  Manual Check-in
+                                </label>
+                              </div>
+                              <Badge variant={attendee.checked_in_at ? "default" : "secondary"} className="flex items-center gap-1">
+                                {attendee.checked_in_at ? (
+                                  <>
+                                    <CheckCircle className="h-3 w-3" />
+                                    {attendee.checked_in_at.includes('T') && !attendee.qr_code ? 'Manual Checked In' : 'Checked In'}
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="h-3 w-3" />
+                                    Pending
+                                  </>
+                                )}
+                              </Badge>
+                            </div>
                           </div>
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div>{attendee.email || "No email"}</div>
@@ -283,6 +327,7 @@ const EventAttendeesPage = () => {
                         <table className="w-full">
                           <thead>
                             <tr className="border-b text-left">
+                              <th className="pb-3 font-medium">Manual Check-in</th>
                               <th className="pb-3 font-medium">Status</th>
                               <th className="pb-3 font-medium">Name</th>
                               <th className="pb-3 font-medium">Email</th>
@@ -295,11 +340,27 @@ const EventAttendeesPage = () => {
                             {filteredAttendees.map((attendee) => (
                               <tr key={attendee.id} className="border-b">
                                 <td className="py-3">
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`checkin-${attendee.id}`}
+                                      checked={!!attendee.checked_in_at}
+                                      onCheckedChange={(checked) => handleManualCheckIn(attendee.id, !!checked)}
+                                      disabled={processingCheckIn[attendee.id]}
+                                    />
+                                    <label 
+                                      htmlFor={`checkin-${attendee.id}`}
+                                      className="text-sm cursor-pointer"
+                                    >
+                                      {processingCheckIn[attendee.id] ? 'Processing...' : 'Check-in'}
+                                    </label>
+                                  </div>
+                                </td>
+                                <td className="py-3">
                                   <Badge variant={attendee.checked_in_at ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
                                     {attendee.checked_in_at ? (
                                       <>
                                         <CheckCircle className="h-3 w-3" />
-                                        Checked In
+                                        {attendee.checked_in_at.includes('T') && !attendee.qr_code ? 'Manual Checked In' : 'Checked In'}
                                       </>
                                     ) : (
                                       <>
