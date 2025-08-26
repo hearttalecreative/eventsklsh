@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, MapPin, User, Package, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
+import { CalendarDays, MapPin, User, Package, ExternalLink, CheckCircle, AlertCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 interface AttendeeData {
@@ -51,17 +51,64 @@ const QRCheckIn = () => {
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   console.log("QRCheckIn component loaded with qrCode:", qrCode);
 
   useEffect(() => {
-    if (qrCode) {
+    checkAdminAuth();
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin && qrCode) {
       fetchAttendeeData();
-    } else {
+    } else if (isAdmin === false) {
+      setError("Admin authentication required");
+      setLoading(false);
+    } else if (!qrCode && isAdmin) {
       setError("No QR code provided");
       setLoading(false);
     }
-  }, [qrCode]);
+  }, [qrCode, isAdmin]);
+
+  const checkAdminAuth = async () => {
+    try {
+      setAuthLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      // Try to promote to admin if allowlisted (idempotent)
+      try {
+        await (supabase as any).rpc('promote_to_admin_if_allowlisted');
+      } catch (e) {
+        console.warn('RPC promote_to_admin_if_allowlisted not available yet');
+      }
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(Boolean(data));
+      }
+    } catch (err) {
+      console.error("Auth check error:", err);
+      setIsAdmin(false);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const fetchAttendeeData = async () => {
     try {
@@ -181,13 +228,35 @@ const QRCheckIn = () => {
     });
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p>Loading attendee information...</p>
+            <p>{authLoading ? "Verifying admin access..." : "Loading attendee information..."}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isAdmin === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <Lock className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
+            <p className="text-muted-foreground mb-4">
+              You must be logged in as an administrator to perform check-ins.
+            </p>
+            <Button onClick={() => navigate("/admin/login")} className="w-full mb-2">
+              Login as Admin
+            </Button>
+            <Button onClick={() => navigate("/")} variant="outline" className="w-full">
+              Back to Home
+            </Button>
           </CardContent>
         </Card>
       </div>
