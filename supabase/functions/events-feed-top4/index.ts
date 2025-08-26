@@ -47,14 +47,22 @@ serve(async (req: Request) => {
       return new Date(dateStr).toISOString();
     };
 
-    // Format date for human readable display
+    // Format date for display
     const formatDisplayDate = (dateStr: string) => {
       const date = new Date(dateStr);
-      return date.toLocaleString('es-ES', {
+      return date.toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        timeZone: 'America/Los_Angeles'
+      });
+    };
+
+    // Format time for display
+    const formatDisplayTime = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleTimeString('es-ES', {
         hour: '2-digit',
         minute: '2-digit',
         timeZone: 'America/Los_Angeles'
@@ -72,21 +80,20 @@ serve(async (req: Request) => {
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <generator>Kyle Lam Sound Healing Events System</generator>
-    ${events?.map(event => `
-    <item>
-      <title><![CDATA[${event.title}]]></title>
-      <description><![CDATA[${event.short_description || event.title}
-      
-Fecha y hora: ${formatDisplayDate(event.starts_at)}]]></description>
-      <link>https://events.kylelamsoundhealing.com/event/${event.slug}</link>
-      <guid>https://events.kylelamsoundhealing.com/event/${event.slug}</guid>
-      <pubDate>${formatDate(event.starts_at)}</pubDate>
-      <category>Sound Healing</category>
-      ${event.venues ? `<location><![CDATA[${event.venues.name}${event.venues.address ? ` — ${event.venues.address}` : ''}]]></location>` : ''}
-      ${event.image_url ? `<imageUrl><![CDATA[${event.image_url}]]></imageUrl>` : ''}
-      <eventDate>${formatDate(event.starts_at)}</eventDate>
-      <ticketUrl>https://events.kylelamsoundhealing.com/event/${event.slug}</ticketUrl>
-    </item>`).join('') || ''}
+     ${events?.map(event => `
+     <item>
+       <title><![CDATA[${event.title}]]></title>
+       <description><![CDATA[${event.short_description || ''}]]></description>
+       <link>https://events.kylelamsoundhealing.com/event/${event.slug}</link>
+       <guid>https://events.kylelamsoundhealing.com/event/${event.slug}</guid>
+       <pubDate>${formatDate(event.starts_at)}</pubDate>
+       <category>Sound Healing</category>
+       <eventStartDate><![CDATA[${formatDisplayDate(event.starts_at)}]]></eventStartDate>
+       <eventStartTime><![CDATA[${formatDisplayTime(event.starts_at)}]]></eventStartTime>
+       <eventImageUrl><![CDATA[${event.image_url || ''}]]></eventImageUrl>
+       <eventUrl>https://events.kylelamsoundhealing.com/event/${event.slug}</eventUrl>
+       <eventLocation><![CDATA[${event.venues ? `${event.venues.name}${event.venues.address ? ` — ${event.venues.address}` : ''}` : ''}]]></eventLocation>
+     </item>`).join('') || ''}
   </channel>
 </rss>`;
 
