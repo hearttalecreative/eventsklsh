@@ -257,6 +257,15 @@ const Dashboard = () => {
           <Button asChild variant="outline"><a href="/admin/venues">Manage venues</a></Button>
           <Button asChild variant="outline"><a href="/admin/coupons">Manage coupons</a></Button>
           <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
+          <Button 
+            variant="ghost" 
+            onClick={async () => {
+              await supabase.auth.signOut();
+              window.location.href = '/admin/login';
+            }}
+          >
+            Logout
+          </Button>
         </div>
       </header>
 

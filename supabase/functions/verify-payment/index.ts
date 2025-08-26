@@ -227,7 +227,7 @@ serve(async (req) => {
                 tickets: [{
                   name: ticket.name,
                   quantity: cart.ticketQty || 1,
-                  unitPrice: effectiveUnitAmount(ticket)
+                  unitPrice: ticket.unit_amount_cents
                 }],
                 addons: (cart.addons || []).filter((a: any) => (a.qty || 0) > 0).map((a: any) => {
                   const addon = addonsRows.find((row: any) => row.id === a.id);
