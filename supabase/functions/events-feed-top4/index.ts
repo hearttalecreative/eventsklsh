@@ -47,6 +47,20 @@ serve(async (req: Request) => {
       return new Date(dateStr).toISOString();
     };
 
+    // Format date for human readable display
+    const formatDisplayDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'America/Los_Angeles'
+      });
+    };
+
     // Build XML feed
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -61,7 +75,9 @@ serve(async (req: Request) => {
     ${events?.map(event => `
     <item>
       <title><![CDATA[${event.title}]]></title>
-      <description><![CDATA[${event.short_description || event.title}]]></description>
+      <description><![CDATA[${event.short_description || event.title}
+      
+Fecha y hora: ${formatDisplayDate(event.starts_at)}]]></description>
       <link>https://events.kylelamsoundhealing.com/event/${event.slug}</link>
       <guid>https://events.kylelamsoundhealing.com/event/${event.slug}</guid>
       <pubDate>${formatDate(event.starts_at)}</pubDate>
