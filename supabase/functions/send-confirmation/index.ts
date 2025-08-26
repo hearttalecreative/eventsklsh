@@ -44,6 +44,7 @@ interface Payload {
   confirmationCode?: string;
   qrCode?: string;
   eventImageUrl?: string;
+  eventSlug?: string;
   orderDetails?: {
     orderId: string;
     totalAmount: number;
@@ -84,7 +85,8 @@ serve(async (req: Request) => {
       confirmationCode,
       qrCode,
       orderDetails,
-      eventImageUrl 
+      eventImageUrl,
+      eventSlug 
     }: Payload = await req.json();
     console.log("send-confirmation invoked with:", { name, email, eventTitle });
 
@@ -170,7 +172,7 @@ serve(async (req: Request) => {
                   <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle || '')}&dates=${eventDate ? new Date(eventDate).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}/${eventDate ? new Date(new Date(eventDate).getTime() + 2*60*60*1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}&details=${encodeURIComponent(eventDescription || '')}&location=${encodeURIComponent(eventVenue || '')}" 
                      target="_blank" 
                      style="display:inline-block;background:#a0662f;color:#ffffff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;margin-right:8px;">
-                    📅 Add to Google Calendar
+                    Add to Google Calendar
                   </a>
                 </div>
               </div>
@@ -184,7 +186,7 @@ serve(async (req: Request) => {
                   <a href="https://maps.google.com/?q=${encodeURIComponent(eventVenue)}" 
                      target="_blank" 
                      style="color:#a0662f;text-decoration:none;font-size:14px;font-weight:500;border-bottom:1px solid #a0662f;">
-                    📍 View on Google Maps
+                    View on Google Maps
                   </a>
                 </div>
               </div>
@@ -314,10 +316,10 @@ serve(async (req: Request) => {
             <p style="margin:0 0 20px 0;color:#8a7766;font-size:15px;line-height:1.6;">
               Know someone who would love this Sound Healing experience? Invite them to join!
             </p>
-            <a href="${typeof Deno !== 'undefined' && Deno.env.get('PUBLIC_SITE_URL') ? Deno.env.get('PUBLIC_SITE_URL') : 'https://events.kylelamsoundhealing.com'}/event/${eventTitle ? eventTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'event'}" 
+            <a href="${typeof Deno !== 'undefined' && Deno.env.get('PUBLIC_SITE_URL') ? Deno.env.get('PUBLIC_SITE_URL') : 'https://events.kylelamsoundhealing.com'}/event/${eventSlug || 'event'}" 
                target="_blank" 
                style="display:inline-block;background:#a0662f;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:500;">
-              🎵 Invite Friends to this Event
+              Invite Friends to this Event
             </a>
           </div>
           

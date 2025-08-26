@@ -82,7 +82,7 @@ serve(async (req) => {
 
     const { data: event, error: eventErr } = await supabase
       .from("events")
-      .select("id, slug, title, starts_at, ends_at, short_description, instructions, venue_id, timezone")
+      .select("id, slug, title, starts_at, ends_at, short_description, instructions, venue_id, timezone, image_url")
       .eq("id", cart.eventId)
       .maybeSingle();
     if (eventErr) throw eventErr;
@@ -220,6 +220,7 @@ serve(async (req) => {
               instructions: event.instructions,
               confirmationCode: attendee?.confirmation_code,
               eventImageUrl: event.image_url,
+              eventSlug: event.slug,
               qrCode: attendee?.qr_code,
               orderDetails: {
                 orderId: order.id,
