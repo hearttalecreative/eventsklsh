@@ -159,7 +159,9 @@ serve(async (req: Request) => {
             <div style="text-align:center;margin-bottom:24px;">
               <img src="${eventImageUrl}" alt="${eventTitle || 'Event'}" style="max-width:100%;height:auto;border-radius:8px;max-height:300px;object-fit:cover;" />
             </div>
-            ` : ''}
+            ` : `
+            <!-- No event image URL provided: ${eventImageUrl} -->
+            `}
             
             ${eventDescription ? `<p style="margin:0 0 24px 0;color:#8a7766;font-size:16px;line-height:1.6;text-align:center;">${eventDescription}</p>` : ''}
             
@@ -305,7 +307,7 @@ serve(async (req: Request) => {
             <p style="margin:0 0 20px 0;color:#8a7766;font-size:15px;line-height:1.6;">
               Know someone who would love this Sound Healing experience? Forward this email to them!
             </p>
-            <a href="mailto:?subject=${encodeURIComponent(`Join me at ${eventTitle || 'this Sound Healing event'}`)}&body=${encodeURIComponent(`Hi! I wanted to share this amazing Sound Healing event with you:\n\n${eventTitle || 'Sound Healing Event'}\n${eventDate ? `Date: ${formatEventDate(eventDate)}\n` : ''}${eventVenue ? `Location: ${eventVenue}\n` : ''}\n${eventDescription ? `\n${eventDescription}\n` : ''}\nI think you'd really enjoy this experience. Hope to see you there!\n\nPara mayor información pueden visitar el sitio web https://kylelamsoundhealing.com`)}" 
+            <a href="mailto:?subject=${encodeURIComponent(`Join me at ${eventTitle || 'this Sound Healing event'}`)}&body=${encodeURIComponent(`Hi! I wanted to share this amazing Sound Healing event with you:\n\n${eventTitle || 'Sound Healing Event'}\n${eventDate ? `Date: ${formatEventDate(eventDate)}\n` : ''}${eventVenue ? `Location: ${eventVenue}\n` : ''}\n${eventDescription ? `\n${eventDescription}\n` : ''}\nI think you'd really enjoy this experience. Hope to see you there!\n\nFor more information, please visit https://kylelamsoundhealing.com`)}" 
                style="display:inline-block;background:#a0662f;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:500;">
               Forward this Email to Friends
             </a>
