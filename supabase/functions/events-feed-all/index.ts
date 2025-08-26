@@ -25,6 +25,7 @@ serve(async (req: Request) => {
         title,
         short_description,
         starts_at,
+        ends_at,
         slug,
         image_url,
         venues (
@@ -46,26 +47,38 @@ serve(async (req: Request) => {
       return new Date(dateStr).toISOString();
     };
 
-    // Format date for display
+    // Format date for display - matching event page format
     const formatDisplayDate = (dateStr: string) => {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'America/Los_Angeles'
-      });
+      return new Intl.DateTimeFormat('en-US', { 
+        timeZone: 'America/Los_Angeles', 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      }).format(date);
     };
 
-    // Format time for display
-    const formatDisplayTime = (dateStr: string) => {
-      const date = new Date(dateStr);
-      return date.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'America/Los_Angeles'
-      });
+    // Format time for display - matching event page format
+    const formatDisplayTime = (dateStr: string, endDateStr?: string) => {
+      const tz = 'America/Los_Angeles';
+      const start = new Date(dateStr);
+      const end = endDateStr ? new Date(endDateStr) : undefined;
+      const parts = new Intl.DateTimeFormat('en-US', { 
+        timeZone: tz, 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true, 
+        timeZoneName: 'short' 
+      }).formatToParts(start);
+      const tzName = parts.find(p=>p.type==='timeZoneName')?.value || '';
+      const timeFmt = (d: Date) => new Intl.DateTimeFormat('en-US', { 
+        timeZone: tz, 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      }).format(d).toLowerCase().replace(':00','');
+      const range = end ? `${timeFmt(start)} – ${timeFmt(end)}` : timeFmt(start);
+      return `${range} ${tzName}`;
     };
 
     // Build XML feed
@@ -87,8 +100,8 @@ serve(async (req: Request) => {
        <guid>https://events.kylelamsoundhealing.com/event/${event.slug}</guid>
        <pubDate>${formatDate(event.starts_at)}</pubDate>
        <category>Sound Healing</category>
-       <eventStartDate><![CDATA[${formatDisplayDate(event.starts_at)}]]></eventStartDate>
-       <eventStartTime><![CDATA[${formatDisplayTime(event.starts_at)}]]></eventStartTime>
+        <eventStartDate><![CDATA[${formatDisplayDate(event.starts_at)}]]></eventStartDate>
+        <eventStartTime><![CDATA[${formatDisplayTime(event.starts_at, event.ends_at)}]]></eventStartTime>
        <eventImageUrl><![CDATA[${event.image_url || ''}]]></eventImageUrl>
        <eventUrl>https://events.kylelamsoundhealing.com/event/${event.slug}</eventUrl>
        <eventLocation><![CDATA[${event.venues ? `${event.venues.name}${event.venues.address ? ` — ${event.venues.address}` : ''}` : ''}]]></eventLocation>
