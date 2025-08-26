@@ -26,6 +26,7 @@ serve(async (req: Request) => {
         short_description,
         starts_at,
         slug,
+        image_url,
         venues (
           name,
           address
@@ -65,6 +66,7 @@ serve(async (req: Request) => {
       <pubDate>${formatDate(event.starts_at)}</pubDate>
       <category>Sound Healing</category>
       ${event.venues ? `<location><![CDATA[${event.venues.name}${event.venues.address ? ` — ${event.venues.address}` : ''}]]></location>` : ''}
+      ${event.image_url ? `<imageUrl><![CDATA[${event.image_url}]]></imageUrl>` : ''}
       <eventDate>${formatDate(event.starts_at)}</eventDate>
       <ticketUrl>https://events.kylelamsoundhealing.com/event/${event.slug}</ticketUrl>
     </item>`).join('') || ''}
