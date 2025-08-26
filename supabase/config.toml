@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.verify-payment]
 verify_jwt = false
+
+[functions.events-feed-all]
+verify_jwt = false
+
+[functions.events-feed-top4]
+verify_jwt = false
