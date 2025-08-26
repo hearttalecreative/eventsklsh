@@ -35,6 +35,16 @@ const Index = () => {
       <section className="py-6">
         <EventList />
       </section>
+
+      <footer className="container mx-auto px-4 py-8 text-center border-t mt-16">
+        <div className="space-y-4">
+          <div className="text-sm text-muted-foreground">
+            <a href="/dashboard" className="text-primary hover:underline">
+              Dashboard
+            </a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 };
