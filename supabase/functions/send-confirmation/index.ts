@@ -43,6 +43,7 @@ interface Payload {
   instructions?: string;
   confirmationCode?: string;
   qrCode?: string;
+  eventImageUrl?: string;
   orderDetails?: {
     orderId: string;
     totalAmount: number;
@@ -82,7 +83,8 @@ serve(async (req: Request) => {
       instructions, 
       confirmationCode,
       qrCode,
-      orderDetails 
+      orderDetails,
+      eventImageUrl 
     }: Payload = await req.json();
     console.log("send-confirmation invoked with:", { name, email, eventTitle });
 
@@ -150,6 +152,13 @@ serve(async (req: Request) => {
           <!-- Event Information -->
           <div style="margin-bottom:40px;">
             <h2 style="margin:0 0 20px 0;font-size:24px;color:#2c1810;font-weight:300;letter-spacing:-0.3px;text-align:center;">${eventTitle || "Sound Healing Event"}</h2>
+            
+            ${eventImageUrl ? `
+            <div style="text-align:center;margin-bottom:24px;">
+              <img src="${eventImageUrl}" alt="${eventTitle || 'Event'}" style="max-width:100%;height:auto;border-radius:8px;max-height:300px;object-fit:cover;" />
+            </div>
+            ` : ''}
+            
             ${eventDescription ? `<p style="margin:0 0 24px 0;color:#8a7766;font-size:16px;line-height:1.6;text-align:center;">${eventDescription}</p>` : ''}
             
             <div style="background:#fdfcfb;border-radius:8px;padding:24px;border:1px solid #f0ede8;">
@@ -157,6 +166,13 @@ serve(async (req: Request) => {
               <div style="margin-bottom:16px;text-align:center;">
                 <p style="margin:0 0 4px 0;color:#8a7766;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">Date & Time</p>
                 <p style="margin:0;color:#2c1810;font-weight:400;font-size:16px;">${formatEventDate(eventDate)}</p>
+                <div style="margin-top:12px;">
+                  <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle || '')}&dates=${eventDate ? new Date(eventDate).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}/${eventDate ? new Date(new Date(eventDate).getTime() + 2*60*60*1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}&details=${encodeURIComponent(eventDescription || '')}&location=${encodeURIComponent(eventVenue || '')}" 
+                     target="_blank" 
+                     style="display:inline-block;background:#a0662f;color:#ffffff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;margin-right:8px;">
+                    📅 Add to Google Calendar
+                  </a>
+                </div>
               </div>
               ` : ''}
               
@@ -164,6 +180,13 @@ serve(async (req: Request) => {
               <div style="text-align:center;${eventDate ? 'border-top:1px solid #f0ede8;padding-top:16px;' : ''}">
                 <p style="margin:0 0 4px 0;color:#8a7766;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">Location</p>
                 <p style="margin:0;color:#2c1810;font-weight:400;font-size:16px;">${eventVenue}</p>
+                <div style="margin-top:8px;">
+                  <a href="https://maps.google.com/?q=${encodeURIComponent(eventVenue)}" 
+                     target="_blank" 
+                     style="color:#a0662f;text-decoration:none;font-size:14px;font-weight:500;border-bottom:1px solid #a0662f;">
+                    📍 View on Google Maps
+                  </a>
+                </div>
               </div>
               ` : ''}
             </div>
@@ -284,6 +307,19 @@ serve(async (req: Request) => {
             </div>
           </div>
           ` : ''}
+
+          <!-- Invite Friends Section -->
+          <div style="background:#fdfcfb;border:1px solid #f0ede8;border-radius:8px;padding:24px;margin-bottom:32px;text-align:center;">
+            <h3 style="margin:0 0 16px 0;font-size:18px;color:#2c1810;font-weight:300;">Share this Experience</h3>
+            <p style="margin:0 0 20px 0;color:#8a7766;font-size:15px;line-height:1.6;">
+              Know someone who would love this Sound Healing experience? Invite them to join!
+            </p>
+            <a href="${typeof Deno !== 'undefined' && Deno.env.get('PUBLIC_SITE_URL') ? Deno.env.get('PUBLIC_SITE_URL') : 'https://events.kylelamsoundhealing.com'}/event/${eventTitle ? eventTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'event'}" 
+               target="_blank" 
+               style="display:inline-block;background:#a0662f;color:#ffffff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:500;">
+              🎵 Invite Friends to this Event
+            </a>
+          </div>
           
           <!-- Footer -->
           <div style="text-align:center;padding:32px 0;border-top:1px solid #f0ede8;">

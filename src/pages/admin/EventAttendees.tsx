@@ -68,7 +68,7 @@ const EventAttendeesPage = () => {
         .from("attendees")
         .select("id, name, email, phone, confirmation_code, checked_in_at, qr_code")
         .eq("event_id", selectedEventId)
-        .order("created_at", { ascending: false });
+        .order("name", { ascending: true, nullsFirst: false });
       
       setAttendees(data || []);
       setLoading(false);

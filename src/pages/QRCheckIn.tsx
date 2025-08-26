@@ -244,21 +244,26 @@ const QRCheckIn = () => {
   if (isAdmin === false) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <Lock className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
-            <p className="text-muted-foreground mb-4">
-              You must be logged in as an administrator to perform check-ins.
-            </p>
-            <Button onClick={() => navigate("/admin/login")} className="w-full mb-2">
-              Login as Admin
-            </Button>
-            <Button onClick={() => navigate("/")} variant="outline" className="w-full">
-              Back to Home
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold">EventApp</h1>
+          </div>
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Lock className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
+              <p className="text-muted-foreground mb-4">
+                You must be logged in as an administrator to perform check-ins.
+              </p>
+              <Button onClick={() => navigate("/admin/login")} className="w-full mb-2">
+                Login as Admin
+              </Button>
+              <Button onClick={() => navigate("/")} variant="outline" className="w-full">
+                Back to Home
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

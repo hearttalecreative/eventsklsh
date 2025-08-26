@@ -219,6 +219,7 @@ serve(async (req) => {
               eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
               instructions: event.instructions,
               confirmationCode: attendee?.confirmation_code,
+              eventImageUrl: event.image_url,
               qrCode: attendee?.qr_code,
               orderDetails: {
                 orderId: order.id,
