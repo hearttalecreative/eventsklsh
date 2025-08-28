@@ -333,8 +333,20 @@ serve(async (req: Request) => {
     `;
 
     try {
+      // Send email to the original recipient
       const response = await sendBrevoEmail(email, name, subject, html);
       console.log("Brevo response:", response);
+      
+      // Send copy to Info@kylelamsoundhealing.com
+      try {
+        const copySubject = `[COPY] ${subject} - ${name}`;
+        const copyResponse = await sendBrevoEmail("Info@kylelamsoundhealing.com", "Kyle Lam Sound Healing", copySubject, html);
+        console.log("Copy email sent to Info@kylelamsoundhealing.com:", copyResponse);
+      } catch (copyError: any) {
+        console.error("Failed to send copy email:", copyError?.message || String(copyError));
+        // Don't fail the main request if copy email fails
+      }
+      
       return new Response(JSON.stringify({ ok: true, response }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
