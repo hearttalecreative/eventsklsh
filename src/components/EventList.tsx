@@ -10,7 +10,11 @@ const EventList = () => {
   const [query, setQuery] = useState('');
   const [month, setMonth] = useState<string>('all');
   const [order, setOrder] = useState<'date-asc' | 'date-desc'>('date-asc');
-  const items = useMemo(() => (data && data.length ? data : mockEvents), [data]);
+  // Only show real data once loading is complete, or mock data if no real data exists
+  const items = useMemo(() => {
+    if (loading) return []; // Show empty while loading
+    return (data && data.length ? data : mockEvents);
+  }, [data, loading]);
   const available = useMemo(
     () => items.filter((ev) => (ev.tickets?.length ?? 0) > 0 && !!ev.imageUrl && ev.imageUrl.trim() !== ''),
     [items]
@@ -61,7 +65,18 @@ const EventList = () => {
           </Select>
         </div>
       </div>
-      {sorted.length === 0 ? (
+      {loading ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="p-6 border rounded-lg animate-pulse">
+              <div className="bg-muted h-48 rounded mb-4"></div>
+              <div className="bg-muted h-4 rounded mb-2 w-3/4"></div>
+              <div className="bg-muted h-3 rounded mb-2 w-1/2"></div>
+              <div className="bg-muted h-3 rounded w-1/4"></div>
+            </div>
+          ))}
+        </div>
+      ) : sorted.length === 0 ? (
         <p className="text-sm text-muted-foreground">No events found.</p>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

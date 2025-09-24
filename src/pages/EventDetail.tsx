@@ -50,12 +50,13 @@ function formatEventSchedule(startsAt: string, endsAt?: string, timezone?: strin
 }
 const EventDetail = () => {
   const { slugOrId } = useParams();
-  const { data: dbEvent } = useSupabaseEventDetail(slugOrId);
+  const { data: dbEvent, loading } = useSupabaseEventDetail(slugOrId);
   const mockEvent: EventItem | undefined = useMemo(() => {
     if (!slugOrId) return undefined;
     return events.find((e) => e.id === slugOrId || e.slug === slugOrId || slugify(e.title) === slugOrId);
   }, [slugOrId]);
-  const event: EventItem | undefined = dbEvent ?? mockEvent;
+  // Only use mock data if loading is complete and no real data exists
+  const event: EventItem | undefined = loading ? undefined : (dbEvent ?? mockEvent);
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(event?.tickets[0]?.id);
   const selectedTicket = useMemo(() => event?.tickets.find((t) => t.id === selectedTicketId), [event, selectedTicketId]);
@@ -93,7 +94,37 @@ const EventDetail = () => {
     });
   }, [participantsCount]);
 
-  if (!event || !selectedTicket) {
+  // Show loading skeleton while loading
+  if (loading || !event) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="grid gap-8 lg:grid-cols-2">
+          <div className="space-y-6">
+            <div className="rounded-lg overflow-hidden border bg-muted animate-pulse h-64"></div>
+            <div className="space-y-4">
+              <div className="bg-muted h-8 rounded w-3/4 animate-pulse"></div>
+              <div className="bg-muted h-4 rounded w-1/2 animate-pulse"></div>
+              <div className="grid gap-4">
+                <div className="bg-muted h-16 rounded animate-pulse"></div>
+                <div className="bg-muted h-16 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-6">
+            <div className="p-6 border rounded-lg bg-card">
+              <div className="bg-muted h-6 rounded w-1/3 mb-4 animate-pulse"></div>
+              <div className="space-y-3">
+                <div className="bg-muted h-16 rounded animate-pulse"></div>
+                <div className="bg-muted h-16 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedTicket) {
     return (
       <div className="container mx-auto py-16">
         <p className="text-muted-foreground">Event not found. <Link to="/" className="underline">Go back</Link></p>
