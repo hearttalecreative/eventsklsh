@@ -35,6 +35,21 @@ const Index = () => {
       <section className="py-6">
         <EventList />
       </section>
+
+      <footer className="container mx-auto px-4 py-8 text-center border-t">
+        <p className="text-sm text-muted-foreground">
+          © Copyright 2025 Kyle Lam Sound Healing. All Rights Reserved. | Developed with ♥ by{' '}
+          <a 
+            href="https://hearttalecreative.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Hearttale Creative
+          </a>
+          .
+        </p>
+      </footer>
     </main>
   );
 };
