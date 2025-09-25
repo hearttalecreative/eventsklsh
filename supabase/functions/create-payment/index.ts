@@ -123,7 +123,7 @@ serve(async (req) => {
     const unit = effectiveUnitAmount(ticket);
     const ticketsSubtotal = unit * cart.ticketQty;
     const addonsSubtotal = (cart.addons || []).reduce((sum, a) => {
-      const row = addonsRows.find(r => r.id === a.id);
+      const row = addonsRows.find((r: any) => r.id === a.id);
       return sum + (row ? row.unit_amount_cents * (a.qty || 0) : 0);
     }, 0);
 
@@ -235,7 +235,7 @@ serve(async (req) => {
 
       // Add-on items
       if (addonsRows.length > 0) {
-        const addonItems = addonsRows.map((row) => {
+        const addonItems = addonsRows.map((row: any) => {
           const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
           if (qty <= 0) return null;
           return {
@@ -289,7 +289,7 @@ serve(async (req) => {
           unit_amount: unit,
         },
       },
-      ...addonsRows.map((row) => {
+      ...addonsRows.map((row: any) => {
         const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
         return {
           quantity: qty,
@@ -299,7 +299,7 @@ serve(async (req) => {
             unit_amount: row.unit_amount_cents,
           },
         } as Stripe.Checkout.SessionCreateParams.LineItem;
-      }).filter((li) => (li.quantity || 0) > 0),
+      }).filter((li: any) => (li.quantity || 0) > 0),
       // Add processing fee as separate line item
       {
         quantity: 1,
@@ -361,7 +361,7 @@ serve(async (req) => {
           sessionParams.line_items![0].price_data!.unit_amount = discountedUnit;
         } else if (scope === 'addons') {
           // Adjust each addon line
-          sessionParams.line_items = sessionParams.line_items!.map((li, idx) => {
+          sessionParams.line_items = sessionParams.line_items!.map((li: any, idx: number) => {
             if (idx === 0) return li; // ticket line
             const unitAmt = li.price_data!.unit_amount as number;
             const newUnit = Math.max(0, Math.floor(
@@ -378,7 +378,7 @@ serve(async (req) => {
           const discountedUnit = Math.max(0, Math.floor(unit - Math.min(chosen.discount_amount_cents, unit)));
           sessionParams.line_items![0].price_data!.unit_amount = discountedUnit;
         } else if (chosen.apply_to === 'addons') {
-          sessionParams.line_items = sessionParams.line_items!.map((li, idx) => {
+          sessionParams.line_items = sessionParams.line_items!.map((li: any, idx: number) => {
             if (idx === 0) return li;
             const unitAmt = li.price_data!.unit_amount as number;
             const newUnit = Math.max(0, Math.floor(unitAmt - Math.min(chosen!.discount_amount_cents!, unitAmt)));

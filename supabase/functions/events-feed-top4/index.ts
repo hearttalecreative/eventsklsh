@@ -105,7 +105,7 @@ serve(async (req: Request) => {
         <eventStartTime><![CDATA[${formatDisplayTime(event.starts_at, event.ends_at)}]]></eventStartTime>
        <eventImageUrl><![CDATA[${event.image_url || ''}]]></eventImageUrl>
        <eventUrl>https://events.kylelamsoundhealing.com/event/${event.slug}</eventUrl>
-       <eventLocation><![CDATA[${event.venues ? `${event.venues.name}${event.venues.address ? ` — ${event.venues.address}` : ''}` : ''}]]></eventLocation>
+       <eventLocation><![CDATA[${(event.venues as any) ? `${(event.venues as any).name}${(event.venues as any).address ? ` — ${(event.venues as any).address}` : ''}` : ''}]]></eventLocation>
      </item>`).join('') || ''}
   </channel>
 </rss>`;

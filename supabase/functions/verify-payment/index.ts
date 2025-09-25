@@ -104,7 +104,7 @@ serve(async (req) => {
     const unit = effectiveUnitAmount(ticket);
     const ticketsSubtotal = unit * cart.ticketQty;
     const addonsSubtotal = (cart.addons || []).reduce((sum, a) => {
-      const row = addonsRows.find(r => r.id === a.id);
+      const row = addonsRows.find((r: any) => r.id === a.id);
       return sum + (row ? row.unit_amount_cents * (a.qty || 0) : 0);
     }, 0);
 
@@ -155,7 +155,7 @@ serve(async (req) => {
 
     // Add-on items
     if (addonsRows.length > 0) {
-      const addonItems = addonsRows.map((row) => {
+      const addonItems = addonsRows.map((row: any) => {
         const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
         if (qty <= 0) return null;
         return {
@@ -261,7 +261,7 @@ serve(async (req) => {
     const purchaseDate = new Date();
 
     const addOnsSummary = addonsRows
-      .map((row) => {
+      .map((row: any) => {
         const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
         return qty > 0 ? `<li>${row.name} × ${qty}</li>` : "";
       })
