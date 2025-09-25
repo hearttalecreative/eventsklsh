@@ -115,10 +115,14 @@ serve(async (req: Request) => {
         .replace(/`(.*?)`/g, '<code style="background:#f3f4f6;padding:2px 4px;border-radius:4px;font-family:monospace;font-size:14px;">$1</code>');
     };
 
-    // Format event date
+    // Format event date with timezone support
     const formatEventDate = (dateStr: string) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
+      
+      // Use the timezone from the event data or default to PST
+      const timezone = 'America/Los_Angeles'; // PST/PDT timezone
+      
       return date.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -126,6 +130,7 @@ serve(async (req: Request) => {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: timezone,
         timeZoneName: 'short'
       });
     };
@@ -171,7 +176,7 @@ serve(async (req: Request) => {
                 <p style="margin:0 0 4px 0;color:#8a7766;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">Date & Time</p>
                 <p style="margin:0;color:#2c1810;font-weight:400;font-size:16px;">${formatEventDate(eventDate)}</p>
                 <div style="margin-top:12px;">
-                  <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle || '')}&dates=${eventDate ? new Date(eventDate).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}/${eventDate ? new Date(new Date(eventDate).getTime() + 2*60*60*1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}&details=${encodeURIComponent(eventDescription || '')}&location=${encodeURIComponent(eventVenue || '')}" 
+                  <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle || '')}&dates=${eventDate ? eventDate.replace(/[-:]/g, '').replace(/\.\d{3}/, '') : ''}/${eventDate ? new Date(new Date(eventDate).getTime() + 90*60*1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}&details=${encodeURIComponent(eventDescription || '')}&location=${encodeURIComponent(eventVenue || '')}&ctz=America/Los_Angeles" 
                      target="_blank" 
                      style="display:inline-block;background:#a0662f;color:#ffffff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;margin-right:8px;">
                     Add to Google Calendar
