@@ -142,27 +142,12 @@ const EventDetail = () => {
   }
 
   const endOrStart = new Date(event.endsAt || event.startsAt);
-  const isArchived = event.status === 'archived';
   const hasTickets = Array.isArray(event.tickets) && event.tickets.length > 0;
   const isPast = endOrStart < new Date();
-  if (!hasTickets || isArchived || isPast) {
-    return (
-      <main className="container mx-auto py-16">
-        <Helmet>
-          <title>Event not available | Events</title>
-          <meta name="robots" content="noindex,follow" />
-          <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
-        </Helmet>
-        <div className="max-w-xl mx-auto text-center space-y-4">
-          <h1 className="text-3xl font-bold">This event is not available</h1>
-          <p className="text-muted-foreground">It may have no tickets, be archived, or the date has passed.</p>
-          <Button asChild>
-            <Link to="/">See all events</Link>
-          </Button>
-        </div>
-      </main>
-    );
-  }
+  
+  // Only block ticket purchasing for events without tickets or past events
+  // Draft/archived events can still be viewed, just with ticket purchase disabled
+  const canPurchaseTickets = hasTickets && !isPast && event.status === 'published';
 
   const currency = 'USD';
   const ticketUnit = effectiveUnitAmount(selectedTicket);
@@ -376,6 +361,17 @@ const proceed = async () => {
 
         <aside className="space-y-6">
           <section className="p-6 border rounded-lg bg-card animate-enter">
+            {!canPurchaseTickets && (
+              <div className="mb-4 p-3 rounded-lg bg-muted border border-muted-foreground/20">
+                <p className="text-sm text-muted-foreground">
+                  {event.status === 'draft' && 'This event is in draft mode.'}
+                  {event.status === 'archived' && 'This event has been archived.'}
+                  {isPast && 'This event has already ended.'}
+                  {!hasTickets && 'No tickets available for this event.'}
+                  {canPurchaseTickets ? '' : ' Ticket purchasing is disabled.'}
+                </p>
+              </div>
+            )}
             <h2 className="text-xl font-semibold mb-4">1. Choose tickets</h2>
             <div className="space-y-3">
               {event.tickets.map((t) => {
@@ -606,7 +602,7 @@ const proceed = async () => {
                 <span>{formatCurrency(total, currency)}</span>
               </div>
             </div>
-            <Button className="w-full mt-4" onClick={proceed}>Proceed to payment</Button>
+            <Button className="w-full mt-4" onClick={proceed} disabled={!canPurchaseTickets}>Proceed to payment</Button>
             <p className="text-xs text-muted-foreground mt-2">You will be redirected to Stripe Checkout.</p>
           </section>
         </aside>

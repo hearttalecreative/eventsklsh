@@ -136,17 +136,16 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       setLoading(true);
       const field = isUuid(idOrSlug) ? 'id' : 'slug';
       console.log('[useSupabaseEventDetail] Using field:', field, 'for value:', idOrSlug);
-      let eFound: any = null;
-      let errMain: any = null;
+      // Fetch event - no status filter for direct access
       const { data: e, error } = await supabase
         .from('events')
         .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone')
         .eq(field, idOrSlug)
         .maybeSingle();
       console.log('[useSupabaseEventDetail] Event query result:', { e, error });
-      eFound = e;
-      errMain = error;
-
+      
+      let eFound = e;
+      
       // Fallback: if not found by slug, try matching by 6-char suffix after `--`
       if (!eFound && field === 'slug') {
         const m = idOrSlug.match(/--([a-f0-9]{6})$/i);
@@ -163,8 +162,8 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
         }
       }
 
-      if (!eFound) { 
-        console.log('[useSupabaseEventDetail] No event found or error:', errMain);
+      if (error || !eFound) { 
+        console.log('[useSupabaseEventDetail] No event found or error:', error);
         if (!canceled) setLoading(false); 
         return; 
       }
@@ -174,7 +173,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       const [{ data: tks }, { data: ads }, { data: v }] = await Promise.all([
         supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description').eq('event_id', eventId),
         supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', eventId),
-        supabase.from('venues').select('id,name,address').eq('id', e.venue_id).maybeSingle(),
+        supabase.from('venues').select('id,name,address').eq('id', eFound.venue_id).maybeSingle(),
       ]);
 
       console.log('[useSupabaseEventDetail] Related data loaded:', { 
