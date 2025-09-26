@@ -132,14 +132,21 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
     const isUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 
     async function load() {
+      console.log('[useSupabaseEventDetail] Loading event with idOrSlug:', idOrSlug);
       setLoading(true);
       const field = isUuid(idOrSlug) ? 'id' : 'slug';
+      console.log('[useSupabaseEventDetail] Using field:', field, 'for value:', idOrSlug);
       const { data: e, error } = await supabase
         .from('events')
         .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone')
         .eq(field, idOrSlug)
         .maybeSingle();
-      if (error || !e) { if (!canceled) setLoading(false); return; }
+      console.log('[useSupabaseEventDetail] Event query result:', { e, error });
+      if (error || !e) { 
+        console.log('[useSupabaseEventDetail] No event found or error:', error);
+        if (!canceled) setLoading(false); 
+        return; 
+      }
 
       const eventId = e.id;
 
@@ -148,6 +155,12 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
         supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', eventId),
         supabase.from('venues').select('id,name,address').eq('id', e.venue_id).maybeSingle(),
       ]);
+
+      console.log('[useSupabaseEventDetail] Related data loaded:', { 
+        tickets: tks?.length, 
+        addons: ads?.length, 
+        venue: v?.name 
+      });
 
       const mapped: EventItem = {
         id: e.id,
@@ -171,6 +184,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
         recurrenceText: e.recurrence_text || undefined,
         timezone: e.timezone || 'America/Los_Angeles',
       };
+      console.log('[useSupabaseEventDetail] Final mapped event:', mapped);
       if (!canceled) { setData(mapped); setLoading(false); }
     }
     load();
