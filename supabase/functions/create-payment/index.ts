@@ -113,17 +113,21 @@ serve(async (req) => {
     const addonIds = cart.addons?.filter(a => (a.qty ?? 0) > 0).map(a => a.id) ?? [];
     const { data: addonsRows, error: addonsErr } = addonIds.length > 0
       ? await supabase.from("addons").select("id, event_id, name, unit_amount_cents").in("id", addonIds)
-      : { data: [], error: null } as any;
+      : { data: [], error: null };
+    
+    console.log('[create-payment] Debug - addonsRows:', addonsRows, 'addonIds:', addonIds);
     if (addonsErr) throw addonsErr;
-    for (const a of addonsRows) {
-      if (a.event_id !== cart.eventId) throw new Error("Add-on does not belong to event");
+    if (addonsRows) {
+      for (const a of addonsRows) {
+        if (a.event_id !== cart.eventId) throw new Error("Add-on does not belong to event");
+      }
     }
 
     // 2) Compute pricing
     const unit = effectiveUnitAmount(ticket);
     const ticketsSubtotal = unit * cart.ticketQty;
     const addonsSubtotal = (cart.addons || []).reduce((sum, a) => {
-      const row = addonsRows.find((r: any) => r.id === a.id);
+      const row = (addonsRows || []).find((r: any) => r.id === a.id);
       return sum + (row ? row.unit_amount_cents * (a.qty || 0) : 0);
     }, 0);
 
@@ -234,7 +238,7 @@ serve(async (req) => {
       if (oiErr) throw oiErr;
 
       // Add-on items
-      if (addonsRows.length > 0) {
+      if (addonsRows && addonsRows.length > 0) {
         const addonItems = addonsRows.map((row: any) => {
           const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
           if (qty <= 0) return null;
@@ -289,7 +293,7 @@ serve(async (req) => {
           unit_amount: unit,
         },
       },
-      ...addonsRows.map((row: any) => {
+      ...(addonsRows || []).map((row: any) => {
         const qty = cart.addons.find((a) => a.id === row.id)?.qty || 0;
         return {
           quantity: qty,
