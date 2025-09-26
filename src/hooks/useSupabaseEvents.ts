@@ -136,19 +136,40 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       setLoading(true);
       const field = isUuid(idOrSlug) ? 'id' : 'slug';
       console.log('[useSupabaseEventDetail] Using field:', field, 'for value:', idOrSlug);
+      let eFound: any = null;
+      let errMain: any = null;
       const { data: e, error } = await supabase
         .from('events')
         .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone')
         .eq(field, idOrSlug)
         .maybeSingle();
       console.log('[useSupabaseEventDetail] Event query result:', { e, error });
-      if (error || !e) { 
-        console.log('[useSupabaseEventDetail] No event found or error:', error);
+      eFound = e;
+      errMain = error;
+
+      // Fallback: if not found by slug, try matching by 6-char suffix after `--`
+      if (!eFound && field === 'slug') {
+        const m = idOrSlug.match(/--([a-f0-9]{6})$/i);
+        if (m) {
+          const suffix = m[1];
+          console.log('[useSupabaseEventDetail] Attempting suffix fallback:', suffix);
+          const { data: e2, error: err2 } = await supabase
+            .from('events')
+            .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone')
+            .ilike('slug', `%--${suffix}`)
+            .maybeSingle();
+          if (err2) console.warn('[useSupabaseEventDetail] Fallback query error:', err2);
+          if (e2) eFound = e2;
+        }
+      }
+
+      if (!eFound) { 
+        console.log('[useSupabaseEventDetail] No event found or error:', errMain);
         if (!canceled) setLoading(false); 
         return; 
       }
 
-      const eventId = e.id;
+      const eventId = eFound.id;
 
       const [{ data: tks }, { data: ads }, { data: v }] = await Promise.all([
         supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description').eq('event_id', eventId),
@@ -163,26 +184,26 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       });
 
       const mapped: EventItem = {
-        id: e.id,
-        title: e.title,
-        slug: e.slug || undefined,
-        shortDescription: e.short_description || '',
-        description: e.description || '',
-        imageUrl: e.image_url || '',
-        startsAt: e.starts_at,
-        endsAt: e.ends_at,
+        id: eFound.id,
+        title: eFound.title,
+        slug: eFound.slug || undefined,
+        shortDescription: eFound.short_description || '',
+        description: eFound.description || '',
+        imageUrl: eFound.image_url || '',
+        startsAt: eFound.starts_at,
+        endsAt: eFound.ends_at,
         venue: v ? mapVenue(v) : { name: 'Venue', address: '' },
-        category: e.category || undefined,
-        sku: e.sku || '',
-        status: e.status,
+        category: eFound.category || undefined,
+        sku: eFound.sku || '',
+        status: eFound.status,
         tickets: (tks || []).map(mapTicket),
         addons: (ads || []).map(mapAddon),
-        capacityTotal: e.capacity_total || undefined,
+        capacityTotal: eFound.capacity_total || undefined,
         
         instructions: undefined,
-        recurrenceRule: e.recurrence_rule || undefined,
-        recurrenceText: e.recurrence_text || undefined,
-        timezone: e.timezone || 'America/Los_Angeles',
+        recurrenceRule: eFound.recurrence_rule || undefined,
+        recurrenceText: eFound.recurrence_text || undefined,
+        timezone: eFound.timezone || 'America/Los_Angeles',
       };
       console.log('[useSupabaseEventDetail] Final mapped event:', mapped);
       if (!canceled) { setData(mapped); setLoading(false); }

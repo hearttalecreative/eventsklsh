@@ -95,7 +95,7 @@ const EventDetail = () => {
   }, [participantsCount]);
 
   // Show loading skeleton while loading
-  if (loading || !event) {
+  if (loading) {
     return (
       <div className="container mx-auto py-10">
         <div className="grid gap-8 lg:grid-cols-2">
@@ -120,6 +120,15 @@ const EventDetail = () => {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // If not loading and no event, show not found
+  if (!event) {
+    return (
+      <div className="container mx-auto py-16">
+        <p className="text-muted-foreground">Event not found. <Link to="/" className="underline">Go back</Link></p>
       </div>
     );
   }
