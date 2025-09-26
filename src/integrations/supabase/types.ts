@@ -519,11 +519,13 @@ export type Database = {
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"]
           description: string | null
+          display_order: number | null
           early_bird_amount_cents: number | null
           early_bird_end: string | null
           early_bird_start: string | null
           event_id: string
           id: string
+          internal_notes: string | null
           name: string
           participants_per_ticket: number
           unit_amount_cents: number
@@ -535,11 +537,13 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           description?: string | null
+          display_order?: number | null
           early_bird_amount_cents?: number | null
           early_bird_end?: string | null
           early_bird_start?: string | null
           event_id: string
           id?: string
+          internal_notes?: string | null
           name: string
           participants_per_ticket?: number
           unit_amount_cents: number
@@ -551,11 +555,13 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           description?: string | null
+          display_order?: number | null
           early_bird_amount_cents?: number | null
           early_bird_end?: string | null
           early_bird_start?: string | null
           event_id?: string
           id?: string
+          internal_notes?: string | null
           name?: string
           participants_per_ticket?: number
           unit_amount_cents?: number

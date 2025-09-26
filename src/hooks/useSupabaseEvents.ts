@@ -60,8 +60,9 @@ export function useSupabaseEventsList() {
       // 2) tickets for all events
       const { data: tks } = await supabase
         .from('tickets')
-        .select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description')
-        .in('event_id', eventIds);
+        .select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description,display_order')
+        .in('event_id', eventIds)
+        .order('display_order', { ascending: true });
 
       // 3) addons for all events
       const { data: ads } = await supabase
@@ -77,7 +78,9 @@ export function useSupabaseEventsList() {
 
       const venueMap = new Map((vns || []).map((v: any) => [v.id, mapVenue(v)]));
       const ticketsByEvent = new Map<string, TicketType[]>();
-      (tks || []).forEach((t: any) => {
+      // Sort tickets by display_order before grouping
+      const sortedTickets = (tks || []).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      sortedTickets.forEach((t: any) => {
         const arr = ticketsByEvent.get(t.event_id) || [];
         arr.push(mapTicket(t));
         ticketsByEvent.set(t.event_id, arr);
@@ -171,7 +174,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       const eventId = eFound.id;
 
       const [{ data: tks }, { data: ads }, { data: v }] = await Promise.all([
-        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description').eq('event_id', eventId),
+        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description,display_order').eq('event_id', eventId).order('display_order', { ascending: true }),
         supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', eventId),
         supabase.from('venues').select('id,name,address').eq('id', eFound.venue_id).maybeSingle(),
       ]);

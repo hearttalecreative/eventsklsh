@@ -20,7 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation, Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
-import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy } from "lucide-react";
+import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 
 interface Venue { id: string; name: string; address?: string | null; }
@@ -464,46 +464,76 @@ const deleteAddon = async (id: string) => {
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description,internal_notes,display_order')
       .eq('event_id', eventId)
-      .order('created_at', { ascending: false });
+      .order('display_order', { ascending: true });
     setTickets(data || []);
     setTicketsOpen(true);
   };
 
 const addTicketSimple = async () => {
     if (!ticketsEventId) return;
+    const maxOrder = Math.max(0, ...tickets.map(t => t.display_order || 0));
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ event_id: ticketsEventId, name: 'General', unit_amount_cents: 2000, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: null })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
+      .insert({ 
+        event_id: ticketsEventId, 
+        name: 'General', 
+        unit_amount_cents: 2000, 
+        capacity_total: 100, 
+        currency: 'usd', 
+        participants_per_ticket: 1, 
+        zone: null,
+        display_order: maxOrder + 1
+      })
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,internal_notes,display_order')
       .single();
     if (error) return alert(error.message);
-    setTickets(arr => [data!, ...arr]);
+    setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
     await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
 const addTicketCombo = async () => {
     if (!ticketsEventId) return;
+    const maxOrder = Math.max(0, ...tickets.map(t => t.display_order || 0));
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ event_id: ticketsEventId, name: 'Combo (2 participants)', unit_amount_cents: 3500, capacity_total: 100, currency: 'usd', participants_per_ticket: 2, zone: null })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
+      .insert({ 
+        event_id: ticketsEventId, 
+        name: 'Combo (2 participants)', 
+        unit_amount_cents: 3500, 
+        capacity_total: 100, 
+        currency: 'usd', 
+        participants_per_ticket: 2, 
+        zone: null,
+        display_order: maxOrder + 1
+      })
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,internal_notes,display_order')
       .single();
     if (error) return alert(error.message);
-    setTickets(arr => [data!, ...arr]);
+    setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
     await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
 const addTicketByZone = async () => {
     if (!ticketsEventId) return;
+    const maxOrder = Math.max(0, ...tickets.map(t => t.display_order || 0));
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ event_id: ticketsEventId, name: 'By zone', unit_amount_cents: 2500, capacity_total: 100, currency: 'usd', participants_per_ticket: 1, zone: 'General' })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end')
+      .insert({ 
+        event_id: ticketsEventId, 
+        name: 'By zone', 
+        unit_amount_cents: 2500, 
+        capacity_total: 100, 
+        currency: 'usd', 
+        participants_per_ticket: 1, 
+        zone: 'General',
+        display_order: maxOrder + 1
+      })
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,internal_notes,display_order')
       .single();
     if (error) return alert(error.message);
-    setTickets(arr => [data!, ...arr]);
+    setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
     await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
@@ -519,12 +549,46 @@ const updateTicketField = async (
       early_bird_start: string | null;
       early_bird_end: string | null;
       description: string | null;
+      internal_notes: string | null;
+      display_order: number;
     }>
   ) => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
     if (error) return alert(error.message);
-    setTickets(arr => arr.map(t => t.id===id ? { ...t, ...patch } : t));
+    setTickets(arr => arr.map(t => t.id===id ? { ...t, ...patch } : t).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
     await logAdmin('ticket_updated','ticket', id, patch);
+  };
+
+  const moveTicketUp = async (ticketId: string) => {
+    const currentTicket = tickets.find(t => t.id === ticketId);
+    if (!currentTicket) return;
+    
+    const currentOrder = currentTicket.display_order || 0;
+    const previousTicket = tickets
+      .filter(t => (t.display_order || 0) < currentOrder)
+      .sort((a, b) => (b.display_order || 0) - (a.display_order || 0))[0];
+    
+    if (!previousTicket) return; // Already at top
+    
+    const tempOrder = previousTicket.display_order || 0;
+    await updateTicketField(previousTicket.id, { display_order: currentOrder });
+    await updateTicketField(ticketId, { display_order: tempOrder });
+  };
+
+  const moveTicketDown = async (ticketId: string) => {
+    const currentTicket = tickets.find(t => t.id === ticketId);
+    if (!currentTicket) return;
+    
+    const currentOrder = currentTicket.display_order || 0;
+    const nextTicket = tickets
+      .filter(t => (t.display_order || 0) > currentOrder)
+      .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))[0];
+    
+    if (!nextTicket) return; // Already at bottom
+    
+    const tempOrder = nextTicket.display_order || 0;
+    await updateTicketField(nextTicket.id, { display_order: currentOrder });
+    await updateTicketField(ticketId, { display_order: tempOrder });
   };
 
 const deleteTicket = async (id: string) => {
@@ -778,10 +842,41 @@ const deleteTicket = async (id: string) => {
                   {tickets.length === 0 && (
                     <p className="text-sm text-muted-foreground">No tickets yet.</p>
                   )}
-                  {tickets.map((t) => {
+                  {tickets.map((t, index) => {
                     const earlyEnabled = Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end);
+                    const isFirst = index === 0;
+                    const isLast = index === tickets.length - 1;
                     return (
                       <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">#{t.display_order || 0}</span>
+                            <span className="text-xs text-muted-foreground">Orden de visualización</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => moveTicketUp(t.id)}
+                              disabled={isFirst}
+                              title="Mover arriba"
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => moveTicketDown(t.id)}
+                              disabled={isLast}
+                              title="Mover abajo"
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
                         <div className="grid gap-3 sm:grid-cols-12 items-end">
                           <div className="sm:col-span-4 space-y-1">
                             <Label>Name</Label>
@@ -816,8 +911,14 @@ const deleteTicket = async (id: string) => {
                               onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
+                          <div className="sm:col-span-2 space-y-1">
+                            <Label>Zone</Label>
+                            <Input placeholder="e.g. General, VIP" defaultValue={t.zone || ''} 
+                              onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                            />
+                          </div>
                           {(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) && (
-                            <div className="sm:col-span-3 space-y-1">
+                            <div className="sm:col-span-2 space-y-1">
                               <Label>Participants per ticket</Label>
                               <Input
                                 type="number"
@@ -829,19 +930,28 @@ const deleteTicket = async (id: string) => {
                               />
                             </div>
                           )}
-                          <div className={`${(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) ? 'sm:col-span-1' : 'sm:col-span-4'} flex justify-end items-end`}>
-                            <Button variant="destructive" size="icon" onClick={()=>deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <Label>Ticket description</Label>
-                          <Textarea
-                            placeholder="Brief description (shown under this ticket)"
-                            defaultValue={t.description || ''}
-                            onBlur={(e)=>updateTicketField(t.id, { description: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
-                          />
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <Label>Ticket description</Label>
+                            <Textarea
+                              placeholder="Brief description (shown under this ticket)"
+                              defaultValue={t.description || ''}
+                              onBlur={(e)=>updateTicketField(t.id, { description: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="flex items-center gap-2">
+                              <StickyNote className="w-4 h-4" />
+                              Notas internas
+                            </Label>
+                            <Textarea
+                              placeholder="Notas privadas para administradores (no se muestran al público)"
+                              defaultValue={t.internal_notes || ''}
+                              onBlur={(e)=>updateTicketField(t.id, { internal_notes: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                              className="bg-muted/50 border-muted-foreground/20"
+                            />
+                          </div>
                         </div>
                         <div className="rounded-md border bg-muted/30 p-3 space-y-3">
                           <div className="flex items-center justify-between">
