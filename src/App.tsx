@@ -19,6 +19,7 @@ import AddAttendeePage from "./pages/admin/AddAttendee";
 import VenuesPage from "./pages/admin/Venues";
 import EventAttendeesPage from "./pages/admin/EventAttendees";
 import QRCheckIn from "./pages/QRCheckIn";
+import TicketSales from "./pages/admin/TicketSales";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
             <Route path="/admin/coupons" element={<AdminRoute><CouponsPage /></AdminRoute>} />
             <Route path="/admin/venues" element={<AdminRoute><VenuesPage /></AdminRoute>} />
+            <Route path="/admin/ticket-sales" element={<AdminRoute><TicketSales /></AdminRoute>} />
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
             <Route path="/admin/events/:eventId/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />
             <Route path="/admin/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />

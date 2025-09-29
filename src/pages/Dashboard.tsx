@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { BarChart3 } from "lucide-react";
 
 import {
   ResponsiveContainer,
@@ -256,6 +257,10 @@ const Dashboard = () => {
           <Button asChild variant="outline"><a href="/admin/events">Manage events</a></Button>
           <Button asChild variant="outline"><a href="/admin/venues">Manage venues</a></Button>
           <Button asChild variant="outline"><a href="/admin/coupons">Manage coupons</a></Button>
+          <Button asChild variant="outline"><a href="/admin/ticket-sales">
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Ticket Sales
+          </a></Button>
           <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
           <Button 
             variant="ghost" 
