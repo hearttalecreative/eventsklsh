@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 import {
   ResponsiveContainer,
@@ -242,37 +243,19 @@ const Dashboard = () => {
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
-    <main className="container mx-auto py-10 space-y-8">
-      <Helmet>
-        <title>Dashboard | Events Admin</title>
-        <meta name="description" content="Admin dashboard to manage events, filters, analytics and CSV export." />
-        <link rel="canonical" href={`${baseUrl}/dashboard`} />
-      </Helmet>
+    <>
+      <AdminHeader />
+      <main className="container mx-auto py-10 space-y-8">
+        <Helmet>
+          <title>Admin Dashboard | Events Management</title>
+          <meta name="description" content="Admin dashboard to manage events, filters, analytics and CSV export." />
+          <link rel="canonical" href={`${baseUrl}/dashboard`} />
+        </Helmet>
 
-      <header className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Events Dashboard</h1>
+          <p className="text-muted-foreground">Overview of all events and analytics</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline"><a href="/admin/events">Manage events</a></Button>
-          <Button asChild variant="outline"><a href="/admin/venues">Manage venues</a></Button>
-          <Button asChild variant="outline"><a href="/admin/coupons">Manage coupons</a></Button>
-          <Button asChild variant="outline"><a href="/admin/ticket-sales">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Sales Analytics
-          </a></Button>
-          <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
-          <Button 
-            variant="ghost" 
-            onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.href = '/admin/login';
-            }}
-          >
-            Logout
-          </Button>
-        </div>
-      </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <Card className="bg-card border animate-enter">
@@ -457,7 +440,8 @@ const Dashboard = () => {
           </p>
         </section>
       )}
-    </main>
+      </main>
+    </>
   );
 };
 

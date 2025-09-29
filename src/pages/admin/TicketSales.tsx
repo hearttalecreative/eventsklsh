@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import AdminRoute from "@/routes/AdminRoute";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 interface TicketSalesData {
   event_id: string;
@@ -147,22 +148,13 @@ const TicketSales = () => {
 
   return (
     <AdminRoute>
+      <AdminHeader />
       <main className="container mx-auto py-8 space-y-8">
         <Helmet>
           <title>Ticket Sales Analytics | Admin Dashboard</title>
           <meta name="description" content="Monitor ticket sales performance by event and ticket type with detailed analytics" />
           <link rel="canonical" href={`${baseUrl}/admin/ticket-sales`} />
         </Helmet>
-
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/dashboard">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Link>
-          </Button>
-        </div>
 
         <header className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>

@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
 import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote } from "lucide-react";
 import { toast } from "sonner";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 interface Venue { id: string; name: string; address?: string | null; }
 
@@ -745,16 +746,17 @@ const deleteTicket = async (id: string) => {
   }, [events, evOrderBy, filterMonth, filterYear]);
   return (
     <AdminRoute>
+      <AdminHeader />
       <main className="container mx-auto py-8 space-y-8">
         <Helmet>
-          <title>Admin Events | Events</title>
+          <title>Admin Events | Events Management</title>
           <meta name="description" content="Create and manage events from the admin panel." />
           <link rel="canonical" href={`${baseUrl}/admin/events`} />
         </Helmet>
 
-        <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Manage events</h1>
-          <Button asChild variant="outline"><a href="/dashboard">Dashboard</a></Button>
+        <header className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Manage Events</h1>
+          <p className="text-muted-foreground">Create and manage your events</p>
         </header>
 
         <section className="grid md:grid-cols-2 gap-6">
