@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdminRoute from "@/routes/AdminRoute";
 import { toast } from "sonner";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 interface Coupon {
   id: string;
@@ -69,15 +70,17 @@ const CouponsPage = () => {
 
   return (
     <AdminRoute>
+      <AdminHeader />
       <main className="container mx-auto py-10 space-y-6">
         <Helmet>
-          <title>Manage coupons | Dashboard</title>
+          <title>Manage Coupons | Admin Dashboard</title>
           <meta name="description" content="Create and delete coupons with validity windows and limits." />
           <link rel="canonical" href={`${baseUrl}/admin/coupons`} />
         </Helmet>
 
-        <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Coupons</h1>
+        <header className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Manage Coupons</h1>
+          <p className="text-muted-foreground">Create and manage discount coupons</p>
         </header>
 
         <section className="p-4 border rounded-lg bg-card space-y-4">

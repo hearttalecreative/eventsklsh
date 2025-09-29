@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
 import GoogleMapPicker from "@/components/GoogleMapPicker";
 import { toast } from "sonner";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 interface Venue {
   id: string;
@@ -78,17 +79,22 @@ const VenuesPage = () => {
 
   return (
     <AdminRoute>
+      <AdminHeader />
       <main className="container mx-auto py-10 space-y-6">
         <Helmet>
-          <title>Venues | Events Admin</title>
+          <title>Venues Management | Admin Dashboard</title>
           <meta name="description" content="Manage venues: create, edit and delete locations for your events." />
           <link rel="canonical" href={`${baseUrl}/admin/venues`} />
         </Helmet>
 
-        <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Venues management</h1>
-          <Button onClick={() => setOpenCreate(true)}>New venue</Button>
+        <header className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Venues Management</h1>
+          <p className="text-muted-foreground">Create and manage event venues</p>
         </header>
+
+        <div className="flex justify-end">
+          <Button onClick={() => setOpenCreate(true)}>New venue</Button>
+        </div>
 
         <Card className="bg-card border">
           <CardHeader>
