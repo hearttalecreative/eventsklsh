@@ -36,6 +36,7 @@ const AdminEvents = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const [venues, setVenues] = useState<Venue[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [eventStats, setEventStats] = useState<Record<string, { ticketsSold: number; totalCapacity: number }>>({});
   const [loading, setLoading] = useState(true);
 
   // Add-ons editor state
@@ -125,6 +126,37 @@ const AdminEvents = () => {
       const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("created_at", { ascending: false });
       setEvents(ev || []);
       setManageEventId(ev && ev.length ? ev[0].id : undefined);
+      
+      // Load tickets sold stats for each event
+      if (ev && ev.length > 0) {
+        const eventIds = ev.map(e => e.id);
+        
+        // Get tickets sold (attendees count) for each event
+        const { data: attendeeCounts } = await supabase
+          .from("attendees")
+          .select("event_id")
+          .in("event_id", eventIds);
+        
+        // Get total capacity for each event (sum of all ticket types)
+        const { data: ticketCapacities } = await supabase
+          .from("tickets")
+          .select("event_id, capacity_total")
+          .in("event_id", eventIds);
+        
+        // Calculate stats for each event
+        const stats: Record<string, { ticketsSold: number; totalCapacity: number }> = {};
+        eventIds.forEach(eventId => {
+          const ticketsSold = attendeeCounts?.filter(a => a.event_id === eventId).length || 0;
+          const totalCapacity = ticketCapacities
+            ?.filter(t => t.event_id === eventId)
+            .reduce((sum, t) => sum + (t.capacity_total || 0), 0) || 0;
+          
+          stats[eventId] = { ticketsSold, totalCapacity };
+        });
+        
+        setEventStats(stats);
+      }
+      
       setLoading(false);
     };
     load();
@@ -1122,6 +1154,7 @@ const deleteTicket = async (id: string) => {
                   <th className="py-3 pr-4 min-w-40">Start</th>
                   <th className="py-3 pr-4 min-w-36">Venue</th>
                   <th className="py-3 pr-4 min-w-24">Status</th>
+                  <th className="py-3 pr-4 min-w-32">Tickets Sold</th>
                   <th className="py-3 pr-4 min-w-72">Actions</th>
                 </tr>
               </thead>
@@ -1161,6 +1194,13 @@ const deleteTicket = async (id: string) => {
                         }`}>
                           {ev.status}
                         </span>
+                      </td>
+                      <td className="py-3 pr-4 text-sm font-medium">
+                        {(() => {
+                          const stats = eventStats[ev.id];
+                          if (!stats) return '-';
+                          return `${stats.ticketsSold}/${stats.totalCapacity}`;
+                        })()}
                       </td>
                       <td className="py-3 pr-4">
                         <div className="flex gap-1">

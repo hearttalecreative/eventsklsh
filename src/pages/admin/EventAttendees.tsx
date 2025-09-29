@@ -35,6 +35,7 @@ const EventAttendeesPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>(eventId || "");
   const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [totalCapacity, setTotalCapacity] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [checkInFilter, setCheckInFilter] = useState<"all" | "checked-in" | "not-checked-in">("all");
@@ -64,13 +65,24 @@ const EventAttendeesPage = () => {
 
     const loadAttendees = async () => {
       setLoading(true);
-      const { data } = await supabase
+      
+      // Load attendees
+      const { data: attendeesData } = await supabase
         .from("attendees")
         .select("id, name, email, phone, confirmation_code, checked_in_at, qr_code")
         .eq("event_id", selectedEventId)
         .order("name", { ascending: true, nullsFirst: false });
       
-      setAttendees(data || []);
+      // Load total capacity for this event
+      const { data: ticketsData } = await supabase
+        .from("tickets")
+        .select("capacity_total")
+        .eq("event_id", selectedEventId);
+      
+      const capacity = ticketsData?.reduce((sum, ticket) => sum + (ticket.capacity_total || 0), 0) || 0;
+      
+      setAttendees(attendeesData || []);
+      setTotalCapacity(capacity);
       setLoading(false);
     };
 
@@ -202,10 +214,14 @@ const EventAttendeesPage = () => {
             {/* Stats Card */}
             <Card>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                   <div>
                     <div className="text-2xl font-bold text-primary">{totalCount}</div>
                     <div className="text-sm text-muted-foreground">Total Attendees</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">{totalCount}/{totalCapacity}</div>
+                    <div className="text-sm text-muted-foreground">Tickets Sold</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-600">{checkedInCount}</div>
