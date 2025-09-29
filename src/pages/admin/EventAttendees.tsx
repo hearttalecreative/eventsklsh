@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CheckCircle, XCircle, Search, Filter, ArrowLeft } from "lucide-react";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 interface Event {
   id: string;
@@ -166,22 +167,18 @@ const EventAttendeesPage = () => {
 
   return (
     <AdminRoute>
+      <AdminHeader />
       <main className="container mx-auto py-6 px-4 space-y-6">
         <Helmet>
-          <title>Event Attendees | Admin</title>
+          <title>Event Attendees | Admin Dashboard</title>
           <meta name="description" content="Manage event attendees and check-in status" />
           <link rel="canonical" href={`${baseUrl}/admin/events/${selectedEventId}/attendees`} />
         </Helmet>
 
-        {/* Header with navigation */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/admin/events">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Events
-            </Link>
-          </Button>
-        </div>
+        <header className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Event Attendees</h1>
+          <p className="text-muted-foreground">Manage attendees and check-in status</p>
+        </header>
 
         {/* Event Selector */}
         <Card>

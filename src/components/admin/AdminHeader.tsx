@@ -8,7 +8,8 @@ import {
   Tag, 
   LogOut, 
   Menu, 
-  X 
+  X,
+  Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -54,6 +55,11 @@ const AdminHeader = () => {
       path: "/admin/coupons",
       label: "Coupons",
       icon: Tag,
+    },
+    {
+      path: "/admin/attendees",
+      label: "Attendees",
+      icon: Users,
     },
     {
       path: "/admin/ticket-sales",
