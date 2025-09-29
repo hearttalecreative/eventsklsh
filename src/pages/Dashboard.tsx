@@ -259,7 +259,7 @@ const Dashboard = () => {
           <Button asChild variant="outline"><a href="/admin/coupons">Manage coupons</a></Button>
           <Button asChild variant="outline"><a href="/admin/ticket-sales">
             <BarChart3 className="w-4 h-4 mr-2" />
-            Ticket Sales
+            Sales Analytics
           </a></Button>
           <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
           <Button 

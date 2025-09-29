@@ -149,8 +149,8 @@ const TicketSales = () => {
     <AdminRoute>
       <main className="container mx-auto py-8 space-y-8">
         <Helmet>
-          <title>Ticket Sales | Admin</title>
-          <meta name="description" content="Monitor ticket sales by event and ticket type" />
+          <title>Ticket Sales Analytics | Admin Dashboard</title>
+          <meta name="description" content="Monitor ticket sales performance by event and ticket type with detailed analytics" />
           <link rel="canonical" href={`${baseUrl}/admin/ticket-sales`} />
         </Helmet>
 
@@ -165,7 +165,7 @@ const TicketSales = () => {
         </div>
 
         <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Ticket Sales</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
           <p className="text-muted-foreground">
             Monitor ticket sales performance by event and ticket type
           </p>
@@ -201,11 +201,11 @@ const TicketSales = () => {
                           <div className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
                             <span>
-                              {event.total_tickets_sold}/{event.event_capacity} vendidos
+                              {event.total_tickets_sold}/{event.event_capacity} sold
                             </span>
                           </div>
                           <Badge variant="outline">
-                            {formatPercentage(event.total_tickets_sold, event.event_capacity)} ocupado
+                            {formatPercentage(event.total_tickets_sold, event.event_capacity)} filled
                           </Badge>
                         </div>
                       </div>
@@ -214,7 +214,7 @@ const TicketSales = () => {
                     {/* Overall Progress */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Progreso General</span>
+                        <span>Overall Progress</span>
                         <span className="font-medium">
                           {event.total_tickets_sold} / {event.event_capacity}
                         </span>
@@ -229,7 +229,7 @@ const TicketSales = () => {
                   <CardContent className="space-y-4">
                     <h4 className="font-medium flex items-center gap-2">
                       <Ticket className="h-4 w-4" />
-                      Ventas por Tipo de Ticket
+                      Sales by Ticket Type
                     </h4>
                     
                     <div className="space-y-3">
