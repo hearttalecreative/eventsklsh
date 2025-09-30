@@ -4,7 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Ticket, Users, BarChart3 } from "lucide-react";
+import { ArrowLeft, Ticket, Users, BarChart3, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -201,6 +201,12 @@ const TicketSales = () => {
                           </Badge>
                         </div>
                       </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/admin/events/${event.event_id}/purchases`}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Purchase Details
+                        </Link>
+                      </Button>
                     </div>
                     
                     {/* Overall Progress */}
