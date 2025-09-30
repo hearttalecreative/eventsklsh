@@ -977,10 +977,10 @@ const deleteTicket = async (id: string) => {
                           <div className="space-y-1">
                             <Label className="flex items-center gap-2">
                               <StickyNote className="w-4 h-4" />
-                              Notas internas
+                              Internal Notes
                             </Label>
                             <Textarea
-                              placeholder="Notas privadas para administradores (no se muestran al público)"
+                              placeholder="Private notes for administrators (not shown to the public)"
                               defaultValue={t.internal_notes || ''}
                               onBlur={(e)=>updateTicketField(t.id, { internal_notes: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
                               className="bg-muted/50 border-muted-foreground/20"
