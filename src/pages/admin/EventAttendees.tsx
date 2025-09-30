@@ -50,7 +50,7 @@ const EventAttendeesPage = () => {
       const { data } = await supabase
         .from("events")
         .select("id, title, starts_at, venues:venue_id(name)")
-        .order("starts_at", { ascending: false });
+        .order("starts_at", { ascending: true });
       
       setEvents(data || []);
       if (!eventId && data && data.length > 0) {
