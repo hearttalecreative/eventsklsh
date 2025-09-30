@@ -116,6 +116,7 @@ export type Database = {
           email: string | null
           event_id: string
           id: string
+          internal_notes: string | null
           is_comped: boolean
           name: string | null
           order_item_id: string | null
@@ -133,6 +134,7 @@ export type Database = {
           email?: string | null
           event_id: string
           id?: string
+          internal_notes?: string | null
           is_comped?: boolean
           name?: string | null
           order_item_id?: string | null
@@ -150,6 +152,7 @@ export type Database = {
           email?: string | null
           event_id?: string
           id?: string
+          internal_notes?: string | null
           is_comped?: boolean
           name?: string | null
           order_item_id?: string | null

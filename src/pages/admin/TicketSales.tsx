@@ -4,13 +4,21 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Ticket, Users, BarChart3, FileText } from "lucide-react";
+import { ArrowLeft, Ticket, Users, BarChart3, FileText, StickyNote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import AdminRoute from "@/routes/AdminRoute";
 import AdminHeader from "@/components/admin/AdminHeader";
+
+interface AttendeeWithNotes {
+  id: string;
+  name: string | null;
+  email: string | null;
+  ticket_label: string | null;
+  internal_notes: string | null;
+}
 
 interface TicketSalesData {
   event_id: string;
@@ -33,6 +41,7 @@ interface EventSalesData {
     ticket_capacity: number;
     tickets_sold: number;
   }>;
+  attendees_with_notes: AttendeeWithNotes[];
 }
 
 const TicketSales = () => {
@@ -74,6 +83,18 @@ const TicketSales = () => {
           return null;
         }
 
+        // Get attendees with internal notes for this event
+        const { data: attendeesData, error: attendeesError } = await supabase
+          .from('attendees')
+          .select('id, name, email, ticket_label, internal_notes')
+          .eq('event_id', event.id)
+          .not('internal_notes', 'is', null)
+          .order('name', { ascending: true });
+
+        if (attendeesError) {
+          console.error(`Error fetching attendees for event ${event.id}:`, attendeesError);
+        }
+
         const ticketsSalesData = ticketSales?.map((sale: any) => ({
           ticket_id: sale.ticket_id || 'comped-unassigned',
           ticket_name: sale.ticket_name,
@@ -89,6 +110,7 @@ const TicketSales = () => {
           event_capacity: event.capacity_total || ticketsSalesData.reduce((sum: number, t: any) => sum + t.ticket_capacity, 0),
           total_tickets_sold: totalTicketsSold,
           tickets: ticketsSalesData,
+          attendees_with_notes: attendeesData || []
         };
       }) || [];
 
@@ -250,18 +272,50 @@ const TicketSales = () => {
                               />
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
-      </main>
-    </AdminRoute>
-  );
-};
+                          );
+                        })}
+                      </div>
+
+                      {/* Attendees with Internal Notes */}
+                      {event.attendees_with_notes.length > 0 && (
+                        <div className="mt-6 pt-6 border-t space-y-3">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <StickyNote className="h-4 w-4" />
+                            Attendees with Internal Notes ({event.attendees_with_notes.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {event.attendees_with_notes.map((attendee) => (
+                              <div key={attendee.id} className="p-3 rounded-lg bg-muted/50 space-y-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{attendee.name || 'No name'}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{attendee.email}</p>
+                                    {attendee.ticket_label && (
+                                      <Badge variant="outline" className="mt-1 text-xs">
+                                        {attendee.ticket_label}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                {attendee.internal_notes && (
+                                  <p className="text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-2">
+                                    {attendee.internal_notes}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </main>
+      </AdminRoute>
+    );
+  };
 
 export default TicketSales;

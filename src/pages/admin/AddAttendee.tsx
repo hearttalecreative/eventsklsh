@@ -37,6 +37,7 @@ const AddAttendeePage = () => {
   const [attendees, setAttendees] = useState<{name: string; email: string; phone: string}[]>([
     {name: '', email: '', phone: ''}
   ]);
+  const [internalNotes, setInternalNotes] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -111,7 +112,8 @@ const AddAttendeePage = () => {
           ticket_id: ticketType === 'existing' ? selectedTicketId : null,
           addon_ids: selectedAddonIds,
           ticket_label: ticketType === 'custom' ? customTicketName.trim() : null,
-          attendees
+          attendees,
+          internal_notes: internalNotes.trim() || null
         }
       });
 
@@ -123,6 +125,7 @@ const AddAttendeePage = () => {
       setCustomTicketName('');
       setSelectedTicketId('');
       setSelectedAddonIds([]);
+      setInternalNotes('');
     } catch (e: any) {
       console.error('Error creating comped attendees:', e);
       toast.error(e?.message || 'Error adding attendees');
@@ -339,6 +342,19 @@ const AddAttendeePage = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Internal notes (optional)</Label>
+            <Input 
+              value={internalNotes}
+              onChange={e => setInternalNotes(e.target.value)}
+              placeholder="Add internal notes for this attendee (e.g., VIP guest, special requirements)"
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground">
+              This note will be visible in the Sales Analytics page
+            </p>
           </div>
 
           <div className="flex gap-3">

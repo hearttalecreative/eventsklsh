@@ -16,9 +16,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { event_id, ticket_id, addon_ids = [], ticket_label = null, attendees } = await req.json();
+    const { event_id, ticket_id, addon_ids = [], ticket_label = null, attendees, internal_notes = null } = await req.json();
 
-    console.log('Creating comped attendees:', { event_id, ticket_id, addon_ids, ticket_label, count: attendees.length });
+    console.log('Creating comped attendees:', { event_id, ticket_id, addon_ids, ticket_label, count: attendees.length, internal_notes });
 
     // Fetch event details
     const { data: event, error: eventError } = await supabase
@@ -82,7 +82,8 @@ serve(async (req) => {
           is_comped: true, // Mark as comped
           ticket_label: ticket_label, // Custom label for this attendee
           order_item_id: null, // No order for comped attendees
-          comped_ticket_id: ticket_id // Track which ticket type this comped attendee belongs to
+          comped_ticket_id: ticket_id, // Track which ticket type this comped attendee belongs to
+          internal_notes: internal_notes // Admin notes for this attendee
         })
         .select()
         .single();
