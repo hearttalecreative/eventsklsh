@@ -256,7 +256,10 @@ const TicketSales = () => {
                     
                     <div className="space-y-3">
                       {event.tickets.map((ticket) => {
-                        const ticketPercentage = (ticket.tickets_sold / ticket.ticket_capacity) * 100;
+                        const isComped = ticket.ticket_id === 'comped';
+                        const ticketPercentage = ticket.ticket_capacity > 0 
+                          ? (ticket.tickets_sold / ticket.ticket_capacity) * 100 
+                          : 0;
                         
                         return (
                           <div key={ticket.ticket_id} className="space-y-2">
@@ -265,18 +268,33 @@ const TicketSales = () => {
                                 <p className="font-medium truncate">{ticket.ticket_name}</p>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
-                                <span className="font-mono">
-                                  {ticket.tickets_sold}/{ticket.ticket_capacity}
-                                </span>
-                                <Badge variant="secondary" className="text-xs">
-                                  {formatPercentage(ticket.tickets_sold, ticket.ticket_capacity)}
-                                </Badge>
+                                {isComped ? (
+                                  <>
+                                    <span className="font-mono">
+                                      {ticket.tickets_sold} comped
+                                    </span>
+                                    <Badge variant="secondary" className="text-xs">
+                                      Not counted in capacity
+                                    </Badge>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="font-mono">
+                                      {ticket.tickets_sold}/{ticket.ticket_capacity}
+                                    </span>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {formatPercentage(ticket.tickets_sold, ticket.ticket_capacity)}
+                                    </Badge>
+                                  </>
+                                )}
                               </div>
                             </div>
-                            <Progress 
-                              value={ticketPercentage} 
-                              className="h-1.5"
-                            />
+                            {!isComped && (
+                              <Progress 
+                                value={ticketPercentage} 
+                                className="h-1.5"
+                              />
+                            )}
                           </div>
                         );
                       })}
