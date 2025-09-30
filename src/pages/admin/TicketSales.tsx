@@ -233,24 +233,13 @@ const TicketSales = () => {
                                 <p className="font-medium truncate">{ticket.ticket_name}</p>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
-                                {isUnassignedComped ? (
-                                  <>
-                                    <span className="font-mono">
-                                      {ticket.tickets_sold} custom comped
-                                    </span>
-                                    <Badge variant="secondary" className="text-xs">
-                                      Not counted in capacity
-                                    </Badge>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="font-mono">
-                                      {ticket.tickets_sold}/{ticket.ticket_capacity}
-                                    </span>
-                                    <Badge variant="secondary" className="text-xs">
-                                      {formatPercentage(ticket.tickets_sold, ticket.ticket_capacity)}
-                                    </Badge>
-                                  </>
+                                <span className="font-mono">
+                                  {ticket.tickets_sold}{!isUnassignedComped && `/${ticket.ticket_capacity}`}
+                                </span>
+                                {!isUnassignedComped && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {formatPercentage(ticket.tickets_sold, ticket.ticket_capacity)}
+                                  </Badge>
                                 )}
                               </div>
                             </div>
