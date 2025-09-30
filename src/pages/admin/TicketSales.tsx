@@ -56,6 +56,7 @@ const TicketSales = () => {
           id,
           title,
           capacity_total,
+          starts_at,
           tickets (
             id,
             name,
@@ -64,7 +65,7 @@ const TicketSales = () => {
           )
         `)
         .eq('status', 'published')
-        .order('created_at', { ascending: false });
+        .order('starts_at', { ascending: true });
 
       if (error) throw error;
 

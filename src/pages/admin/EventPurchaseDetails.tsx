@@ -178,6 +178,28 @@ const EventPurchaseDetails = () => {
     });
   };
 
+  // Calculate ticket breakdown
+  const ticketBreakdown = useMemo(() => {
+    const breakdown = new Map<string, number>();
+    purchases.forEach(purchase => {
+      const current = breakdown.get(purchase.ticket_name) || 0;
+      breakdown.set(purchase.ticket_name, current + purchase.ticket_quantity);
+    });
+    return Array.from(breakdown.entries()).map(([name, count]) => ({ name, count }));
+  }, [purchases]);
+
+  // Calculate addon breakdown
+  const addonBreakdown = useMemo(() => {
+    const breakdown = new Map<string, number>();
+    purchases.forEach(purchase => {
+      purchase.addons.forEach(addon => {
+        const current = breakdown.get(addon.name) || 0;
+        breakdown.set(addon.name, current + addon.quantity);
+      });
+    });
+    return Array.from(breakdown.entries()).map(([name, count]) => ({ name, count }));
+  }, [purchases]);
+
   const handleEmailClick = (email: string, name: string | null) => {
     setSelectedRecipient({ email, name, isBulk: false });
     setEmailDialogOpen(true);
@@ -294,6 +316,63 @@ const EventPurchaseDetails = () => {
                   <p className="text-sm text-muted-foreground">Tickets Sold</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tickets and Add-ons Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Tickets Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Tickets Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ticketBreakdown.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No tickets sold</p>
+              ) : (
+                <div className="space-y-3">
+                  {ticketBreakdown.map((ticket, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{ticket.name}</span>
+                      <Badge variant="secondary">{ticket.count} sold</Badge>
+                    </div>
+                  ))}
+                  <div className="pt-3 border-t flex justify-between items-center">
+                    <span className="text-sm font-bold">Total</span>
+                    <Badge variant="default">
+                      {ticketBreakdown.reduce((sum, t) => sum + t.count, 0)} tickets
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Add-ons Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Add-ons Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {addonBreakdown.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No add-ons sold</p>
+              ) : (
+                <div className="space-y-3">
+                  {addonBreakdown.map((addon, idx) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{addon.name}</span>
+                      <Badge variant="secondary">{addon.count} sold</Badge>
+                    </div>
+                  ))}
+                  <div className="pt-3 border-t flex justify-between items-center">
+                    <span className="text-sm font-bold">Total</span>
+                    <Badge variant="default">
+                      {addonBreakdown.reduce((sum, a) => sum + a.count, 0)} add-ons
+                    </Badge>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
