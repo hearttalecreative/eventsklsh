@@ -85,34 +85,41 @@ const TicketSales = () => {
             .eq('event_id', event.id)
             .in('order_item_id', orderItemIds.length > 0 ? orderItemIds : ['00000000-0000-0000-0000-000000000000']);
 
-          // Count comped attendees for this event (they don't have ticket_id reference)
-          // We'll count all comped attendees for the event and add them to the first ticket type
-          // This is a simplified approach - you may want to refine this based on ticket_label
+          // Count comped attendees for THIS specific ticket type
+          const { count: compedCount } = await supabase
+            .from('attendees')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id)
+            .eq('is_comped', true)
+            .eq('comped_ticket_id', ticket.id);
+
+          const totalForThisTicket = (paidCount || 0) + (compedCount || 0);
           
           return {
             ticket_id: ticket.id,
             ticket_name: ticket.name,
             ticket_capacity: ticket.capacity_total,
-            tickets_sold: paidCount || 0,
+            tickets_sold: totalForThisTicket,
           };
         });
 
         const ticketsSales = await Promise.all(ticketSalesPromises);
         
-        // Add comped attendees count to total
-        const { count: compedCount } = await supabase
+        // Add unassigned comped attendees (those without comped_ticket_id) as a separate category
+        const { count: unassignedCompedCount } = await supabase
           .from('attendees')
           .select('*', { count: 'exact', head: true })
           .eq('event_id', event.id)
-          .eq('is_comped', true);
+          .eq('is_comped', true)
+          .is('comped_ticket_id', null);
 
-        // Add comped attendees as a separate "ticket type" if there are any
-        if (compedCount && compedCount > 0) {
+        // Add unassigned comped attendees as a separate "ticket type" if there are any
+        if (unassignedCompedCount && unassignedCompedCount > 0) {
           ticketsSales.push({
-            ticket_id: 'comped',
-            ticket_name: 'Comped / Credited',
+            ticket_id: 'comped-unassigned',
+            ticket_name: 'Comped / Credited (Custom)',
             ticket_capacity: 0,
-            tickets_sold: compedCount,
+            tickets_sold: unassignedCompedCount,
           });
         }
 
@@ -256,7 +263,7 @@ const TicketSales = () => {
                     
                     <div className="space-y-3">
                       {event.tickets.map((ticket) => {
-                        const isComped = ticket.ticket_id === 'comped';
+                        const isUnassignedComped = ticket.ticket_id === 'comped-unassigned';
                         const ticketPercentage = ticket.ticket_capacity > 0 
                           ? (ticket.tickets_sold / ticket.ticket_capacity) * 100 
                           : 0;
@@ -268,10 +275,10 @@ const TicketSales = () => {
                                 <p className="font-medium truncate">{ticket.ticket_name}</p>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
-                                {isComped ? (
+                                {isUnassignedComped ? (
                                   <>
                                     <span className="font-mono">
-                                      {ticket.tickets_sold} comped
+                                      {ticket.tickets_sold} custom comped
                                     </span>
                                     <Badge variant="secondary" className="text-xs">
                                       Not counted in capacity
@@ -289,7 +296,7 @@ const TicketSales = () => {
                                 )}
                               </div>
                             </div>
-                            {!isComped && (
+                            {!isUnassignedComped && (
                               <Progress 
                                 value={ticketPercentage} 
                                 className="h-1.5"

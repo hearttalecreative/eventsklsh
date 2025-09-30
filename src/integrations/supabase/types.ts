@@ -110,6 +110,7 @@ export type Database = {
       attendees: {
         Row: {
           checked_in_at: string | null
+          comped_ticket_id: string | null
           confirmation_code: string
           created_at: string
           email: string | null
@@ -126,6 +127,7 @@ export type Database = {
         }
         Insert: {
           checked_in_at?: string | null
+          comped_ticket_id?: string | null
           confirmation_code: string
           created_at?: string
           email?: string | null
@@ -142,6 +144,7 @@ export type Database = {
         }
         Update: {
           checked_in_at?: string | null
+          comped_ticket_id?: string | null
           confirmation_code?: string
           created_at?: string
           email?: string | null
@@ -157,6 +160,13 @@ export type Database = {
           zone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "attendees_comped_ticket_id_fkey"
+            columns: ["comped_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "attendees_event_id_fkey"
             columns: ["event_id"]

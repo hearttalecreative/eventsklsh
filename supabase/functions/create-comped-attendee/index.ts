@@ -81,7 +81,8 @@ serve(async (req) => {
           qr_code: qrCode,
           is_comped: true, // Mark as comped
           ticket_label: ticket_label, // Custom label for this attendee
-          order_item_id: null // No order for comped attendees
+          order_item_id: null, // No order for comped attendees
+          comped_ticket_id: ticket_id // Track which ticket type this comped attendee belongs to
         })
         .select()
         .single();
