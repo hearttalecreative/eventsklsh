@@ -31,9 +31,10 @@ const AddAttendeePage = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string>('');
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [attendees, setAttendees] = useState<{name: string; email: string; phone: string}[]>([
+    {name: '', email: '', phone: ''}
+  ]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -53,6 +54,16 @@ const AddAttendeePage = () => {
       setSelectedAddonIds([]);
     }
   }, [eventId]);
+
+  useEffect(() => {
+    // Update attendees array when quantity changes
+    setAttendees(prev => {
+      const newAttendees = Array(quantity).fill(null).map((_, i) => 
+        prev[i] || {name: '', email: '', phone: ''}
+      );
+      return newAttendees;
+    });
+  }, [quantity]);
 
   const loadTicketsAndAddons = async (evId: string) => {
     const { data: ticketsData } = await supabase
@@ -74,38 +85,47 @@ const AddAttendeePage = () => {
     try {
       if (!eventId) return toast.error('Select an event');
       if (!selectedTicketId) return toast.error('Select a ticket');
-      if (!name.trim()) return toast.error('Name required');
-      if (!email.trim()) return toast.error('Email required');
-      if (!phone.trim()) return toast.error('Phone required');
+      
+      // Validate all attendees
+      for (let i = 0; i < attendees.length; i++) {
+        if (!attendees[i].name.trim()) return toast.error(`Name required for attendee ${i + 1}`);
+        if (!attendees[i].email.trim()) return toast.error(`Email required for attendee ${i + 1}`);
+        if (!attendees[i].phone.trim()) return toast.error(`Phone required for attendee ${i + 1}`);
+      }
       
       setSaving(true);
 
-      // Call the edge function to create comped attendee
+      // Call the edge function to create comped attendees
       const { data, error } = await supabase.functions.invoke('create-comped-attendee', {
         body: {
           event_id: eventId,
           ticket_id: selectedTicketId,
           addon_ids: selectedAddonIds,
-          name,
-          email,
-          phone
+          attendees
         }
       });
 
       if (error) throw error;
       
-      toast.success('Attendee added and email sent');
-      setName(''); 
-      setEmail(''); 
-      setPhone('');
+      toast.success(`${attendees.length} attendee(s) added and emails sent`);
+      setAttendees([{name: '', email: '', phone: ''}]);
+      setQuantity(1);
       setSelectedTicketId('');
       setSelectedAddonIds([]);
     } catch (e: any) {
-      console.error('Error creating comped attendee:', e);
-      toast.error(e?.message || 'Error adding attendee');
+      console.error('Error creating comped attendees:', e);
+      toast.error(e?.message || 'Error adding attendees');
     } finally {
       setSaving(false);
     }
+  };
+
+  const updateAttendee = (index: number, field: 'name' | 'email' | 'phone', value: string) => {
+    setAttendees(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const toggleAddon = (addonId: string) => {
@@ -152,7 +172,7 @@ const AddAttendeePage = () => {
         </header>
 
         <section className="p-6 border rounded-lg bg-card space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label>Event *</Label>
               <Select value={eventId} onValueChange={setEventId}>
@@ -186,6 +206,20 @@ const AddAttendeePage = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Number of attendees *</Label>
+              <Select value={quantity.toString()} onValueChange={(val) => setQuantity(parseInt(val))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({length: 10}, (_, i) => i + 1).map(num => (
+                    <SelectItem key={num} value={num.toString()}>{num}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {addons.length > 0 && eventId && (
@@ -211,34 +245,42 @@ const AddAttendeePage = () => {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label>Full name *</Label>
-              <Input 
-                value={name} 
-                onChange={e => setName(e.target.value)} 
-                placeholder="John Doe" 
-              />
-            </div>
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Attendee Information</Label>
+            {attendees.map((attendee, index) => (
+              <div key={index} className="p-4 border rounded-lg space-y-4 bg-muted/30">
+                <h3 className="font-medium text-sm text-muted-foreground">Attendee {index + 1}</h3>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>Full name *</Label>
+                    <Input 
+                      value={attendee.name} 
+                      onChange={e => updateAttendee(index, 'name', e.target.value)} 
+                      placeholder="John Doe" 
+                    />
+                  </div>
 
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input 
-                type="email"
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                placeholder="email@example.com" 
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label>Email *</Label>
+                    <Input 
+                      type="email"
+                      value={attendee.email} 
+                      onChange={e => updateAttendee(index, 'email', e.target.value)} 
+                      placeholder="email@example.com" 
+                    />
+                  </div>
 
-            <div className="space-y-2">
-              <Label>Phone *</Label>
-              <Input 
-                value={phone} 
-                onChange={e => setPhone(e.target.value)} 
-                placeholder="+1 234 567 8900" 
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label>Phone *</Label>
+                    <Input 
+                      value={attendee.phone} 
+                      onChange={e => updateAttendee(index, 'phone', e.target.value)} 
+                      placeholder="+1 234 567 8900" 
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="flex gap-3">

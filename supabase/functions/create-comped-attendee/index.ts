@@ -16,9 +16,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { event_id, ticket_id, addon_ids = [], name, email, phone } = await req.json();
+    const { event_id, ticket_id, addon_ids = [], attendees } = await req.json();
 
-    console.log('Creating comped attendee:', { event_id, ticket_id, addon_ids, name, email });
+    console.log('Creating comped attendees:', { event_id, ticket_id, addon_ids, count: attendees.length });
 
     // Fetch event details
     const { data: event, error: eventError } = await supabase
@@ -55,93 +55,101 @@ serve(async (req) => {
       }
     }
 
-    // Generate confirmation code and QR code
-    const confirmationCode = generateCode(10);
-    const qrCode = generateQRCode();
+    // Process each attendee
+    const createdAttendees = [];
+    
+    for (const attendeeData of attendees) {
+      const { name, email, phone } = attendeeData;
+      
+      // Generate confirmation code and QR code for each attendee
+      const confirmationCode = generateCode(10);
+      const qrCode = generateQRCode();
 
-    // Insert the comped attendee with is_comped flag
-    const { data: attendee, error: attendeeError } = await supabase
-      .from('attendees')
-      .insert({
-        event_id,
+      // Insert the comped attendee with is_comped flag
+      const { data: attendee, error: attendeeError } = await supabase
+        .from('attendees')
+        .insert({
+          event_id,
+          name,
+          email,
+          phone,
+          confirmation_code: confirmationCode,
+          qr_code: qrCode,
+          is_comped: true, // Mark as comped
+          order_item_id: null // No order for comped attendees
+        })
+        .select()
+        .single();
+
+      if (attendeeError) {
+        console.error('Error creating attendee:', attendeeError);
+        throw attendeeError;
+      }
+
+      console.log('Attendee created:', attendee.id);
+      createdAttendees.push(attendee);
+
+      // Prepare email data for this attendee
+      const attendeesForEmail = [{
         name,
         email,
         phone,
         confirmation_code: confirmationCode,
-        qr_code: qrCode,
-        is_comped: true, // Mark as comped
-        order_item_id: null // No order for comped attendees
-      })
-      .select()
-      .single();
+        qr_code: qrCode
+      }];
 
-    if (attendeeError) {
-      console.error('Error creating attendee:', attendeeError);
-      throw attendeeError;
-    }
-
-    console.log('Attendee created:', attendee.id);
-
-    // Prepare email data
-    const attendeesForEmail = [{
-      name,
-      email,
-      phone,
-      confirmation_code: confirmationCode,
-      qr_code: qrCode
-    }];
-
-    // Build order summary for email
-    const orderSummary = {
-      ticket: {
-        name: ticket.name,
-        quantity: 1,
-        unit_amount_cents: 0 // Show as $0 for comped
-      },
-      addons: addonsData.map(addon => ({
-        name: addon.name,
-        quantity: 1,
-        unit_amount_cents: 0 // Show as $0 for comped
-      })),
-      total_amount_cents: 0,
-      currency: 'usd'
-    };
-
-    // Invoke confirmation email function
-    const { error: emailError } = await supabase.functions.invoke('send-confirmation', {
-      body: {
-        email,
-        name,
-        event: {
-          title: event.title,
-          starts_at: event.starts_at,
-          ends_at: event.ends_at,
-          timezone: event.timezone || 'America/Los_Angeles',
-          image_url: event.image_url,
-          instructions: event.instructions,
-          venue: event.venues ? {
-            name: event.venues.name,
-            address: event.venues.address
-          } : null
+      // Build order summary for email
+      const orderSummary = {
+        ticket: {
+          name: ticket.name,
+          quantity: 1,
+          unit_amount_cents: 0 // Show as $0 for comped
         },
-        attendees: attendeesForEmail,
-        order: orderSummary,
-        is_comped: true // Flag to customize email message
-      }
-    });
+        addons: addonsData.map(addon => ({
+          name: addon.name,
+          quantity: 1,
+          unit_amount_cents: 0 // Show as $0 for comped
+        })),
+        total_amount_cents: 0,
+        currency: 'usd'
+      };
 
-    if (emailError) {
-      console.error('Error sending confirmation email:', emailError);
-      // Don't fail the whole operation if email fails
-    } else {
-      console.log('Confirmation email sent successfully');
+      // Invoke confirmation email function for each attendee
+      const { error: emailError } = await supabase.functions.invoke('send-confirmation', {
+        body: {
+          email,
+          name,
+          event: {
+            title: event.title,
+            starts_at: event.starts_at,
+            ends_at: event.ends_at,
+            timezone: event.timezone || 'America/Los_Angeles',
+            image_url: event.image_url,
+            instructions: event.instructions,
+            venue: event.venues ? {
+              name: event.venues.name,
+              address: event.venues.address
+            } : null
+          },
+          attendees: attendeesForEmail,
+          order: orderSummary,
+          is_comped: true // Flag to customize email message
+        }
+      });
+
+      if (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        // Don't fail the whole operation if email fails
+      } else {
+        console.log('Confirmation email sent successfully to:', email);
+      }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        attendee_id: attendee.id,
-        confirmation_code: confirmationCode
+        attendees_created: createdAttendees.length,
+        attendee_ids: createdAttendees.map(a => a.id)
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
