@@ -9,7 +9,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  Users
+  Users,
+  UserPlus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -60,6 +61,11 @@ const AdminHeader = () => {
       path: "/admin/attendees",
       label: "Attendees",
       icon: Users,
+    },
+    {
+      path: "/admin/attendees/add",
+      label: "Add Attendee",
+      icon: UserPlus,
     },
     {
       path: "/admin/ticket-sales",

@@ -1,0 +1,178 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { event_id, ticket_id, addon_ids = [], name, email, phone } = await req.json();
+
+    console.log('Creating comped attendee:', { event_id, ticket_id, addon_ids, name, email });
+
+    // Fetch event details
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('*, venues(*)')
+      .eq('id', event_id)
+      .single();
+
+    if (eventError || !event) {
+      throw new Error('Event not found');
+    }
+
+    // Fetch ticket details
+    const { data: ticket, error: ticketError } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('id', ticket_id)
+      .single();
+
+    if (ticketError || !ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    // Fetch addon details if any
+    let addonsData: any[] = [];
+    if (addon_ids.length > 0) {
+      const { data: addons, error: addonsError } = await supabase
+        .from('addons')
+        .select('*')
+        .in('id', addon_ids);
+      
+      if (!addonsError && addons) {
+        addonsData = addons;
+      }
+    }
+
+    // Generate confirmation code and QR code
+    const confirmationCode = generateCode(10);
+    const qrCode = generateQRCode();
+
+    // Insert the comped attendee with is_comped flag
+    const { data: attendee, error: attendeeError } = await supabase
+      .from('attendees')
+      .insert({
+        event_id,
+        name,
+        email,
+        phone,
+        confirmation_code: confirmationCode,
+        qr_code: qrCode,
+        is_comped: true, // Mark as comped
+        order_item_id: null // No order for comped attendees
+      })
+      .select()
+      .single();
+
+    if (attendeeError) {
+      console.error('Error creating attendee:', attendeeError);
+      throw attendeeError;
+    }
+
+    console.log('Attendee created:', attendee.id);
+
+    // Prepare email data
+    const attendeesForEmail = [{
+      name,
+      email,
+      phone,
+      confirmation_code: confirmationCode,
+      qr_code: qrCode
+    }];
+
+    // Build order summary for email
+    const orderSummary = {
+      ticket: {
+        name: ticket.name,
+        quantity: 1,
+        unit_amount_cents: 0 // Show as $0 for comped
+      },
+      addons: addonsData.map(addon => ({
+        name: addon.name,
+        quantity: 1,
+        unit_amount_cents: 0 // Show as $0 for comped
+      })),
+      total_amount_cents: 0,
+      currency: 'usd'
+    };
+
+    // Invoke confirmation email function
+    const { error: emailError } = await supabase.functions.invoke('send-confirmation', {
+      body: {
+        email,
+        name,
+        event: {
+          title: event.title,
+          starts_at: event.starts_at,
+          ends_at: event.ends_at,
+          timezone: event.timezone || 'America/Los_Angeles',
+          image_url: event.image_url,
+          instructions: event.instructions,
+          venue: event.venues ? {
+            name: event.venues.name,
+            address: event.venues.address
+          } : null
+        },
+        attendees: attendeesForEmail,
+        order: orderSummary,
+        is_comped: true // Flag to customize email message
+      }
+    });
+
+    if (emailError) {
+      console.error('Error sending confirmation email:', emailError);
+      // Don't fail the whole operation if email fails
+    } else {
+      console.log('Confirmation email sent successfully');
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        attendee_id: attendee.id,
+        confirmation_code: confirmationCode
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    );
+
+  } catch (error: any) {
+    console.error('Error in create-comped-attendee:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
+    );
+  }
+});
+
+// Helper functions
+function generateCode(length: number): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function generateQRCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `QR-${hex.toUpperCase()}`;
+}

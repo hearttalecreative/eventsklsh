@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.send-admin-email]
 verify_jwt = true
+
+[functions.create-comped-attendee]
+verify_jwt = true
+
+[functions.process-free-order]
+verify_jwt = false

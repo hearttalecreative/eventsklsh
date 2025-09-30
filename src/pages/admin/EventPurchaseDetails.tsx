@@ -27,6 +27,7 @@ interface PurchaseDetail {
     quantity: number;
   }>;
   total_amount_cents: number;
+  is_comped: boolean;
 }
 
 const EventPurchaseDetails = () => {
@@ -74,7 +75,8 @@ const EventPurchaseDetails = () => {
           name,
           email,
           phone,
-          order_item_id
+          order_item_id,
+          is_comped
         `)
         .eq('event_id', eventId);
 
@@ -82,7 +84,25 @@ const EventPurchaseDetails = () => {
 
       // For each attendee, get their order details
       const purchaseDetailsPromises = attendeesData?.map(async (attendee) => {
-        if (!attendee.order_item_id) return null;
+        // Handle comped attendees (no order)
+        if (!attendee.order_item_id) {
+          if (attendee.is_comped) {
+            return {
+              attendee_id: attendee.id,
+              attendee_name: attendee.name,
+              attendee_email: attendee.email,
+              attendee_phone: attendee.phone,
+              order_id: '',
+              purchase_date: '',
+              ticket_name: 'Comped',
+              ticket_quantity: 1,
+              addons: [],
+              total_amount_cents: 0,
+              is_comped: true
+            };
+          }
+          return null;
+        }
 
         // Get order item details
         const { data: orderItemData } = await supabase
@@ -139,6 +159,7 @@ const EventPurchaseDetails = () => {
           ticket_quantity: orderItemData.quantity,
           addons,
           total_amount_cents: orderData?.total_amount_cents || 0,
+          is_comped: attendee.is_comped || false
         };
       }) || [];
 
@@ -405,11 +426,18 @@ const EventPurchaseDetails = () => {
             ) : isMobile ? (
               // Mobile Card Layout
               <div className="space-y-4">
-                {filteredPurchases.map((purchase) => (
+                  {filteredPurchases.map((purchase) => (
                   <div key={purchase.attendee_id} className="border rounded-lg p-4 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">{purchase.attendee_name || 'No name'}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">{purchase.attendee_name || 'No name'}</h3>
+                          {purchase.is_comped && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                              Acreditado
+                            </Badge>
+                          )}
+                        </div>
                         {purchase.attendee_email ? (
                           <button
                             onClick={() => handleEmailClick(purchase.attendee_email!, purchase.attendee_name)}
@@ -423,7 +451,7 @@ const EventPurchaseDetails = () => {
                         )}
                       </div>
                       <Badge variant="secondary" className="font-mono">
-                        {formatCurrency(purchase.total_amount_cents)}
+                        {purchase.is_comped ? 'Gratis' : formatCurrency(purchase.total_amount_cents)}
                       </Badge>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -468,7 +496,16 @@ const EventPurchaseDetails = () => {
                   <tbody>
                     {filteredPurchases.map((purchase) => (
                       <tr key={purchase.attendee_id} className="border-b">
-                        <td className="py-3">{purchase.attendee_name || '-'}</td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-2">
+                            <span>{purchase.attendee_name || '-'}</span>
+                            {purchase.is_comped && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                                Acreditado
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 text-sm">
                           {purchase.attendee_email ? (
                             <button
@@ -501,9 +538,15 @@ const EventPurchaseDetails = () => {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 text-sm">{formatDate(purchase.purchase_date)}</td>
+                        <td className="py-3 text-sm">
+                          {purchase.is_comped ? '-' : formatDate(purchase.purchase_date)}
+                        </td>
                         <td className="py-3 text-right font-semibold">
-                          {formatCurrency(purchase.total_amount_cents)}
+                          {purchase.is_comped ? (
+                            <span className="text-green-600">Gratis</span>
+                          ) : (
+                            formatCurrency(purchase.total_amount_cents)
+                          )}
                         </td>
                       </tr>
                     ))}

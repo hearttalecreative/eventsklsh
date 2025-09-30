@@ -86,8 +86,9 @@ serve(async (req: Request) => {
       qrCode,
       orderDetails,
       eventImageUrl,
-      eventSlug 
-    }: Payload = await req.json();
+      eventSlug,
+      is_comped = false
+    }: Payload & { is_comped?: boolean } = await req.json();
     console.log("send-confirmation invoked with:", { name, email, eventTitle, eventImageUrl });
 
     if (!email || !name) {
@@ -154,6 +155,12 @@ serve(async (req: Request) => {
             <img src="https://kylelamsoundhealing.com/wp-content/uploads/2025/08/400px-1.png" alt="Kyle Lam Sound Healing" style="height:60px;width:auto;margin-bottom:24px;" />
             <h1 style="margin:0 0 12px 0;font-size:32px;line-height:1.2;color:#2c1810;font-weight:300;letter-spacing:-0.5px;">Thank you, ${name}</h1>
             <p style="margin:0;color:#8a7766;font-size:16px;font-weight:400;">Your Sound Healing journey awaits</p>
+            ${is_comped ? `
+            <div style="background:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:16px;margin-top:24px;">
+              <p style="margin:0;color:#166534;font-size:15px;font-weight:500;">✨ Your ticket has been complimentary credited</p>
+              <p style="margin:8px 0 0 0;color:#15803d;font-size:14px;">No payment required - enjoy the experience!</p>
+            </div>
+            ` : ''}
           </div>
           
           <!-- Event Information -->
