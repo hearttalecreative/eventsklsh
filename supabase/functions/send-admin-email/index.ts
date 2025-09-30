@@ -9,10 +9,11 @@ const corsHeaders = {
 };
 
 interface AdminEmailRequest {
-  to: string;
+  to: string | string[];
   subject: string;
   message: string;
   recipientName?: string | null;
+  isBulk?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -22,20 +23,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, message, recipientName }: AdminEmailRequest = await req.json();
+    const { to, subject, message, recipientName, isBulk }: AdminEmailRequest = await req.json();
 
-    console.log("Sending admin email to:", to);
+    console.log("Sending admin email to:", to, "isBulk:", isBulk);
+
+    const toArray = Array.isArray(to) ? to : [to];
 
     const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "onboarding@resend.dev";
     const senderName = Deno.env.get("BREVO_SENDER_NAME") || "Event Admin";
 
     const emailResponse = await resend.emails.send({
       from: `${senderName} <${senderEmail}>`,
-      to: [to],
+      to: toArray,
       subject: subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          ${recipientName ? `<p>Hi ${recipientName},</p>` : '<p>Hi,</p>'}
+          ${!isBulk && recipientName ? `<p>Hi ${recipientName},</p>` : '<p>Hi,</p>'}
           <div style="white-space: pre-wrap; margin: 20px 0;">${message}</div>
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
           <p style="color: #666; font-size: 12px;">

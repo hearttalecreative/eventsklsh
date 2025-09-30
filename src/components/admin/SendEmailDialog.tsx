@@ -11,11 +11,12 @@ import { Loader2, Send } from "lucide-react";
 interface SendEmailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  recipientEmail: string;
+  recipientEmail: string | string[];
   recipientName: string | null;
+  isBulk?: boolean;
 }
 
-export const SendEmailDialog = ({ open, onOpenChange, recipientEmail, recipientName }: SendEmailDialogProps) => {
+export const SendEmailDialog = ({ open, onOpenChange, recipientEmail, recipientName, isBulk = false }: SendEmailDialogProps) => {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -37,15 +38,19 @@ export const SendEmailDialog = ({ open, onOpenChange, recipientEmail, recipientN
           to: recipientEmail,
           subject,
           message,
-          recipientName,
+          recipientName: isBulk ? null : recipientName,
+          isBulk,
         },
       });
 
       if (error) throw error;
 
+      const recipientCount = Array.isArray(recipientEmail) ? recipientEmail.length : 1;
       toast({
         title: "Email sent",
-        description: `Email successfully sent to ${recipientEmail}`,
+        description: isBulk 
+          ? `Email successfully sent to ${recipientCount} attendees`
+          : `Email successfully sent to ${recipientEmail}`,
       });
 
       setSubject("");
@@ -69,7 +74,10 @@ export const SendEmailDialog = ({ open, onOpenChange, recipientEmail, recipientN
         <DialogHeader>
           <DialogTitle>Send Email</DialogTitle>
           <DialogDescription>
-            Sending to: {recipientName || recipientEmail} ({recipientEmail})
+            {isBulk 
+              ? `Sending to ${Array.isArray(recipientEmail) ? recipientEmail.length : 0} attendees`
+              : `Sending to: ${recipientName || recipientEmail} (${recipientEmail})`
+            }
           </DialogDescription>
         </DialogHeader>
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Search, ShoppingCart, Calendar, DollarSign, Mail } from "lucide-react";
+import { ArrowLeft, Search, ShoppingCart, Calendar, DollarSign, Mail, Send } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AdminRoute from "@/routes/AdminRoute";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -39,7 +39,11 @@ const EventPurchaseDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<{ email: string; name: string | null }>({ email: "", name: null });
+  const [selectedRecipient, setSelectedRecipient] = useState<{ email: string | string[]; name: string | null; isBulk: boolean }>({ 
+    email: "", 
+    name: null,
+    isBulk: false
+  });
 
   useEffect(() => {
     if (eventId) {
@@ -175,7 +179,20 @@ const EventPurchaseDetails = () => {
   };
 
   const handleEmailClick = (email: string, name: string | null) => {
-    setSelectedRecipient({ email, name });
+    setSelectedRecipient({ email, name, isBulk: false });
+    setEmailDialogOpen(true);
+  };
+
+  const handleBulkEmail = () => {
+    const allEmails = purchases
+      .filter(p => p.attendee_email)
+      .map(p => p.attendee_email!);
+    
+    if (allEmails.length === 0) {
+      return;
+    }
+    
+    setSelectedRecipient({ email: allEmails, name: null, isBulk: true });
     setEmailDialogOpen(true);
   };
 
@@ -216,9 +233,20 @@ const EventPurchaseDetails = () => {
           </Button>
         </div>
 
-        <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Purchase Details</h1>
-          <p className="text-muted-foreground">{eventTitle}</p>
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Purchase Details</h1>
+            <p className="text-muted-foreground">{eventTitle}</p>
+          </div>
+          
+          <Button 
+            onClick={handleBulkEmail}
+            disabled={purchases.filter(p => p.attendee_email).length === 0}
+            className="self-start sm:self-auto"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            Email All Attendees
+          </Button>
         </header>
 
         {/* Summary Stats */}
@@ -412,6 +440,7 @@ const EventPurchaseDetails = () => {
           onOpenChange={setEmailDialogOpen}
           recipientEmail={selectedRecipient.email}
           recipientName={selectedRecipient.name}
+          isBulk={selectedRecipient.isBulk}
         />
       </main>
     </AdminRoute>
