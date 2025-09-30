@@ -72,11 +72,11 @@ const AddAttendeePage = () => {
 
   const submit = async () => {
     try {
-      if (!eventId) return toast.error('Selecciona un evento');
-      if (!selectedTicketId) return toast.error('Selecciona un ticket');
-      if (!name.trim()) return toast.error('Nombre requerido');
-      if (!email.trim()) return toast.error('Email requerido');
-      if (!phone.trim()) return toast.error('Teléfono requerido');
+      if (!eventId) return toast.error('Select an event');
+      if (!selectedTicketId) return toast.error('Select a ticket');
+      if (!name.trim()) return toast.error('Name required');
+      if (!email.trim()) return toast.error('Email required');
+      if (!phone.trim()) return toast.error('Phone required');
       
       setSaving(true);
 
@@ -94,7 +94,7 @@ const AddAttendeePage = () => {
 
       if (error) throw error;
       
-      toast.success('Asistente agregado y email enviado');
+      toast.success('Attendee added and email sent');
       setName(''); 
       setEmail(''); 
       setPhone('');
@@ -102,7 +102,7 @@ const AddAttendeePage = () => {
       setSelectedAddonIds([]);
     } catch (e: any) {
       console.error('Error creating comped attendee:', e);
-      toast.error(e?.message || 'Error al agregar asistente');
+      toast.error(e?.message || 'Error adding attendee');
     } finally {
       setSaving(false);
     }
@@ -130,8 +130,8 @@ const AddAttendeePage = () => {
       <AdminHeader />
       <main className="container mx-auto py-10 px-4 space-y-6">
         <Helmet>
-          <title>Agregar asistente | Dashboard</title>
-          <meta name="description" content="Agregar manualmente participantes a un evento" />
+          <title>Add Attendee | Dashboard</title>
+          <meta name="description" content="Manually add participants to an event" />
           <link rel="canonical" href={`${baseUrl}/admin/attendees/add`} />
         </Helmet>
         
@@ -139,25 +139,25 @@ const AddAttendeePage = () => {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/admin/events">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a eventos
+              Back to events
             </Link>
           </Button>
         </div>
 
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Agregar asistente manualmente</h1>
-            <p className="text-sm text-muted-foreground mt-1">El asistente recibirá un email de confirmación indicando que el ticket ha sido acreditado</p>
+            <h1 className="text-2xl font-semibold">Add attendee manually</h1>
+            <p className="text-sm text-muted-foreground mt-1">The attendee will receive a confirmation email indicating that the ticket has been credited</p>
           </div>
         </header>
 
         <section className="p-6 border rounded-lg bg-card space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Evento *</Label>
+              <Label>Event *</Label>
               <Select value={eventId} onValueChange={setEventId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona evento" />
+                  <SelectValue placeholder="Select event" />
                 </SelectTrigger>
                 <SelectContent>
                   {events.map(ev => (
@@ -175,7 +175,7 @@ const AddAttendeePage = () => {
                 disabled={!eventId || tickets.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={!eventId ? "Primero selecciona un evento" : "Selecciona ticket"} />
+                  <SelectValue placeholder={!eventId ? "First select an event" : "Select ticket"} />
                 </SelectTrigger>
                 <SelectContent>
                   {tickets.map(ticket => (
@@ -190,7 +190,7 @@ const AddAttendeePage = () => {
 
           {addons.length > 0 && eventId && (
             <div className="space-y-2">
-              <Label>Add-ons (opcional)</Label>
+              <Label>Add-ons (optional)</Label>
               <div className="border rounded-md p-4 space-y-3">
                 {addons.map(addon => (
                   <div key={addon.id} className="flex items-center space-x-2">
@@ -213,11 +213,11 @@ const AddAttendeePage = () => {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label>Nombre completo *</Label>
+              <Label>Full name *</Label>
               <Input 
                 value={name} 
                 onChange={e => setName(e.target.value)} 
-                placeholder="Juan Pérez" 
+                placeholder="John Doe" 
               />
             </div>
 
@@ -227,12 +227,12 @@ const AddAttendeePage = () => {
                 type="email"
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
-                placeholder="correo@ejemplo.com" 
+                placeholder="email@example.com" 
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Teléfono *</Label>
+              <Label>Phone *</Label>
               <Input 
                 value={phone} 
                 onChange={e => setPhone(e.target.value)} 
@@ -243,9 +243,9 @@ const AddAttendeePage = () => {
 
           <div className="flex gap-3">
             <Button onClick={submit} disabled={saving || !eventId || !selectedTicketId}>
-              {saving ? 'Guardando y enviando email...' : 'Agregar asistente'}
+              {saving ? 'Saving and sending email...' : 'Add attendee'}
             </Button>
-            {saving && <p className="text-sm text-muted-foreground self-center">Esto puede tardar unos segundos...</p>}
+            {saving && <p className="text-sm text-muted-foreground self-center">This may take a few seconds...</p>}
           </div>
         </section>
       </main>

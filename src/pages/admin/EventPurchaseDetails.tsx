@@ -430,11 +430,11 @@ const EventPurchaseDetails = () => {
                   <div key={purchase.attendee_id} className="border rounded-lg p-4 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold">{purchase.attendee_name || 'No name'}</h3>
                           {purchase.is_comped && (
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                              Acreditado
+                              Comped
                             </Badge>
                           )}
                         </div>
@@ -451,7 +451,7 @@ const EventPurchaseDetails = () => {
                         )}
                       </div>
                       <Badge variant="secondary" className="font-mono">
-                        {purchase.is_comped ? 'Gratis' : formatCurrency(purchase.total_amount_cents)}
+                        {purchase.is_comped ? 'Free' : formatCurrency(purchase.total_amount_cents)}
                       </Badge>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -496,12 +496,12 @@ const EventPurchaseDetails = () => {
                   <tbody>
                     {filteredPurchases.map((purchase) => (
                       <tr key={purchase.attendee_id} className="border-b">
-                        <td className="py-3">
+                         <td className="py-3">
                           <div className="flex items-center gap-2">
                             <span>{purchase.attendee_name || '-'}</span>
                             {purchase.is_comped && (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
-                                Acreditado
+                                Comped
                               </Badge>
                             )}
                           </div>
@@ -543,7 +543,7 @@ const EventPurchaseDetails = () => {
                         </td>
                         <td className="py-3 text-right font-semibold">
                           {purchase.is_comped ? (
-                            <span className="text-green-600">Gratis</span>
+                            <span className="text-green-600">Free</span>
                           ) : (
                             formatCurrency(purchase.total_amount_cents)
                           )}
