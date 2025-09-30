@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Search, ShoppingCart, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, Search, ShoppingCart, Calendar, DollarSign, Mail } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import AdminRoute from "@/routes/AdminRoute";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { SendEmailDialog } from "@/components/admin/SendEmailDialog";
 
 interface PurchaseDetail {
   attendee_id: string;
@@ -37,6 +38,8 @@ const EventPurchaseDetails = () => {
   const [purchases, setPurchases] = useState<PurchaseDetail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<{ email: string; name: string | null }>({ email: "", name: null });
 
   useEffect(() => {
     if (eventId) {
@@ -171,6 +174,11 @@ const EventPurchaseDetails = () => {
     });
   };
 
+  const handleEmailClick = (email: string, name: string | null) => {
+    setSelectedRecipient({ email, name });
+    setEmailDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <AdminRoute>
@@ -295,7 +303,17 @@ const EventPurchaseDetails = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold">{purchase.attendee_name || 'No name'}</h3>
-                        <p className="text-sm text-muted-foreground">{purchase.attendee_email || 'No email'}</p>
+                        {purchase.attendee_email ? (
+                          <button
+                            onClick={() => handleEmailClick(purchase.attendee_email!, purchase.attendee_name)}
+                            className="text-sm text-primary hover:underline flex items-center gap-1"
+                          >
+                            <Mail className="h-3 w-3" />
+                            {purchase.attendee_email}
+                          </button>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No email</p>
+                        )}
                       </div>
                       <Badge variant="secondary" className="font-mono">
                         {formatCurrency(purchase.total_amount_cents)}
@@ -344,7 +362,19 @@ const EventPurchaseDetails = () => {
                     {filteredPurchases.map((purchase) => (
                       <tr key={purchase.attendee_id} className="border-b">
                         <td className="py-3">{purchase.attendee_name || '-'}</td>
-                        <td className="py-3 text-sm">{purchase.attendee_email || '-'}</td>
+                        <td className="py-3 text-sm">
+                          {purchase.attendee_email ? (
+                            <button
+                              onClick={() => handleEmailClick(purchase.attendee_email!, purchase.attendee_name)}
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {purchase.attendee_email}
+                            </button>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
                         <td className="py-3 text-sm">{purchase.attendee_phone || '-'}</td>
                         <td className="py-3">
                           <Badge variant="outline">
@@ -376,6 +406,13 @@ const EventPurchaseDetails = () => {
             )}
           </CardContent>
         </Card>
+
+        <SendEmailDialog
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+          recipientEmail={selectedRecipient.email}
+          recipientName={selectedRecipient.name}
+        />
       </main>
     </AdminRoute>
   );
