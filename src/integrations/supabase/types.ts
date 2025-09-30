@@ -121,6 +121,7 @@ export type Database = {
           phone: string | null
           qr_code: string | null
           seat: string | null
+          ticket_label: string | null
           zone: string | null
         }
         Insert: {
@@ -136,6 +137,7 @@ export type Database = {
           phone?: string | null
           qr_code?: string | null
           seat?: string | null
+          ticket_label?: string | null
           zone?: string | null
         }
         Update: {
@@ -151,6 +153,7 @@ export type Database = {
           phone?: string | null
           qr_code?: string | null
           seat?: string | null
+          ticket_label?: string | null
           zone?: string | null
         }
         Relationships: [

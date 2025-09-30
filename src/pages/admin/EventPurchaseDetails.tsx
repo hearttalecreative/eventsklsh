@@ -76,7 +76,8 @@ const EventPurchaseDetails = () => {
           email,
           phone,
           order_item_id,
-          is_comped
+          is_comped,
+          ticket_label
         `)
         .eq('event_id', eventId);
 
@@ -94,11 +95,11 @@ const EventPurchaseDetails = () => {
               attendee_phone: attendee.phone,
               order_id: '',
               purchase_date: '',
-              ticket_name: 'Comped',
+              ticket_name: attendee.ticket_label || 'Comped',
               ticket_quantity: 1,
               addons: [],
               total_amount_cents: 0,
-              is_comped: true
+              is_comped: true,
             };
           }
           return null;

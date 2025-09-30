@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { event_id, ticket_id, addon_ids = [], attendees } = await req.json();
+    const { event_id, ticket_id, addon_ids = [], ticket_label = null, attendees } = await req.json();
 
     console.log('Creating comped attendees:', { event_id, ticket_id, addon_ids, count: attendees.length });
 
@@ -76,6 +76,7 @@ serve(async (req) => {
           confirmation_code: confirmationCode,
           qr_code: qrCode,
           is_comped: true, // Mark as comped
+          ticket_label: ticket_label, // Custom label for this attendee
           order_item_id: null // No order for comped attendees
         })
         .select()
@@ -100,39 +101,42 @@ serve(async (req) => {
 
       // Build order summary for email
       const orderSummary = {
-        ticket: {
+        orderId: `COMP-${attendee.id.substring(0, 8).toUpperCase()}`,
+        tickets: [{
           name: ticket.name,
           quantity: 1,
-          unit_amount_cents: 0 // Show as $0 for comped
-        },
+          unitPrice: 0 // Show as $0 for comped
+        }],
         addons: addonsData.map(addon => ({
           name: addon.name,
           quantity: 1,
-          unit_amount_cents: 0 // Show as $0 for comped
+          unitPrice: 0 // Show as $0 for comped
         })),
-        total_amount_cents: 0,
+        totalAmount: 0,
         currency: 'usd'
       };
+
+      // Format venue information
+      const venueInfo = event.venues 
+        ? `${event.venues.name}${event.venues.address ? ', ' + event.venues.address : ''}`
+        : null;
 
       // Invoke confirmation email function for each attendee
       const { error: emailError } = await supabase.functions.invoke('send-confirmation', {
         body: {
           email,
           name,
-          event: {
-            title: event.title,
-            starts_at: event.starts_at,
-            ends_at: event.ends_at,
-            timezone: event.timezone || 'America/Los_Angeles',
-            image_url: event.image_url,
-            instructions: event.instructions,
-            venue: event.venues ? {
-              name: event.venues.name,
-              address: event.venues.address
-            } : null
-          },
-          attendees: attendeesForEmail,
-          order: orderSummary,
+          phone,
+          eventTitle: event.title,
+          eventDescription: event.short_description || event.description,
+          eventDate: event.starts_at,
+          eventVenue: venueInfo,
+          eventImageUrl: event.image_url,
+          eventSlug: event.slug,
+          instructions: event.instructions,
+          confirmationCode: confirmationCode,
+          qrCode: qrCode,
+          orderDetails: orderSummary,
           is_comped: true // Flag to customize email message
         }
       });

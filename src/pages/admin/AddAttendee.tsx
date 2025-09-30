@@ -32,6 +32,7 @@ const AddAttendeePage = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string>('');
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
   const [quantity, setQuantity] = useState(1);
+  const [ticketLabel, setTicketLabel] = useState<string>('');
   const [attendees, setAttendees] = useState<{name: string; email: string; phone: string}[]>([
     {name: '', email: '', phone: ''}
   ]);
@@ -101,6 +102,7 @@ const AddAttendeePage = () => {
           event_id: eventId,
           ticket_id: selectedTicketId,
           addon_ids: selectedAddonIds,
+          ticket_label: ticketLabel.trim() || null,
           attendees
         }
       });
@@ -110,6 +112,7 @@ const AddAttendeePage = () => {
       toast.success(`${attendees.length} attendee(s) added and emails sent`);
       setAttendees([{name: '', email: '', phone: ''}]);
       setQuantity(1);
+      setTicketLabel('');
       setSelectedTicketId('');
       setSelectedAddonIds([]);
     } catch (e: any) {
@@ -220,6 +223,19 @@ const AddAttendeePage = () => {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Ticket Label (optional)</Label>
+            <Input 
+              value={ticketLabel}
+              onChange={e => setTicketLabel(e.target.value)}
+              placeholder="e.g., Credited Ticket, CCM RSVP, VIP Guest"
+              maxLength={100}
+            />
+            <p className="text-xs text-muted-foreground">
+              Custom label to identify these attendees (e.g., "Credited Ticket for 2", "CCM RSVP")
+            </p>
           </div>
 
           {addons.length > 0 && eventId && (

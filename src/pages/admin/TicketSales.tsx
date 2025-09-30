@@ -69,30 +69,53 @@ const TicketSales = () => {
 
       if (error) throw error;
 
-      // For each event, get attendee counts per ticket type
+      // For each event, get attendee counts per ticket type (including comped)
       const salesDataPromises = data?.map(async (event) => {
         const ticketSalesPromises = event.tickets.map(async (ticket: any) => {
-          const { count } = await supabase
+          // Count paid attendees
+          const orderItemIds = await supabase
+            .from('order_items')
+            .select('id')
+            .eq('ticket_id', ticket.id)
+            .then(({ data }) => data?.map(item => item.id) || []);
+          
+          const { count: paidCount } = await supabase
             .from('attendees')
             .select('*', { count: 'exact', head: true })
             .eq('event_id', event.id)
-            .in('order_item_id', 
-              await supabase
-                .from('order_items')
-                .select('id')
-                .eq('ticket_id', ticket.id)
-                .then(({ data }) => data?.map(item => item.id) || [])
-            );
+            .in('order_item_id', orderItemIds.length > 0 ? orderItemIds : ['00000000-0000-0000-0000-000000000000']);
 
+          // Count comped attendees for this event (they don't have ticket_id reference)
+          // We'll count all comped attendees for the event and add them to the first ticket type
+          // This is a simplified approach - you may want to refine this based on ticket_label
+          
           return {
             ticket_id: ticket.id,
             ticket_name: ticket.name,
             ticket_capacity: ticket.capacity_total,
-            tickets_sold: count || 0,
+            tickets_sold: paidCount || 0,
           };
         });
 
         const ticketsSales = await Promise.all(ticketSalesPromises);
+        
+        // Add comped attendees count to total
+        const { count: compedCount } = await supabase
+          .from('attendees')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', event.id)
+          .eq('is_comped', true);
+
+        // Add comped attendees as a separate "ticket type" if there are any
+        if (compedCount && compedCount > 0) {
+          ticketsSales.push({
+            ticket_id: 'comped',
+            ticket_name: 'Comped / Credited',
+            ticket_capacity: 0,
+            tickets_sold: compedCount,
+          });
+        }
+
         const totalTicketsSold = ticketsSales.reduce((sum, ticket) => sum + ticket.tickets_sold, 0);
 
         return {
