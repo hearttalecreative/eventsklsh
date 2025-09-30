@@ -711,6 +711,15 @@ export type Database = {
           venue_id: string | null
         }[]
       }
+      get_ticket_sales_for_event_admin: {
+        Args: { ev_id: string }
+        Returns: {
+          ticket_capacity: number
+          ticket_id: string
+          ticket_name: string
+          tickets_sold: number
+        }[]
+      }
       get_venue_sales_summary_admin: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -49,103 +49,51 @@ const TicketSales = () => {
     try {
       setIsLoading(true);
       
-      // Query to get ticket sales data per event and ticket type
+      // Query to get published events
       const { data, error } = await supabase
         .from('events')
         .select(`
           id,
           title,
           capacity_total,
-          starts_at,
-          tickets (
-            id,
-            name,
-            capacity_total,
-            participants_per_ticket
-          )
+          starts_at
         `)
         .eq('status', 'published')
         .order('starts_at', { ascending: true });
 
       if (error) throw error;
 
-      // For each event, get attendee counts per ticket type (including comped)
+      // For each event, call the database function to get ticket sales
       const salesDataPromises = data?.map(async (event) => {
-        const ticketSalesPromises = event.tickets.map(async (ticket: any) => {
-          // Count paid attendees
-          const orderItemsResult = await supabase
-            .from('order_items')
-            .select('id')
-            .eq('ticket_id', ticket.id);
-          
-          const orderItemIds = orderItemsResult.data?.map(item => item.id) || [];
-          
-          console.log(`[TicketSales] Event: ${event.title}, Ticket: ${ticket.name}`);
-          console.log(`[TicketSales] Found ${orderItemIds.length} order_items for ticket ${ticket.id}`);
-          
-          const paidResult = await supabase
-            .from('attendees')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', event.id)
-            .in('order_item_id', orderItemIds.length > 0 ? orderItemIds : ['00000000-0000-0000-0000-000000000000']);
+        // Use the database function that bypasses RLS
+        const { data: ticketSales, error: salesError } = await supabase
+          .rpc('get_ticket_sales_for_event_admin', { ev_id: event.id });
 
-          console.log(`[TicketSales] Paid attendees count: ${paidResult.count}, Error:`, paidResult.error);
-
-          // Count comped attendees for THIS specific ticket type
-          const compedResult = await supabase
-            .from('attendees')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', event.id)
-            .eq('is_comped', true)
-            .eq('comped_ticket_id', ticket.id);
-
-          console.log(`[TicketSales] Comped attendees count: ${compedResult.count}, Error:`, compedResult.error);
-
-          const totalForThisTicket = (paidResult.count || 0) + (compedResult.count || 0);
-          
-          console.log(`[TicketSales] Total for ${ticket.name}: ${totalForThisTicket}`);
-          
-          return {
-            ticket_id: ticket.id,
-            ticket_name: ticket.name,
-            ticket_capacity: ticket.capacity_total,
-            tickets_sold: totalForThisTicket,
-          };
-        });
-
-        const ticketsSales = await Promise.all(ticketSalesPromises);
-        
-        // Add unassigned comped attendees (those without comped_ticket_id) as a separate category
-        const { count: unassignedCompedCount } = await supabase
-          .from('attendees')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_id', event.id)
-          .eq('is_comped', true)
-          .is('comped_ticket_id', null);
-
-        // Add unassigned comped attendees as a separate "ticket type" if there are any
-        if (unassignedCompedCount && unassignedCompedCount > 0) {
-          ticketsSales.push({
-            ticket_id: 'comped-unassigned',
-            ticket_name: 'Comped / Credited (Custom)',
-            ticket_capacity: 0,
-            tickets_sold: unassignedCompedCount,
-          });
+        if (salesError) {
+          console.error(`Error fetching sales for event ${event.id}:`, salesError);
+          return null;
         }
 
-        const totalTicketsSold = ticketsSales.reduce((sum, ticket) => sum + ticket.tickets_sold, 0);
+        const ticketsSalesData = ticketSales?.map((sale: any) => ({
+          ticket_id: sale.ticket_id || 'comped-unassigned',
+          ticket_name: sale.ticket_name,
+          ticket_capacity: sale.ticket_capacity,
+          tickets_sold: sale.tickets_sold,
+        })) || [];
+
+        const totalTicketsSold = ticketsSalesData.reduce((sum: number, ticket: any) => sum + ticket.tickets_sold, 0);
 
         return {
           event_id: event.id,
           event_title: event.title,
-          event_capacity: event.capacity_total || ticketsSales.reduce((sum, t) => sum + t.ticket_capacity, 0),
+          event_capacity: event.capacity_total || ticketsSalesData.reduce((sum: number, t: any) => sum + t.ticket_capacity, 0),
           total_tickets_sold: totalTicketsSold,
-          tickets: ticketsSales,
+          tickets: ticketsSalesData,
         };
       }) || [];
 
-      const salesData = await Promise.all(salesDataPromises);
-      setSalesData(salesData);
+      const salesData = (await Promise.all(salesDataPromises)).filter(Boolean);
+      setSalesData(salesData as EventSalesData[]);
     } catch (error) {
       console.error('Error fetching ticket sales:', error);
     } finally {
