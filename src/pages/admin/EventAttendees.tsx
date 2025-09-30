@@ -10,7 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CheckCircle, XCircle, Search, Filter, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, Search, Filter, ArrowLeft, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import AdminHeader from "@/components/admin/AdminHeader";
 
 interface Event {
@@ -41,6 +51,8 @@ const EventAttendeesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [checkInFilter, setCheckInFilter] = useState<"all" | "checked-in" | "not-checked-in">("all");
   const [processingCheckIn, setProcessingCheckIn] = useState<Record<string, boolean>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [attendeeToDelete, setAttendeeToDelete] = useState<Attendee | null>(null);
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -152,6 +164,31 @@ const EventAttendeesPage = () => {
       alert(`Failed to update check-in status: ${error.message}`);
     } finally {
       setProcessingCheckIn(prev => ({ ...prev, [attendeeId]: false }));
+    }
+  };
+
+  const handleDeleteClick = (attendee: Attendee) => {
+    setAttendeeToDelete(attendee);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!attendeeToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('attendees')
+        .delete()
+        .eq('id', attendeeToDelete.id);
+      
+      if (error) throw error;
+      
+      // Update local state to remove the deleted attendee
+      setAttendees(prev => prev.filter(a => a.id !== attendeeToDelete.id));
+      setDeleteDialogOpen(false);
+      setAttendeeToDelete(null);
+    } catch (error: any) {
+      alert(`Failed to delete attendee: ${error.message}`);
     }
   };
 
@@ -320,6 +357,14 @@ const EventAttendeesPage = () => {
                                   </>
                                 )}
                               </Badge>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteClick(attendee)}
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground space-y-1">
@@ -347,6 +392,7 @@ const EventAttendeesPage = () => {
                               <th className="pb-3 font-medium">Phone</th>
                               <th className="pb-3 font-medium">Confirmation Code</th>
                               <th className="pb-3 font-medium">Check-in Time</th>
+                              <th className="pb-3 font-medium">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -396,6 +442,16 @@ const EventAttendeesPage = () => {
                                     ? new Date(attendee.checked_in_at).toLocaleString() 
                                     : "-"}
                                 </td>
+                                <td className="py-3">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteClick(attendee)}
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -408,6 +464,24 @@ const EventAttendeesPage = () => {
             </Card>
           </>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Attendee</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {attendeeToDelete?.name || "this attendee"}? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </AdminRoute>
   );
