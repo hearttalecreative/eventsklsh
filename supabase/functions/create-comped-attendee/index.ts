@@ -18,7 +18,7 @@ serve(async (req) => {
 
     const { event_id, ticket_id, addon_ids = [], ticket_label = null, attendees } = await req.json();
 
-    console.log('Creating comped attendees:', { event_id, ticket_id, addon_ids, count: attendees.length });
+    console.log('Creating comped attendees:', { event_id, ticket_id, addon_ids, ticket_label, count: attendees.length });
 
     // Fetch event details
     const { data: event, error: eventError } = await supabase
@@ -31,15 +31,19 @@ serve(async (req) => {
       throw new Error('Event not found');
     }
 
-    // Fetch ticket details
-    const { data: ticket, error: ticketError } = await supabase
-      .from('tickets')
-      .select('*')
-      .eq('id', ticket_id)
-      .single();
+    // Fetch ticket details if ticket_id is provided (existing ticket)
+    let ticket = null;
+    if (ticket_id) {
+      const { data: ticketData, error: ticketError } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('id', ticket_id)
+        .single();
 
-    if (ticketError || !ticket) {
-      throw new Error('Ticket not found');
+      if (ticketError || !ticketData) {
+        throw new Error('Ticket not found');
+      }
+      ticket = ticketData;
     }
 
     // Fetch addon details if any
@@ -100,10 +104,12 @@ serve(async (req) => {
       }];
 
       // Build order summary for email
+      const ticketNameForEmail = ticket ? ticket.name : (ticket_label || 'Complimentary Ticket');
+      
       const orderSummary = {
         orderId: `COMP-${attendee.id.substring(0, 8).toUpperCase()}`,
         tickets: [{
-          name: ticket.name,
+          name: ticketNameForEmail,
           quantity: 1,
           unitPrice: 0 // Show as $0 for comped
         }],

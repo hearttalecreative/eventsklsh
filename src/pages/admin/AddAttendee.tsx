@@ -29,10 +29,11 @@ const AddAttendeePage = () => {
   const [eventId, setEventId] = useState<string>('');
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
+  const [ticketType, setTicketType] = useState<'existing' | 'custom'>('existing');
   const [selectedTicketId, setSelectedTicketId] = useState<string>('');
+  const [customTicketName, setCustomTicketName] = useState<string>('');
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
   const [quantity, setQuantity] = useState(1);
-  const [ticketLabel, setTicketLabel] = useState<string>('');
   const [attendees, setAttendees] = useState<{name: string; email: string; phone: string}[]>([
     {name: '', email: '', phone: ''}
   ]);
@@ -85,7 +86,14 @@ const AddAttendeePage = () => {
   const submit = async () => {
     try {
       if (!eventId) return toast.error('Select an event');
-      if (!selectedTicketId) return toast.error('Select a ticket');
+      
+      // Validate ticket selection
+      if (ticketType === 'existing' && !selectedTicketId) {
+        return toast.error('Select a ticket');
+      }
+      if (ticketType === 'custom' && !customTicketName.trim()) {
+        return toast.error('Enter a custom ticket name');
+      }
       
       // Validate all attendees
       for (let i = 0; i < attendees.length; i++) {
@@ -100,9 +108,9 @@ const AddAttendeePage = () => {
       const { data, error } = await supabase.functions.invoke('create-comped-attendee', {
         body: {
           event_id: eventId,
-          ticket_id: selectedTicketId,
+          ticket_id: ticketType === 'existing' ? selectedTicketId : null,
           addon_ids: selectedAddonIds,
-          ticket_label: ticketLabel.trim() || null,
+          ticket_label: ticketType === 'custom' ? customTicketName.trim() : null,
           attendees
         }
       });
@@ -112,7 +120,7 @@ const AddAttendeePage = () => {
       toast.success(`${attendees.length} attendee(s) added and emails sent`);
       setAttendees([{name: '', email: '', phone: ''}]);
       setQuantity(1);
-      setTicketLabel('');
+      setCustomTicketName('');
       setSelectedTicketId('');
       setSelectedAddonIds([]);
     } catch (e: any) {
@@ -175,7 +183,7 @@ const AddAttendeePage = () => {
         </header>
 
         <section className="p-6 border rounded-lg bg-card space-y-6">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Event *</Label>
               <Select value={eventId} onValueChange={setEventId}>
@@ -190,25 +198,72 @@ const AddAttendeePage = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Ticket *</Label>
-              <Select 
-                value={selectedTicketId} 
-                onValueChange={setSelectedTicketId}
-                disabled={!eventId || tickets.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={!eventId ? "First select an event" : "Select ticket"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {tickets.map(ticket => (
-                    <SelectItem key={ticket.id} value={ticket.id}>
-                      {ticket.name} - {formatPrice(ticket.unit_amount_cents)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {eventId && (
+              <>
+                <div className="space-y-3">
+                  <Label>Ticket Type *</Label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="ticketType"
+                        value="existing"
+                        checked={ticketType === 'existing'}
+                        onChange={() => setTicketType('existing')}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Use existing ticket</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="ticketType"
+                        value="custom"
+                        checked={ticketType === 'custom'}
+                        onChange={() => setTicketType('custom')}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Create custom ticket</span>
+                    </label>
+                  </div>
+                </div>
+
+                {ticketType === 'existing' ? (
+                  <div className="space-y-2">
+                    <Label>Select Ticket *</Label>
+                    <Select 
+                      value={selectedTicketId} 
+                      onValueChange={setSelectedTicketId}
+                      disabled={tickets.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select ticket" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tickets.map(ticket => (
+                          <SelectItem key={ticket.id} value={ticket.id}>
+                            {ticket.name} - {formatPrice(ticket.unit_amount_cents)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Custom Ticket Name *</Label>
+                    <Input 
+                      value={customTicketName}
+                      onChange={e => setCustomTicketName(e.target.value)}
+                      placeholder="e.g., Credited Ticket, CCM RSVP, VIP Guest for 2"
+                      maxLength={100}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This ticket will be free (no charge) and marked as credited
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="space-y-2">
               <Label>Number of attendees *</Label>
@@ -223,19 +278,6 @@ const AddAttendeePage = () => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Ticket Label (optional)</Label>
-            <Input 
-              value={ticketLabel}
-              onChange={e => setTicketLabel(e.target.value)}
-              placeholder="e.g., Credited Ticket, CCM RSVP, VIP Guest"
-              maxLength={100}
-            />
-            <p className="text-xs text-muted-foreground">
-              Custom label to identify these attendees (e.g., "Credited Ticket for 2", "CCM RSVP")
-            </p>
           </div>
 
           {addons.length > 0 && eventId && (
@@ -300,7 +342,15 @@ const AddAttendeePage = () => {
           </div>
 
           <div className="flex gap-3">
-            <Button onClick={submit} disabled={saving || !eventId || !selectedTicketId}>
+            <Button 
+              onClick={submit} 
+              disabled={
+                saving || 
+                !eventId || 
+                (ticketType === 'existing' && !selectedTicketId) ||
+                (ticketType === 'custom' && !customTicketName.trim())
+              }
+            >
               {saving ? 'Saving and sending email...' : 'Add attendee'}
             </Button>
             {saving && <p className="text-sm text-muted-foreground self-center">This may take a few seconds...</p>}
