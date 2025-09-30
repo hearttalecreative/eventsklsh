@@ -208,7 +208,7 @@ const TicketSales = () => {
                       </div>
                       <Progress 
                         value={overallPercentage} 
-                        className="h-2"
+                        className="h-2 [&>div]:bg-green-500"
                       />
                     </div>
                   </CardHeader>
