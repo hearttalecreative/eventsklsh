@@ -73,27 +73,37 @@ const TicketSales = () => {
       const salesDataPromises = data?.map(async (event) => {
         const ticketSalesPromises = event.tickets.map(async (ticket: any) => {
           // Count paid attendees
-          const orderItemIds = await supabase
+          const orderItemsResult = await supabase
             .from('order_items')
             .select('id')
-            .eq('ticket_id', ticket.id)
-            .then(({ data }) => data?.map(item => item.id) || []);
+            .eq('ticket_id', ticket.id);
           
-          const { count: paidCount } = await supabase
+          const orderItemIds = orderItemsResult.data?.map(item => item.id) || [];
+          
+          console.log(`[TicketSales] Event: ${event.title}, Ticket: ${ticket.name}`);
+          console.log(`[TicketSales] Found ${orderItemIds.length} order_items for ticket ${ticket.id}`);
+          
+          const paidResult = await supabase
             .from('attendees')
             .select('*', { count: 'exact', head: true })
             .eq('event_id', event.id)
             .in('order_item_id', orderItemIds.length > 0 ? orderItemIds : ['00000000-0000-0000-0000-000000000000']);
 
+          console.log(`[TicketSales] Paid attendees count: ${paidResult.count}, Error:`, paidResult.error);
+
           // Count comped attendees for THIS specific ticket type
-          const { count: compedCount } = await supabase
+          const compedResult = await supabase
             .from('attendees')
             .select('*', { count: 'exact', head: true })
             .eq('event_id', event.id)
             .eq('is_comped', true)
             .eq('comped_ticket_id', ticket.id);
 
-          const totalForThisTicket = (paidCount || 0) + (compedCount || 0);
+          console.log(`[TicketSales] Comped attendees count: ${compedResult.count}, Error:`, compedResult.error);
+
+          const totalForThisTicket = (paidResult.count || 0) + (compedResult.count || 0);
+          
+          console.log(`[TicketSales] Total for ${ticket.name}: ${totalForThisTicket}`);
           
           return {
             ticket_id: ticket.id,
