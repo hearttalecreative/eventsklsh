@@ -720,7 +720,7 @@ export type Database = {
       app_role: "admin" | "moderator" | "user"
       currency_code: "usd" | "eur" | "ars" | "mxn"
       discount_apply_to: "tickets" | "addons" | "both"
-      event_status: "draft" | "published" | "archived"
+      event_status: "draft" | "published" | "archived" | "sold_out" | "paused"
       order_status: "pending" | "paid" | "refunded" | "canceled"
     }
     CompositeTypes: {
@@ -852,7 +852,7 @@ export const Constants = {
       app_role: ["admin", "moderator", "user"],
       currency_code: ["usd", "eur", "ars", "mxn"],
       discount_apply_to: ["tickets", "addons", "both"],
-      event_status: ["draft", "published", "archived"],
+      event_status: ["draft", "published", "archived", "sold_out", "paused"],
       order_status: ["pending", "paid", "refunded", "canceled"],
     },
   },

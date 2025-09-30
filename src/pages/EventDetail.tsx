@@ -145,8 +145,7 @@ const EventDetail = () => {
   const hasTickets = Array.isArray(event.tickets) && event.tickets.length > 0;
   const isPast = endOrStart < new Date();
   
-  // Only block ticket purchasing for events without tickets or past events
-  // Draft/archived events can still be viewed, just with ticket purchase disabled
+  // Block ticket purchasing for events that are sold out, paused, past, or not published
   const canPurchaseTickets = hasTickets && !isPast && event.status === 'published';
 
   const currency = 'USD';
@@ -364,10 +363,12 @@ const proceed = async () => {
             {!canPurchaseTickets && (
               <div className="mb-4 p-3 rounded-lg bg-muted border border-muted-foreground/20">
                 <p className="text-sm text-muted-foreground">
+                  {event.status === 'sold_out' && '🎫 This event is sold out.'}
+                  {event.status === 'paused' && '⏸️ Ticket sales are temporarily paused.'}
                   {event.status === 'draft' && 'This event is in draft mode.'}
                   {event.status === 'archived' && 'This event has been archived.'}
                   {isPast && 'This event has already ended.'}
-                  {!hasTickets && 'No tickets available for this event.'}
+                  {!hasTickets && !['sold_out', 'paused'].includes(event.status) && 'No tickets available for this event.'}
                   {canPurchaseTickets ? '' : ' Ticket purchasing is disabled.'}
                 </p>
               </div>

@@ -661,7 +661,7 @@ const deleteTicket = async (id: string) => {
   };
 
   // Bulk actions
-  const bulkUpdateStatus = async (next: 'draft' | 'published' | 'archived') => {
+  const bulkUpdateStatus = async (next: 'draft' | 'published' | 'archived' | 'sold_out' | 'paused') => {
     if (selectedIds.length === 0) return;
     const { error } = await supabase.from('events').update({ status: next }).in('id', selectedIds as any);
     if (error) return alert(error.message);
@@ -805,6 +805,8 @@ const deleteTicket = async (id: string) => {
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="sold_out">Sold Out</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
                     <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1454,6 +1456,8 @@ const deleteTicket = async (id: string) => {
                     <SelectContent>
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="sold_out">Sold Out</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
                       <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1539,6 +1543,8 @@ const deleteTicket = async (id: string) => {
                     <SelectContent>
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="sold_out">Sold Out</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
                       <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>
                   </Select>

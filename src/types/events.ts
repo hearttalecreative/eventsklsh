@@ -39,7 +39,7 @@ export interface EventItem {
   venue: Venue;
   category?: string;
   sku: string;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'sold_out' | 'paused';
   tickets: TicketType[];
   addons: Addon[];
   capacityTotal?: number; // optional overall capacity

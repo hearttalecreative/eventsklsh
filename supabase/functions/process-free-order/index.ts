@@ -33,6 +33,7 @@ serve(async (req: Request) => {
       .eq("id", cart.eventId)
       .single();
     if (eventErr) throw eventErr;
+    if (event.status !== "published") throw new Error("Event not available for purchase");
 
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")

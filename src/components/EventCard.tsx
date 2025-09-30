@@ -52,6 +52,9 @@ export const EventCard = ({ event }: Props) => {
   const maxPax = hasTickets ? Math.max(...event.tickets.map((t) => t.participantsPerTicket || 1)) : 1;
   const currency = 'USD';
   const slugPath = event.slug ?? slugify(event.title) ?? event.id;
+  const isSoldOut = event.status === 'sold_out';
+  const isPaused = event.status === 'paused';
+  
   return (
     <Card className="h-full flex flex-col border bg-card">
       <CardHeader className="p-0">
@@ -63,6 +66,13 @@ export const EventCard = ({ event }: Props) => {
             loading="lazy"
             onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }}
           />
+          {(isSoldOut || isPaused) && (
+            <div className="absolute top-2 right-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-destructive text-destructive-foreground">
+                {isSoldOut ? 'SOLD OUT' : 'PAUSED'}
+              </span>
+            </div>
+          )}
         </Link>
         <div className="p-4">
           <CardTitle className="text-xl">
@@ -94,8 +104,10 @@ export const EventCard = ({ event }: Props) => {
           )}
         </div>
         <div className="mt-4">
-          <Button asChild className="w-full">
-            <Link to={`/event/${slugPath}`}>Get tickets</Link>
+          <Button asChild className="w-full" variant={isSoldOut || isPaused ? "secondary" : "default"} disabled={isSoldOut || isPaused}>
+            <Link to={`/event/${slugPath}`}>
+              {isSoldOut ? 'Sold Out' : isPaused ? 'Sales Paused' : 'Get tickets'}
+            </Link>
           </Button>
         </div>
       </CardContent>

@@ -82,11 +82,12 @@ serve(async (req) => {
 
     const { data: event, error: eventErr } = await supabase
       .from("events")
-      .select("id, slug, title, starts_at, ends_at, short_description, instructions, venue_id, timezone, image_url")
+      .select("id, slug, title, starts_at, ends_at, short_description, instructions, venue_id, timezone, image_url, status")
       .eq("id", cart.eventId)
       .maybeSingle();
     if (eventErr) throw eventErr;
     if (!event) throw new Error("Event not found");
+    if ((event as any).status !== "published") throw new Error("Event not available for purchase");
 
     const { data: venue } = await supabase
       .from("venues")
