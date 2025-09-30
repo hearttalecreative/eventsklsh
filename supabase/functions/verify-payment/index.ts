@@ -87,7 +87,11 @@ serve(async (req) => {
       .maybeSingle();
     if (eventErr) throw eventErr;
     if (!event) throw new Error("Event not found");
-    if ((event as any).status !== "published") throw new Error("Event not available for purchase");
+    if ((event as any).status !== "published") {
+      if ((event as any).status === "sold_out") throw new Error("This event is sold out");
+      if ((event as any).status === "paused") throw new Error("Ticket sales are temporarily paused");
+      throw new Error("Event not available for purchase");
+    }
 
     const { data: venue } = await supabase
       .from("venues")

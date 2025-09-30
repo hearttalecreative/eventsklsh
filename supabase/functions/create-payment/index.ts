@@ -108,7 +108,11 @@ serve(async (req) => {
       .maybeSingle();
     if (eventErr) throw eventErr;
     if (!event) throw new Error("Event not found");
-    if (event.status !== "published") throw new Error("Event not available");
+    if (event.status !== "published") {
+      if (event.status === "sold_out") throw new Error("This event is sold out");
+      if (event.status === "paused") throw new Error("Ticket sales are temporarily paused");
+      throw new Error("Event not available");
+    }
 
     const addonIds = cart.addons?.filter(a => (a.qty ?? 0) > 0).map(a => a.id) ?? [];
     const { data: addonsRows, error: addonsErr } = addonIds.length > 0

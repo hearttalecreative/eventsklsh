@@ -33,7 +33,11 @@ serve(async (req: Request) => {
       .eq("id", cart.eventId)
       .single();
     if (eventErr) throw eventErr;
-    if (event.status !== "published") throw new Error("Event not available for purchase");
+    if (event.status !== "published") {
+      if (event.status === "sold_out") throw new Error("This event is sold out");
+      if (event.status === "paused") throw new Error("Ticket sales are temporarily paused");
+      throw new Error("Event not available for purchase");
+    }
 
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")

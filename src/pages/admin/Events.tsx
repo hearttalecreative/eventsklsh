@@ -14,13 +14,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VenueCreateDialog from "@/components/admin/VenueCreateDialog";
 import GoogleMapPicker from "@/components/GoogleMapPicker";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation, Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
-import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote } from "lucide-react";
+import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { toast } from "sonner";
 import AdminHeader from "@/components/admin/AdminHeader";
 
@@ -1133,6 +1134,8 @@ const deleteTicket = async (id: string) => {
             <div className="flex flex-wrap items-center gap-2 p-3 border rounded-md bg-muted/30">
               <span className="text-sm">Selected: {selectedIds.length}</span>
               <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('published')}>Publish</Button>
+              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('sold_out')}>Mark Sold Out</Button>
+              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('paused')}>Pause Sales</Button>
               <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('draft')}>Mark draft</Button>
               <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('archived')}>Archive</Button>
               <Button size="sm" variant="destructive" onClick={bulkDelete}>Delete</Button>
@@ -1193,10 +1196,12 @@ const deleteTicket = async (id: string) => {
                       <td className="py-3 pr-4 capitalize">
                         <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
                           ev.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                          ev.status === 'sold_out' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                          ev.status === 'paused' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
                           ev.status === 'draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
                           'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                         }`}>
-                          {ev.status}
+                          {ev.status === 'sold_out' ? 'Sold Out' : ev.status === 'paused' ? 'Paused' : ev.status}
                         </span>
                       </td>
                       <td className="py-3 pr-4 text-sm font-medium">
@@ -1208,16 +1213,55 @@ const deleteTicket = async (id: string) => {
                       </td>
                       <td className="py-3 pr-4">
                         <div className="flex gap-1">
-                          <Button size="icon" variant="outline" title="Toggle publish" aria-label="Toggle publish" className="h-8 w-8" onClick={async ()=>{
-                            const next = ev.status === 'published' ? 'draft' : 'published';
-                            const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                            if (!error) {
-                              setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
-                              await logAdmin('event_status_toggled','event', ev.id, { from: ev.status, to: next });
-                            }
-                          }}>
-                            <Megaphone className="w-3 h-3" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="outline" title="Change status" aria-label="Change status" className="h-8 w-8">
+                                <Megaphone className="w-3 h-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem onClick={async ()=>{
+                                const next = 'published';
+                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                if (!error) {
+                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                }
+                              }}>Published</DropdownMenuItem>
+                              <DropdownMenuItem onClick={async ()=>{
+                                const next = 'sold_out';
+                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                if (!error) {
+                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                }
+                              }}>Sold Out</DropdownMenuItem>
+                              <DropdownMenuItem onClick={async ()=>{
+                                const next = 'paused';
+                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                if (!error) {
+                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                }
+                              }}>Paused</DropdownMenuItem>
+                              <DropdownMenuItem onClick={async ()=>{
+                                const next = 'draft';
+                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                if (!error) {
+                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                }
+                              }}>Draft</DropdownMenuItem>
+                              <DropdownMenuItem onClick={async ()=>{
+                                const next = 'archived';
+                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                if (!error) {
+                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
+                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                }
+                              }}>Archived</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>
                             <Edit3 className="w-3 h-3" />
                           </Button>
