@@ -186,7 +186,7 @@ const AdminEvents = () => {
   }
 
   const openEdit = (ev: any) => {
-    if (isEventPast(ev)) { alert('You cannot modify a past event.'); return; }
+    if (ev.status !== 'draft' && isEventPast(ev)) { alert('You cannot modify a past event.'); return; }
     setEditingEvent(ev);
     setETitle(ev.title || '');
     setEShort(ev.short_description || '');
@@ -1219,7 +1219,7 @@ const deleteTicket = async (id: string) => {
                                 <Megaphone className="w-3 h-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
+                            <DropdownMenuContent align="start" className="z-50 bg-popover">
                               <DropdownMenuItem onClick={async ()=>{
                                 const next = 'published';
                                 const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
@@ -1262,7 +1262,7 @@ const deleteTicket = async (id: string) => {
                               }}>Archived</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                          <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={()=>openEdit(ev)} disabled={isEventPast(ev)}>
+                          <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={()=>openEdit(ev)} disabled={ev.status !== 'draft' && isEventPast(ev)}>
                             <Edit3 className="w-3 h-3" />
                           </Button>
                           <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-8 w-8" onClick={()=>openDuplicate(ev)}>
