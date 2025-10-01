@@ -25,7 +25,7 @@ interface Addon {
 }
 
 const AddAttendeePage = () => {
-  const [events, setEvents] = useState<{id:string; title:string}[]>([]);
+  const [events, setEvents] = useState<{id:string; title:string; starts_at:string}[]>([]);
   const [eventId, setEventId] = useState<string>('');
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
@@ -42,7 +42,7 @@ const AddAttendeePage = () => {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('events').select('id,title').order('starts_at', { ascending: true });
+      const { data } = await supabase.from('events').select('id,title,starts_at').order('starts_at', { ascending: true });
       setEvents((data || []) as any);
     })();
   }, []);
@@ -195,7 +195,13 @@ const AddAttendeePage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {events.map(ev => (
-                    <SelectItem key={ev.id} value={ev.id}>{ev.title}</SelectItem>
+                    <SelectItem key={ev.id} value={ev.id}>
+                      {ev.title} - {new Date(ev.starts_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

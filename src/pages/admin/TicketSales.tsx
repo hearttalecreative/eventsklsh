@@ -33,6 +33,7 @@ interface TicketSalesData {
 interface EventSalesData {
   event_id: string;
   event_title: string;
+  event_starts_at: string;
   event_capacity: number;
   total_tickets_sold: number;
   tickets: Array<{
@@ -107,6 +108,7 @@ const TicketSales = () => {
         return {
           event_id: event.id,
           event_title: event.title,
+          event_starts_at: event.starts_at,
           event_capacity: event.capacity_total || ticketsSalesData.reduce((sum: number, t: any) => sum + t.ticket_capacity, 0),
           total_tickets_sold: totalTicketsSold,
           tickets: ticketsSalesData,
@@ -200,6 +202,16 @@ const TicketSales = () => {
                         <CardTitle className="text-xl mb-2 truncate">
                           {event.event_title}
                         </CardTitle>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {new Date(event.event_starts_at).toLocaleDateString('en-US', { 
+                            weekday: 'short',
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit'
+                          })}
+                        </p>
                         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
