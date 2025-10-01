@@ -853,7 +853,15 @@ const deleteTicket = async (id: string) => {
                 <Select value={manageEventId} onValueChange={(v)=>setManageEventId(v)}>
                   <SelectTrigger id="manage-ev"><SelectValue placeholder="Choose an event" /></SelectTrigger>
                   <SelectContent>
-                    {events.map(e => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
+                    {events.map(e => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.title} - {new Date(e.starts_at).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
