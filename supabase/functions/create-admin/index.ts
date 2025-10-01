@@ -29,7 +29,7 @@ serve(async (req) => {
       throw new Error("No authorization header");
     }
 
-    // Verify the caller is a primary admin
+    // Verify the caller is an admin (not necessarily primary)
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
@@ -37,10 +37,10 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { data: isPrimary } = await supabaseAdmin.rpc('is_primary_admin', { _user_id: user.id });
+    const { data: isAdmin } = await supabaseAdmin.rpc('has_role', { _user_id: user.id, _role: 'admin' });
     
-    if (!isPrimary) {
-      throw new Error("Only primary admin can create new admins");
+    if (!isAdmin) {
+      throw new Error("Only admins can create new admins");
     }
 
     const { email, password } = await req.json();

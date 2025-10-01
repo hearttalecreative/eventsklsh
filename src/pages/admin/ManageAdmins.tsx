@@ -56,22 +56,30 @@ const ManageAdmins = () => {
   const loadAdmins = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1) Get all admin roles
+      const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
-        .select(`
-          user_id,
-          is_primary,
-          created_at,
-          profiles!inner(email)
-        `)
+        .select(`user_id, is_primary, created_at`)
         .eq("role", "admin")
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (rolesError) throw rolesError;
+      const userIds = (roles ?? []).map((r: any) => r.user_id);
 
-      const adminsData = data.map((item: any) => ({
+      // 2) Fetch emails from profiles for those user ids
+      let profilesById: Record<string, { email: string }> = {};
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, email")
+          .in("id", userIds);
+        if (profilesError) throw profilesError;
+        profilesById = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, { email: p.email }]));
+      }
+
+      const adminsData = (roles ?? []).map((item: any) => ({
         id: item.user_id,
-        email: item.profiles.email,
+        email: profilesById[item.user_id]?.email ?? "(sin email)",
         is_primary: item.is_primary,
         created_at: item.created_at,
       }));
