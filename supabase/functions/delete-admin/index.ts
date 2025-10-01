@@ -58,6 +58,32 @@ serve(async (req) => {
 
     console.log("Deleting admin user:", userId);
 
+    // First, reassign any events created by this user to the primary admin
+    const { data: events, error: eventsError } = await supabaseAdmin
+      .from('events')
+      .select('id')
+      .eq('created_by', userId);
+
+    if (eventsError) {
+      console.error("Error checking events:", eventsError);
+      throw eventsError;
+    }
+
+    if (events && events.length > 0) {
+      console.log(`Found ${events.length} events to reassign to primary admin`);
+      
+      // Reassign events to primary admin
+      const { error: reassignError } = await supabaseAdmin
+        .from('events')
+        .update({ created_by: user.id })
+        .eq('created_by', userId);
+
+      if (reassignError) {
+        console.error("Error reassigning events:", reassignError);
+        throw reassignError;
+      }
+    }
+
     // Delete user (this will cascade to user_roles and profiles)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
