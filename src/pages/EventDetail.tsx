@@ -68,6 +68,27 @@ const EventDetail = () => {
     if (event?.tickets?.[0]?.id) setSelectedTicketId(event.tickets[0].id);
   }, [event?.id]);
 
+  // Check ticket availability when ticket or quantity changes
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (!selectedTicket?.id || quantityTickets < 1) return;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('check-ticket-availability', {
+          body: { ticketId: selectedTicket.id, requestedQty: quantityTickets }
+        });
+        
+        if (error) throw error;
+        setTicketAvailability(data);
+      } catch (err) {
+        console.error('Failed to check ticket availability:', err);
+        setTicketAvailability(null);
+      }
+    };
+    
+    checkAvailability();
+  }, [selectedTicket?.id, quantityTickets]);
+
   const [addonsQty, setAddonsQty] = useState<Record<string, number>>({});
 
   const [participants, setParticipants] = useState(
@@ -78,6 +99,7 @@ const EventDetail = () => {
   const [coupon, setCoupon] = useState('');
   const [couponValid, setCouponValid] = useState(false);
   const [couponInfo, setCouponInfo] = useState<null | { applyTo: 'tickets' | 'addons' | 'both'; discount: { type: 'percent' | 'amount'; value: number } }>(null);
+  const [ticketAvailability, setTicketAvailability] = useState<{ available: boolean; remaining: number } | null>(null);
 
   const [showFullDesc, setShowFullDesc] = useState(false);
   const { shortDesc, isLong } = useMemo(() => {
@@ -220,6 +242,12 @@ const proceed = async () => {
     const invalid = participants.findIndex((p) => !p.fullName || !p.email || !p.phone);
     if (invalid !== -1) {
       toast.error(`Please complete participant #${invalid + 1}`);
+      return;
+    }
+
+    // Check ticket availability before proceeding
+    if (ticketAvailability && !ticketAvailability.available) {
+      toast.error(`Only ${ticketAvailability.remaining} spots remaining for this ticket`);
       return;
     }
 
@@ -388,7 +416,13 @@ const proceed = async () => {
                       <div>
                         <div className="font-medium">{t.name}{t.zone ? ` — ${t.zone}` : ''}</div>
                         {t.description && (<div className="text-xs text-muted-foreground mt-1">{t.description}</div>)}
-                        <div className="text-xs text-muted-foreground">Capacity: {t.capacityTotal}</div>
+                        {isSelected && ticketAvailability && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {ticketAvailability.remaining > 0 
+                              ? `${ticketAvailability.remaining} spots remaining`
+                              : '⚠️ Sold out'}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
                       </div>
                       <div className="text-right">
@@ -406,23 +440,41 @@ const proceed = async () => {
               <label className="text-sm text-muted-foreground">Tickets</label>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" size="icon" aria-label="Decrease tickets"
-                  onClick={() => setQuantityTickets((v) => clamp(v - 1, 1, selectedTicket.capacityTotal))}>
+                  onClick={() => setQuantityTickets((v) => clamp(v - 1, 1, selectedTicket.capacityTotal))}
+                  disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}>
                   −
                 </Button>
                 <Input
                   type="number"
                   min={1}
-                  max={selectedTicket.capacityTotal}
+                  max={ticketAvailability ? Math.floor(ticketAvailability.remaining / (selectedTicket.participantsPerTicket || 1)) : selectedTicket.capacityTotal}
                   value={quantityTickets}
-                  onChange={(e) => setQuantityTickets(clamp(parseInt(e.target.value || '1', 10), 1, selectedTicket.capacityTotal))}
+                  onChange={(e) => {
+                    const maxTickets = ticketAvailability 
+                      ? Math.floor(ticketAvailability.remaining / (selectedTicket.participantsPerTicket || 1))
+                      : selectedTicket.capacityTotal;
+                    setQuantityTickets(clamp(parseInt(e.target.value || '1', 10), 1, maxTickets));
+                  }}
                   className="w-20 text-center"
+                  disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}
                 />
                 <Button type="button" variant="outline" size="icon" aria-label="Increase tickets"
-                  onClick={() => setQuantityTickets((v) => clamp(v + 1, 1, selectedTicket.capacityTotal))}>
+                  onClick={() => {
+                    const maxTickets = ticketAvailability 
+                      ? Math.floor(ticketAvailability.remaining / (selectedTicket.participantsPerTicket || 1))
+                      : selectedTicket.capacityTotal;
+                    setQuantityTickets((v) => clamp(v + 1, 1, maxTickets));
+                  }}
+                  disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}>
                   +
                 </Button>
               </div>
               <div className="text-sm text-muted-foreground">Participants: <span className="font-medium text-foreground">{participantsCount}</span></div>
+              {ticketAvailability && !ticketAvailability.available && (
+                <div className="w-full text-sm text-destructive">
+                  ⚠️ Not enough tickets available. Only {ticketAvailability.remaining} spots remaining.
+                </div>
+              )}
             </div>
           </section>
 

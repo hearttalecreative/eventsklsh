@@ -94,12 +94,39 @@ serve(async (req) => {
     // 1) Load event + ticket + addons from DB to compute authoritative totals
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")
-      .select("id, event_id, name, zone, unit_amount_cents, early_bird_amount_cents, early_bird_start, early_bird_end, participants_per_ticket")
+      .select("id, event_id, name, zone, unit_amount_cents, early_bird_amount_cents, early_bird_start, early_bird_end, participants_per_ticket, capacity_total")
       .eq("id", cart.ticketId)
       .maybeSingle();
     if (ticketErr) throw ticketErr;
     if (!ticket) throw new Error("Ticket not found");
     if (ticket.event_id !== cart.eventId) throw new Error("Ticket does not belong to event");
+
+    // Check ticket availability
+    const { data: paidOrders } = await supabase
+      .from("order_items")
+      .select("quantity, orders!inner(status)")
+      .eq("ticket_id", cart.ticketId)
+      .eq("orders.status", "paid");
+
+    const soldFromOrders = (paidOrders || []).reduce((sum: number, item: any) => {
+      return sum + (item.quantity * (ticket.participants_per_ticket || 1));
+    }, 0);
+
+    const { count: compedCount } = await supabase
+      .from("attendees")
+      .select("id", { count: "exact", head: true })
+      .eq("comped_ticket_id", cart.ticketId)
+      .eq("is_comped", true);
+
+    const totalSold = soldFromOrders + (compedCount || 0);
+    const requestedTotal = cart.ticketQty * (ticket.participants_per_ticket || 1);
+    const available = ticket.capacity_total - totalSold;
+
+    console.log(`[create-payment] Ticket availability check: capacity=${ticket.capacity_total}, sold=${totalSold}, requested=${requestedTotal}, available=${available}`);
+
+    if (available < requestedTotal) {
+      throw new Error(`Only ${Math.floor(available / (ticket.participants_per_ticket || 1))} tickets available. This ticket is sold out or has limited capacity.`);
+    }
 
     const { data: event, error: eventErr } = await supabase
       .from("events")
