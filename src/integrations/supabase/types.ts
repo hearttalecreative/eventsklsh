@@ -694,6 +694,14 @@ export type Database = {
       }
     }
     Functions: {
+      check_and_reserve_ticket_capacity: {
+        Args: {
+          p_order_id: string
+          p_requested_qty: number
+          p_ticket_id: string
+        }
+        Returns: Json
+      }
       compute_event_slug: {
         Args: { _id: string; _title: string }
         Returns: string
