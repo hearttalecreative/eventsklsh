@@ -32,7 +32,7 @@ serve(async (req: Request) => {
         venues:venue_id ( name, address )
       `)
       .eq('status', 'published')
-      .gte('starts_at', nowIso)
+      .gte('ends_at', nowIso) // Only show events that haven't ended yet
       .order('starts_at', { ascending: true })
       .limit(8);
 

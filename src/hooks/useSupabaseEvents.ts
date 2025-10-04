@@ -44,11 +44,13 @@ export function useSupabaseEventsList() {
     async function load() {
       setLoading(true);
       setError(null);
-      // 1) events (published)
+      // 1) events (published and not ended)
+      const now = new Date().toISOString();
       const { data: evs, error: eErr } = await supabase
         .from('events')
         .select('id,slug,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku,timezone')
         .eq('status', 'published')
+        .gte('ends_at', now) // Only show events that haven't ended yet
         .order('starts_at', { ascending: true });
       if (eErr) {
         if (!canceled) { setError(eErr.message); setLoading(false); }
