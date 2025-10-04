@@ -21,9 +21,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation, Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
-import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote, ChevronDown as ChevronDownIcon } from "lucide-react";
+import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote, ChevronDown as ChevronDownIcon, Archive } from "lucide-react";
 import { toast } from "sonner";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Venue { id: string; name: string; address?: string | null; }
 
@@ -80,7 +81,8 @@ const AdminEvents = () => {
   const [eventToDelete, setEventToDelete] = useState<any | null>(null);
 
   // Sorting and filters for events table
-  const [evOrderBy, setEvOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>("upcoming");
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+  const [searchQuery, setSearchQuery] = useState('');
   const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | '1'..'12'
   const [filterYear, setFilterYear] = useState<string>('all');   // 'all' | '2025' etc
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -125,7 +127,8 @@ const AdminEvents = () => {
     const load = async () => {
       const { data: v } = await supabase.from("venues").select("id,name,address").order("name");
       setVenues(v || []);
-      const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("created_at", { ascending: false });
+      // Order by starts_at descending (most recent/upcoming first)
+      const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("starts_at", { ascending: false });
       setEvents(ev || []);
       setManageEventId(ev && ev.length ? ev[0].id : undefined);
       
@@ -184,6 +187,22 @@ const AdminEvents = () => {
     const endOrStart = ev.ends_at ? new Date(ev.ends_at) : new Date(ev.starts_at);
     return endOrStart < new Date();
   }
+
+  // Auto-archive past events function
+  const archivePastEvents = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('archive-past-events');
+      if (error) throw error;
+      
+      toast.success(data.message || 'Past events archived successfully');
+      
+      // Reload events
+      const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("starts_at", { ascending: false });
+      setEvents(ev || []);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to archive past events');
+    }
+  };
 
   const openEdit = (ev: any) => {
     if (ev.status !== 'draft' && isEventPast(ev)) { alert('You cannot modify a past event.'); return; }
@@ -708,11 +727,32 @@ const deleteTicket = async (id: string) => {
     setEImageUrl(data.publicUrl);
     alert('Image uploaded');
   };
-  // Events ordering + filters
+  // Events filtering and sorting
   const displayedEvents = useMemo(() => {
+    const now = Date.now();
+    
+    // Filter by tab (active vs archived)
+    let filtered = events.filter((ev) => {
+      if (activeTab === 'archived') {
+        return ev.status === 'archived';
+      } else {
+        return ev.status !== 'archived';
+      }
+    });
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((ev) => 
+        ev.title?.toLowerCase().includes(q) || 
+        ev.venues?.name?.toLowerCase().includes(q)
+      );
+    }
+
+    // Filter by month and year
     const monthNum = filterMonth === 'all' ? null : parseInt(filterMonth, 10);
     const yearNum = filterYear === 'all' ? null : parseInt(filterYear, 10);
-    const filtered = events.filter((ev) => {
+    filtered = filtered.filter((ev) => {
       const d = new Date(ev.starts_at);
       const m = d.getMonth() + 1;
       const y = d.getFullYear();
@@ -721,30 +761,17 @@ const deleteTicket = async (id: string) => {
       return okM && okY;
     });
 
-    const now = Date.now();
-    const arr = [...filtered];
-    switch (evOrderBy) {
-      case 'title-asc':
-        return arr.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-      case 'title-desc':
-        return arr.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
-      case 'past': {
-        const past = arr.filter((ev) => new Date(ev.starts_at).getTime() < now)
-          .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
-        const future = arr.filter((ev) => new Date(ev.starts_at).getTime() >= now)
-          .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-        return [...past, ...future];
-      }
-      case 'upcoming':
-      default: {
-        const future = arr.filter((ev) => new Date(ev.starts_at).getTime() >= now)
-          .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-        const past = arr.filter((ev) => new Date(ev.starts_at).getTime() < now)
-          .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
-        return [...future, ...past];
-      }
-    }
-  }, [events, evOrderBy, filterMonth, filterYear]);
+    // Sort by date: upcoming events first (chronological), then past events (reverse chronological)
+    const future = filtered
+      .filter((ev) => new Date(ev.starts_at).getTime() >= now)
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+    
+    const past = filtered
+      .filter((ev) => new Date(ev.starts_at).getTime() < now)
+      .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
+
+    return [...future, ...past];
+  }, [events, activeTab, searchQuery, filterMonth, filterYear]);
   return (
     <AdminRoute>
       <AdminHeader />
@@ -1103,53 +1130,63 @@ const deleteTicket = async (id: string) => {
 
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold">All events</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <Label className="text-sm text-muted-foreground">Month</Label>
-              <Select value={filterMonth} onValueChange={setFilterMonth}>
-                <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {['1','2','3','4','5','6','7','8','9','10','11','12'].map(m=> (
-                    <SelectItem key={m} value={m}>{new Date(2025, parseInt(m)-1, 1).toLocaleString(undefined,{month:'short'})}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Label className="text-sm text-muted-foreground">Year</Label>
-              <Select value={filterYear} onValueChange={setFilterYear}>
-                <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {Array.from(new Set(events.map(e=> new Date(e.starts_at).getFullYear()))).sort().map(y => (
-                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Label className="text-sm text-muted-foreground">Order</Label>
-              <Select value={evOrderBy} onValueChange={setEvOrderBy as any}>
-                <SelectTrigger className="w-44"><SelectValue placeholder="Sort" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upcoming">Upcoming first</SelectItem>
-                  <SelectItem value="past">Past first</SelectItem>
-                  <SelectItem value="title-asc">Title A–Z</SelectItem>
-                  <SelectItem value="title-desc">Title Z–A</SelectItem>
-                </SelectContent>
-              </Select>
+            <h2 className="text-xl font-semibold">All Events</h2>
+            <div className="flex gap-2">
+              <Button onClick={archivePastEvents} variant="outline" size="sm">
+                <Archive className="w-4 h-4 mr-2" />
+                Archive Past Events
+              </Button>
             </div>
           </div>
 
-          {selectedIds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 p-3 border rounded-md bg-muted/30">
-              <span className="text-sm">Selected: {selectedIds.length}</span>
-              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('published')}>Publish</Button>
-              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('sold_out')}>Mark Sold Out</Button>
-              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('paused')}>Pause Sales</Button>
-              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('draft')}>Mark draft</Button>
-              <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('archived')}>Archive</Button>
-              <Button size="sm" variant="destructive" onClick={bulkDelete}>Delete</Button>
-              <Button size="sm" variant="secondary" onClick={()=>setSelectedIds([])}>Clear</Button>
-            </div>
-          )}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'archived')} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="active">Active Events</TabsTrigger>
+              <TabsTrigger value="archived">Archived Events</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value={activeTab} className="space-y-3 mt-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Input 
+                  placeholder="Search events..." 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="max-w-xs"
+                />
+                <Label className="text-sm text-muted-foreground">Month</Label>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent className="z-50 bg-popover">
+                    <SelectItem value="all">All</SelectItem>
+                    {['1','2','3','4','5','6','7','8','9','10','11','12'].map(m=> (
+                      <SelectItem key={m} value={m}>{new Date(2025, parseInt(m)-1, 1).toLocaleString(undefined,{month:'short'})}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Label className="text-sm text-muted-foreground">Year</Label>
+                <Select value={filterYear} onValueChange={setFilterYear}>
+                  <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent className="z-50 bg-popover">
+                    <SelectItem value="all">All</SelectItem>
+                    {Array.from(new Set(events.map(e=> new Date(e.starts_at).getFullYear()))).sort().map(y => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedIds.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 p-3 border rounded-md bg-muted/30">
+                  <span className="text-sm">Selected: {selectedIds.length}</span>
+                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('published')}>Publish</Button>
+                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('sold_out')}>Mark Sold Out</Button>
+                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('paused')}>Pause Sales</Button>
+                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('draft')}>Mark draft</Button>
+                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('archived')}>Archive</Button>
+                  <Button size="sm" variant="destructive" onClick={bulkDelete}>Delete</Button>
+                  <Button size="sm" variant="secondary" onClick={()=>setSelectedIds([])}>Clear</Button>
+                </div>
+              )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -1297,6 +1334,8 @@ const deleteTicket = async (id: string) => {
               </tbody>
             </table>
           </div>
+            </TabsContent>
+          </Tabs>
         </section>
 
         <Dialog open={false} onOpenChange={setAddonsOpen}>

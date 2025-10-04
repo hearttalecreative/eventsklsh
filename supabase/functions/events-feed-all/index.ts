@@ -17,7 +17,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Get all upcoming published events with venue information
+    // Get all upcoming published events with venue information (events that haven't ended yet)
     const { data: events, error } = await supabase
       .from('events')
       .select(`
@@ -34,7 +34,7 @@ serve(async (req: Request) => {
         )
       `)
       .eq('status', 'published')
-      .gte('starts_at', new Date().toISOString())
+      .gte('ends_at', new Date().toISOString())
       .order('starts_at', { ascending: true });
 
     if (error) {
