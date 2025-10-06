@@ -79,12 +79,21 @@ const EventAttendeesPage = () => {
     const loadAttendees = async () => {
       setLoading(true);
       
-      // Load attendees
+      // Load attendees - sorted alphabetically by name
       const { data: attendeesData } = await supabase
         .from("attendees")
         .select("id, name, email, phone, confirmation_code, checked_in_at, qr_code")
-        .eq("event_id", selectedEventId)
-        .order("name", { ascending: true, nullsFirst: false });
+        .eq("event_id", selectedEventId);
+      
+      // Sort alphabetically by name in JavaScript to handle nulls properly
+      const sortedAttendees = (attendeesData || []).sort((a, b) => {
+        const nameA = (a.name || "").toLowerCase();
+        const nameB = (b.name || "").toLowerCase();
+        if (!nameA && !nameB) return 0;
+        if (!nameA) return 1;
+        if (!nameB) return -1;
+        return nameA.localeCompare(nameB);
+      });
       
       // Load total capacity for this event
       const { data: ticketsData } = await supabase
@@ -94,7 +103,7 @@ const EventAttendeesPage = () => {
       
       const capacity = ticketsData?.reduce((sum, ticket) => sum + (ticket.capacity_total || 0), 0) || 0;
       
-      setAttendees(attendeesData || []);
+      setAttendees(sortedAttendees);
       setTotalCapacity(capacity);
       setLoading(false);
     };

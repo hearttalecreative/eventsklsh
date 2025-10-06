@@ -200,7 +200,15 @@ const QRCheckIn = () => {
 
       // Update local state
       setAttendee({ ...attendee, checked_in_at: new Date().toISOString() });
-      toast.success("Check-in successful!");
+      toast.success("Check-in successful!", {
+        duration: 2000,
+      });
+
+      // Auto-close or reset after 2 seconds to allow rapid scanning
+      setTimeout(() => {
+        // Optionally navigate back or clear for next scan
+        navigate(`/admin/events/${attendee.event.id}/attendees`);
+      }, 2000);
 
     } catch (err) {
       console.error("Error checking in:", err);
@@ -370,57 +378,65 @@ const QRCheckIn = () => {
           </CardContent>
         </Card>
 
-        {/* Purchase Details */}
-        <Card>
+        {/* Purchase Details - Highlighted for Check-in */}
+        <Card className="border-2 border-primary bg-primary/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-primary">
               <Package className="w-5 h-5" />
-              Purchase Details
+              Items Purchased
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Order ID</p>
-              <p className="font-mono text-sm">{attendee.order_item.order.id}</p>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">{attendee.order_item.ticket.name}</span>
-                <div className="text-right">
-                  <span className="text-sm text-muted-foreground">x{attendee.order_item.quantity}</span>
-                  <p className="font-medium">
-                    {formatCurrency(
-                      attendee.order_item.ticket.unit_amount_cents * attendee.order_item.quantity,
-                      attendee.order_item.order.currency
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {attendee.addons?.map((addon, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm">{addon.name}</span>
+            <div className="space-y-3">
+              <div className="p-3 bg-background rounded-lg border-2 border-primary/20">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-lg">{attendee.order_item.ticket.name}</p>
+                    <p className="text-sm text-muted-foreground">Ticket</p>
+                  </div>
                   <div className="text-right">
-                    <span className="text-sm text-muted-foreground">x{addon.quantity}</span>
-                    <p className="text-sm">
+                    <p className="text-sm text-muted-foreground">Quantity: {attendee.order_item.quantity}</p>
+                    <p className="font-semibold text-lg">
                       {formatCurrency(
-                        addon.unit_amount_cents * addon.quantity,
+                        attendee.order_item.ticket.unit_amount_cents * attendee.order_item.quantity,
                         attendee.order_item.order.currency
                       )}
                     </p>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {attendee.addons && attendee.addons.length > 0 && (
+                <>
+                  <p className="text-sm font-medium text-muted-foreground">Add-ons:</p>
+                  {attendee.addons.map((addon, index) => (
+                    <div key={index} className="p-3 bg-background rounded-lg border border-muted">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{addon.name}</p>
+                          <p className="text-sm text-muted-foreground">Add-on</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Quantity: {addon.quantity}</p>
+                          <p className="font-medium">
+                            {formatCurrency(
+                              addon.unit_amount_cents * addon.quantity,
+                              attendee.order_item.order.currency
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
 
             <Separator />
 
-            <div className="flex justify-between items-center font-semibold">
-              <span>Total</span>
-              <span className="text-lg">
+            <div className="flex justify-between items-center font-semibold text-lg">
+              <span>Total Paid</span>
+              <span className="text-primary">
                 {formatCurrency(attendee.order_item.order.total_amount_cents, attendee.order_item.order.currency)}
               </span>
             </div>
