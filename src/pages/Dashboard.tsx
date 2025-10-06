@@ -1,9 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { events as mockEvents } from "@/data/events";
-import { EventItem, TicketType } from "@/types/events";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useSupabaseEventsList } from "@/hooks/useSupabaseEvents";
 import {
   Select,
@@ -12,11 +8,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { BarChart3 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import AdminHeader from "@/components/admin/AdminHeader";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  TrendingUp, 
+  Users, 
+  Ticket, 
+  DollarSign,
+  CheckCircle2,
+  Calendar
+} from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -25,423 +27,527 @@ import {
   YAxis,
   Tooltip,
   Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import AdminRoute from "@/routes/AdminRoute";
 
-function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
-  if (
-    ticket.earlyBirdAmountCents &&
-    ticket.earlyBirdStart &&
-    ticket.earlyBirdEnd &&
-    now >= new Date(ticket.earlyBirdStart) &&
-    now <= new Date(ticket.earlyBirdEnd)
-  ) {
-    return ticket.earlyBirdAmountCents;
-  }
-  return ticket.unitAmountCents;
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
-function formatCurrency(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+interface EventAnalytics {
+  eventId: string;
+  eventTitle: string;
+  venueId: string;
+  venueName: string;
+  startsAt: string;
+  capacity: number;
+  ticketsSold: number;
+  attendees: number;
+  checkedIn: number;
+  revenue: number;
 }
 
-function capacityForEvent(ev: EventItem) {
-  if (typeof ev.capacityTotal === "number") return ev.capacityTotal;
-  return ev.tickets.reduce((sum, t) => sum + (t.capacityTotal || 0), 0);
+interface MonthlyRevenue {
+  month: string;
+  revenue: number;
 }
 
 const Dashboard = () => {
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState<string>("all");
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
-
-  const { data: supa } = useSupabaseEventsList();
-
-  const [orderBy, setOrderBy] = useState<'upcoming'|'past'|'title-asc'|'title-desc'>('upcoming');
-
-  const source = useMemo(() => (supa && supa.length ? supa : mockEvents), [supa]);
-  const usingSupabase = Boolean(supa && supa.length);
-
-  const [attendeesMap, setAttendeesMap] = useState<Record<string, number>>({});
-  const [ticketsSoldMap, setTicketsSoldMap] = useState<Record<string, number>>({});
-  const [ticketRevenueMap, setTicketRevenueMap] = useState<Record<string, number>>({});
-  const [addonRevenueMap, setAddonRevenueMap] = useState<Record<string, number>>({});
-  const [summaryMap, setSummaryMap] = useState<Record<string, { total: number; ordersPaid: number; ordersTotal: number }>>({});
-
+  const { data: events } = useSupabaseEventsList();
+  
+  const [venueFilter, setVenueFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
+  const [analytics, setAnalytics] = useState<EventAnalytics[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadAgg() {
-      if (!supa || supa.length === 0) return;
-      const eventIds = supa.map((e) => e.id);
-      const [{ data: attendees }, { data: orders }, { data: items }] = await Promise.all([
-        supabase.from('attendees').select('event_id').in('event_id', eventIds),
-        supabase.from('orders').select('id,event_id,status').in('event_id', eventIds),
-        supabase.from('order_items').select('order_id,quantity,total_amount_cents,ticket_id,addon_id'),
-      ]);
-      const paidOrders = new Set((orders || []).filter((o:any)=>o.status==='paid').map((o:any)=>o.id));
-      const attendeesBy: Record<string, number> = {};
-      (attendees || []).forEach((a:any) => { attendeesBy[a.event_id] = (attendeesBy[a.event_id]||0) + 1; });
-      setAttendeesMap(attendeesBy);
-      const ticketsSoldBy: Record<string, number> = {};
-      const ticketRevenueBy: Record<string, number> = {};
-      const addonRevenueBy: Record<string, number> = {};
-      (items || []).forEach((it:any) => {
-        if (!paidOrders.has(it.order_id)) return;
-        const evId = (orders || []).find((o:any)=>o.id===it.order_id)?.event_id;
-        if (!evId) return;
-        if (it.ticket_id) {
-          ticketsSoldBy[evId] = (ticketsSoldBy[evId]||0) + (it.quantity||0);
-          ticketRevenueBy[evId] = (ticketRevenueBy[evId]||0) + (it.total_amount_cents||0);
-        } else if (it.addon_id) {
-          addonRevenueBy[evId] = (addonRevenueBy[evId]||0) + (it.total_amount_cents||0);
-        }
-      });
-      setTicketsSoldMap(ticketsSoldBy);
-      setTicketRevenueMap(ticketRevenueBy);
-      setAddonRevenueMap(addonRevenueBy);
+    async function loadAnalytics() {
+      if (!events || events.length === 0) {
+        setLoading(false);
+        return;
+      }
 
-      // Admin-only financial summary via secure RPC
       try {
-        const { data: summary, error: summaryError } = await (supabase as any).rpc('get_event_sales_summary_admin');
-        if (!summaryError && Array.isArray(summary)) {
-          const map: Record<string, { total: number; ordersPaid: number; ordersTotal: number }> = {};
-          summary.forEach((row: any) => {
-            if (row?.event_id && eventIds.includes(row.event_id)) {
-              map[row.event_id] = {
-                total: Number(row.total_amount_cents) || 0,
-                ordersPaid: Number(row.orders_paid) || 0,
-                ordersTotal: Number(row.orders_total) || 0,
-              };
-            }
-          });
-          setSummaryMap(map);
-        }
-      } catch (e) {
-        console.warn('get_event_sales_summary_admin failed or unauthorized');
-      }
-    }
-    loadAgg();
-  }, [supa]);
+        const eventIds = events.map((e) => e.id);
 
-  const filtered = useMemo(() => {
-    return source.filter((ev) => {
-      const matchesQ = q
-        ? ev.title.toLowerCase().includes(q.toLowerCase()) ||
-          ev.shortDescription.toLowerCase().includes(q.toLowerCase())
-        : true;
-      const matchesStatus = status === "all" ? true : ev.status === (status as any);
-      const start = new Date(ev.startsAt).getTime();
-      const fromOk = from ? start >= new Date(from).getTime() : true;
-      const toOk = to ? start <= new Date(to).getTime() : true;
-      return matchesQ && matchesStatus && fromOk && toOk;
-    });
-  }, [source, q, status, from, to]);
+        // Fetch all data in parallel
+        const [
+          { data: attendees },
+          { data: orders },
+          { data: orderItems },
+        ] = await Promise.all([
+          supabase
+            .from('attendees')
+            .select('event_id, checked_in_at')
+            .in('event_id', eventIds),
+          supabase
+            .from('orders')
+            .select('id, event_id, status, total_amount_cents, created_at')
+            .in('event_id', eventIds),
+          supabase
+            .from('order_items')
+            .select('order_id, quantity, total_amount_cents, ticket_id')
+            .not('ticket_id', 'is', null),
+        ]);
 
-  const kpis = useMemo(() => {
-    const totalEvents = filtered.length;
-    const totalCapacity = filtered.reduce((s, ev) => s + capacityForEvent(ev), 0);
-    const minPrices = filtered.map((ev) => Math.min(...ev.tickets.map((t) => effectiveUnitAmount(t))));
-    const avgMinPrice = minPrices.length ? Math.round(minPrices.reduce((a, b) => a + b, 0) / minPrices.length) : 0;
-    const published = filtered.filter((e) => e.status === "published").length;
-    return { totalEvents, totalCapacity, avgMinPrice, published };
-  }, [filtered]);
-
-  const paidRevenue = useMemo(() => {
-    return filtered.reduce((sum, ev) => sum + (summaryMap[ev.id]?.total || 0), 0);
-  }, [filtered, summaryMap]);
-
-  const paidOrders = useMemo(() => {
-    return filtered.reduce((sum, ev) => sum + (summaryMap[ev.id]?.ordersPaid || 0), 0);
-  }, [filtered, summaryMap]);
-
-  const chartData = useMemo(
-    () =>
-      filtered.map((ev) => ({
-        id: ev.id,
-        name: ev.title.length > 14 ? ev.title.slice(0, 14) + "…" : ev.title,
-        capacity: capacityForEvent(ev),
-        attendees: attendeesMap[ev.id] || 0,
-        ticketsSold: ticketsSoldMap[ev.id] || 0,
-        remaining: Math.max(0, capacityForEvent(ev) - (attendeesMap[ev.id] || 0)),
-        ticketRevenue: ticketRevenueMap[ev.id] || 0,
-        addonRevenue: addonRevenueMap[ev.id] || 0,
-      })),
-    [filtered, attendeesMap, ticketsSoldMap, ticketRevenueMap, addonRevenueMap]
-  );
-
-  const sorted = useMemo(() => {
-    const now = Date.now();
-    const arr = [...filtered];
-    switch (orderBy) {
-      case 'title-asc':
-        return arr.sort((a, b) => a.title.localeCompare(b.title));
-      case 'title-desc':
-        return arr.sort((a, b) => b.title.localeCompare(a.title));
-      case 'past': {
-        const past = arr.filter((ev) => new Date(ev.startsAt).getTime() < now)
-          .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
-        const future = arr.filter((ev) => new Date(ev.startsAt).getTime() >= now)
-          .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-        return [...past, ...future];
-      }
-      case 'upcoming':
-      default: {
-        const future = arr.filter((ev) => new Date(ev.startsAt).getTime() >= now)
-          .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
-        const past = arr.filter((ev) => new Date(ev.startsAt).getTime() < now)
-          .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
-        return [...future, ...past];
-      }
-    }
-  }, [filtered, orderBy]);
-
-  function exportCsv() {
-    const rows = [
-      [
-        "id",
-        "title",
-        "startsAt",
-        "endsAt",
-        "venueName",
-        "venueAddress",
-        "status",
-        "capacity",
-        "minPriceCents",
-        "currency",
-        "couponCode",
-      ],
-      ...filtered.map((ev) => {
-        const minTicket = ev.tickets.reduce((acc, t) =>
-          effectiveUnitAmount(t) < effectiveUnitAmount(acc) ? t : acc
+        const paidOrders = new Set(
+          (orders || []).filter((o: any) => o.status === 'paid').map((o: any) => o.id)
         );
-        return [
-          ev.id,
-          ev.title,
-          ev.startsAt,
-          ev.endsAt,
-          ev.venue.name,
-          ev.venue.address,
-          ev.status,
-          capacityForEvent(ev).toString(),
-          effectiveUnitAmount(minTicket).toString(),
-          'USD',
-          ev.couponCode || "",
-        ];
-      }),
-    ];
-    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `events-export-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+
+        // Calculate analytics per event
+        const analyticsData: EventAnalytics[] = events.map((event) => {
+          const eventAttendees = (attendees || []).filter((a: any) => a.event_id === event.id);
+          const eventOrders = (orders || []).filter(
+            (o: any) => o.event_id === event.id && o.status === 'paid'
+          );
+          const eventOrderIds = eventOrders.map((o: any) => o.id);
+          const eventOrderItems = (orderItems || []).filter((oi: any) =>
+            eventOrderIds.includes(oi.order_id)
+          );
+
+          const ticketsSold = eventOrderItems.reduce((sum: number, oi: any) => sum + (oi.quantity || 0), 0);
+          const checkedIn = eventAttendees.filter((a: any) => a.checked_in_at).length;
+          const revenue = eventOrders.reduce((sum: number, o: any) => sum + (o.total_amount_cents || 0), 0);
+
+          const capacity = event.tickets.reduce((sum, t) => sum + (t.capacityTotal || 0), 0);
+
+          return {
+            eventId: event.id,
+            eventTitle: event.title,
+            venueId: event.venue?.name || '',
+            venueName: event.venue?.name || 'Unknown',
+            startsAt: event.startsAt,
+            capacity,
+            ticketsSold,
+            attendees: eventAttendees.length,
+            checkedIn,
+            revenue,
+          };
+        });
+
+        setAnalytics(analyticsData);
+
+        // Calculate monthly revenue
+        const revenueByMonth: Record<string, number> = {};
+        (orders || [])
+          .filter((o: any) => o.status === 'paid')
+          .forEach((o: any) => {
+            const month = new Date(o.created_at).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+            });
+            revenueByMonth[month] = (revenueByMonth[month] || 0) + (o.total_amount_cents || 0);
+          });
+
+        const monthlyData = Object.entries(revenueByMonth)
+          .map(([month, revenue]) => ({ month, revenue }))
+          .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+        setMonthlyRevenue(monthlyData);
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadAnalytics();
+  }, [events]);
+
+  // Filtered analytics based on venue and date
+  const filteredAnalytics = useMemo(() => {
+    let filtered = analytics;
+
+    if (venueFilter !== "all") {
+      filtered = filtered.filter((a) => a.venueName === venueFilter);
+    }
+
+    if (dateFilter === "upcoming") {
+      filtered = filtered.filter((a) => new Date(a.startsAt) >= new Date());
+    } else if (dateFilter === "past") {
+      filtered = filtered.filter((a) => new Date(a.startsAt) < new Date());
+    }
+
+    return filtered;
+  }, [analytics, venueFilter, dateFilter]);
+
+  // Venues for filter
+  const venues = useMemo(() => {
+    const venueSet = new Set<string>();
+    analytics.forEach((a) => {
+      if (a.venueName) {
+        venueSet.add(a.venueName);
+      }
+    });
+    return Array.from(venueSet).sort();
+  }, [analytics]);
+
+  // Calculate KPIs
+  const totalRevenue = filteredAnalytics.reduce((sum, a) => sum + a.revenue, 0);
+  const totalTicketsSold = filteredAnalytics.reduce((sum, a) => sum + a.ticketsSold, 0);
+  const totalAttendees = filteredAnalytics.reduce((sum, a) => sum + a.attendees, 0);
+  const totalCheckedIn = filteredAnalytics.reduce((sum, a) => sum + a.checkedIn, 0);
+
+  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
+
+  // Chart data for tickets sold by event
+  const ticketsSoldChartData = filteredAnalytics.map((a) => ({
+    name: a.eventTitle.length > 20 ? a.eventTitle.slice(0, 20) + '...' : a.eventTitle,
+    sold: a.ticketsSold,
+    capacity: a.capacity,
+    percentage: a.capacity > 0 ? Math.round((a.ticketsSold / a.capacity) * 100) : 0,
+  }));
+
+  // Chart data for attendees by event
+  const attendeesChartData = filteredAnalytics.map((a) => ({
+    name: a.eventTitle.length > 20 ? a.eventTitle.slice(0, 20) + '...' : a.eventTitle,
+    attendees: a.attendees,
+    ticketsSold: a.ticketsSold,
+    checkedIn: a.checkedIn,
+    attendeePercentage: a.ticketsSold > 0 ? Math.round((a.attendees / a.ticketsSold) * 100) : 0,
+    checkinPercentage: a.attendees > 0 ? Math.round((a.checkedIn / a.attendees) * 100) : 0,
+  }));
+
+  // Pie chart data for revenue by event
+  const revenuePieData = filteredAnalytics.slice(0, 5).map((a) => ({
+    name: a.eventTitle,
+    value: a.revenue,
+  }));
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
-    <>
+    <AdminRoute>
       <AdminHeader />
-      <main className="container mx-auto py-10 space-y-8">
+      <main className="container mx-auto px-4 py-6 md:py-10 space-y-6 md:space-y-8">
         <Helmet>
-          <title>Admin Dashboard | Events Management</title>
-          <meta name="description" content="Admin dashboard to manage events, filters, analytics and CSV export." />
+          <title>Analytics Dashboard | Events Management</title>
+          <meta name="description" content="Comprehensive analytics dashboard with event metrics, revenue tracking, and attendance data." />
           <link rel="canonical" href={`${baseUrl}/dashboard`} />
         </Helmet>
 
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Events Dashboard</h1>
-          <p className="text-muted-foreground">Overview of all events and analytics</p>
+        <div className="space-y-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
+            Comprehensive insights into events, revenue, and attendance
+          </p>
         </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-        <Card className="bg-card border animate-enter">
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Total events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{kpis.totalEvents}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Total capacity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{kpis.totalCapacity}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Avg. min price</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{formatCurrency(kpis.avgMinPrice, 'USD')}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Published</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{kpis.published}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Paid revenue (RPC)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{formatCurrency(paidRevenue, 'USD')}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Paid orders (RPC)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{paidOrders}</div>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="p-4 border rounded-lg bg-card space-y-4 animate-enter">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Input placeholder="Search by title" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="Status" />
+        {/* Filters */}
+        <section className="flex flex-col sm:flex-row gap-3">
+          <Select value={venueFilter} onValueChange={setVenueFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="All Venues" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
+              <SelectItem value="all">All Venues</SelectItem>
+              {venues.map((venue) => (
+                <SelectItem key={venue} value={venue}>
+                  {venue}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-        <div className="h-64 overflow-x-auto">
-          <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
-            <ResponsiveContainer width="100%" height={256}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="capacity" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-card border animate-enter">
-          <CardHeader><CardTitle>Tickets sold per event</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <div className="h-64 overflow-x-auto">
-              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
-                <ResponsiveContainer width="100%" height={256}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="ticketsSold" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader><CardTitle>Participants per event</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <div className="h-64 overflow-x-auto">
-              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
-                <ResponsiveContainer width="100%" height={256}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="attendees" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader><CardTitle>Remaining spots</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <div className="h-64 overflow-x-auto">
-              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
-                <ResponsiveContainer width="100%" height={256}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="remaining" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter">
-          <CardHeader><CardTitle>Revenue: tickets</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <div className="h-64 overflow-x-auto">
-              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
-                <ResponsiveContainer width="100%" height={256}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
-                    <YAxis />
-                    <Tooltip formatter={(v:number)=>formatCurrency(v, 'USD')} />
-                    <Bar dataKey="ticketRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border animate-enter lg:col-span-2">
-          <CardHeader><CardTitle>Revenue: add-ons</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <div className="h-64 overflow-x-auto">
-              <div style={{ minWidth: Math.max(600, chartData.length * 80) }}>
-                <ResponsiveContainer width="100%" height={256}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={70} tick={{ fontSize: 10 }} />
-                    <YAxis />
-                    <Tooltip formatter={(v:number)=>formatCurrency(v, 'USD')} />
-                    <Bar dataKey="addonRevenue" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {usingSupabase ? null : (
-        <section className="p-4 rounded-lg border bg-card">
-          <p className="text-sm text-muted-foreground">
-            To manage events (create/edit/archive), view real participants and revenue, and send emails, please connect Supabase.
-          </p>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="All Events" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+              <SelectItem value="past">Past Events</SelectItem>
+            </SelectContent>
+          </Select>
         </section>
-      )}
+
+        {/* KPI Cards */}
+        <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                From {filteredAnalytics.length} events
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
+              <Ticket className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl md:text-2xl font-bold">{totalTicketsSold}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total capacity: {filteredAnalytics.reduce((sum, a) => sum + a.capacity, 0)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Attendees</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl md:text-2xl font-bold">{totalAttendees}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalTicketsSold > 0 ? Math.round((totalAttendees / totalTicketsSold) * 100) : 0}% of tickets sold
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Checked In</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl md:text-2xl font-bold">{totalCheckedIn}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalAttendees > 0 ? Math.round((totalCheckedIn / totalAttendees) * 100) : 0}% of attendees
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Tabs for different analytics */}
+        <Tabs defaultValue="tickets" className="space-y-4">
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="tickets">Tickets</TabsTrigger>
+            <TabsTrigger value="attendees">Attendees</TabsTrigger>
+            <TabsTrigger value="revenue">Revenue</TabsTrigger>
+          </TabsList>
+
+          {/* Tickets Tab */}
+          <TabsContent value="tickets" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Tickets Sold by Event</CardTitle>
+                <CardDescription>
+                  Number of tickets sold and percentage of capacity filled
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {ticketsSoldChartData.map((item, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium truncate max-w-[60%]">{item.name}</span>
+                        <span className="text-muted-foreground">
+                          {item.sold} / {item.capacity} ({item.percentage}%)
+                        </span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Tickets Sold Chart</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[300px] md:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={ticketsSoldChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      interval={0}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="sold" fill={COLORS[0]} name="Tickets Sold" />
+                    <Bar dataKey="capacity" fill={COLORS[3]} name="Capacity" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Attendees Tab */}
+          <TabsContent value="attendees" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Attendees by Event</CardTitle>
+                <CardDescription>
+                  Attendance rate and check-in status per event
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {attendeesChartData.map((item, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium truncate max-w-[50%]">{item.name}</span>
+                        <div className="flex gap-4 text-muted-foreground">
+                          <span>Attendees: {item.attendees}/{item.ticketsSold}</span>
+                          <span>Checked: {item.checkedIn}/{item.attendees}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Attendance: {item.attendeePercentage}%
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all"
+                            style={{ width: `${item.attendeePercentage}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Check-in: {item.checkinPercentage}%
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-secondary transition-all"
+                            style={{ width: `${item.checkinPercentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Attendance Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[300px] md:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={attendeesChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      interval={0}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="attendees" fill={COLORS[0]} name="Attendees" />
+                    <Bar dataKey="checkedIn" fill={COLORS[1]} name="Checked In" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Revenue Tab */}
+          <TabsContent value="revenue" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue by Event</CardTitle>
+                  <CardDescription>Top 5 revenue-generating events</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={revenuePieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry) => `${entry.name.slice(0, 15)}...`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {revenuePieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Revenue</CardTitle>
+                  <CardDescription>
+                    {venueFilter === "all" ? "All venues" : venueFilter}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={monthlyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke={COLORS[0]} 
+                        strokeWidth={2}
+                        name="Revenue"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {filteredAnalytics
+                    .sort((a, b) => b.revenue - a.revenue)
+                    .map((event, index) => (
+                      <div key={index} className="flex justify-between items-center">
+                        <span className="text-sm font-medium truncate max-w-[60%]">
+                          {event.eventTitle}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">
+                            {event.venueName}
+                          </span>
+                          <span className="text-sm font-bold">
+                            {formatCurrency(event.revenue)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
-    </>
+    </AdminRoute>
   );
 };
 
