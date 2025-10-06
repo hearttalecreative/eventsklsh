@@ -62,7 +62,8 @@ const Dashboard = () => {
   const { data: events } = useSupabaseEventsList();
   
   const [venueFilter, setVenueFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("past"); // Default to past events
+  const [compareVenue, setCompareVenue] = useState<string>("all");
   const [analytics, setAnalytics] = useState<EventAnalytics[]>([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,9 +198,21 @@ const Dashboard = () => {
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
+  // Format event name with date
+  const formatEventName = (title: string, date: string) => {
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    return `${title} - ${formattedDate}`;
+  };
+
   // Chart data for tickets sold by event
   const ticketsSoldChartData = filteredAnalytics.map((a) => ({
-    name: a.eventTitle.length > 20 ? a.eventTitle.slice(0, 20) + '...' : a.eventTitle,
+    name: formatEventName(a.eventTitle, a.startsAt),
+    shortName: a.eventTitle.length > 15 ? a.eventTitle.slice(0, 15) + '...' : a.eventTitle,
+    date: new Date(a.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     sold: a.ticketsSold,
     capacity: a.capacity,
     percentage: a.capacity > 0 ? Math.round((a.ticketsSold / a.capacity) * 100) : 0,
@@ -207,7 +220,9 @@ const Dashboard = () => {
 
   // Chart data for attendees by event
   const attendeesChartData = filteredAnalytics.map((a) => ({
-    name: a.eventTitle.length > 20 ? a.eventTitle.slice(0, 20) + '...' : a.eventTitle,
+    name: formatEventName(a.eventTitle, a.startsAt),
+    shortName: a.eventTitle.length > 15 ? a.eventTitle.slice(0, 15) + '...' : a.eventTitle,
+    date: new Date(a.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     attendees: a.attendees,
     ticketsSold: a.ticketsSold,
     checkedIn: a.checkedIn,
@@ -217,9 +232,50 @@ const Dashboard = () => {
 
   // Pie chart data for revenue by event
   const revenuePieData = filteredAnalytics.slice(0, 5).map((a) => ({
-    name: a.eventTitle,
+    name: formatEventName(a.eventTitle, a.startsAt),
     value: a.revenue,
   }));
+
+  // Historical comparison: Compare each event with previous events at the same venue
+  const historicalComparison = useMemo(() => {
+    const pastEvents = analytics.filter((a) => new Date(a.startsAt) < new Date());
+    
+    return filteredAnalytics.map((currentEvent) => {
+      // Find previous events at the same venue
+      const previousEventsAtVenue = pastEvents.filter(
+        (e) => e.venueName === currentEvent.venueName && e.eventId !== currentEvent.eventId
+      );
+
+      if (previousEventsAtVenue.length === 0) {
+        return {
+          current: currentEvent,
+          hasHistory: false,
+          avgRevenue: 0,
+          avgAttendees: 0,
+          avgTicketsSold: 0,
+          revenueChange: 0,
+          attendeesChange: 0,
+          ticketsChange: 0,
+        };
+      }
+
+      const avgRevenue = previousEventsAtVenue.reduce((sum, e) => sum + e.revenue, 0) / previousEventsAtVenue.length;
+      const avgAttendees = previousEventsAtVenue.reduce((sum, e) => sum + e.attendees, 0) / previousEventsAtVenue.length;
+      const avgTicketsSold = previousEventsAtVenue.reduce((sum, e) => sum + e.ticketsSold, 0) / previousEventsAtVenue.length;
+
+      return {
+        current: currentEvent,
+        hasHistory: true,
+        previousCount: previousEventsAtVenue.length,
+        avgRevenue: Math.round(avgRevenue),
+        avgAttendees: Math.round(avgAttendees),
+        avgTicketsSold: Math.round(avgTicketsSold),
+        revenueChange: avgRevenue > 0 ? Math.round(((currentEvent.revenue - avgRevenue) / avgRevenue) * 100) : 0,
+        attendeesChange: avgAttendees > 0 ? Math.round(((currentEvent.attendees - avgAttendees) / avgAttendees) * 100) : 0,
+        ticketsChange: avgTicketsSold > 0 ? Math.round(((currentEvent.ticketsSold - avgTicketsSold) / avgTicketsSold) * 100) : 0,
+      };
+    });
+  }, [filteredAnalytics, analytics]);
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -236,7 +292,7 @@ const Dashboard = () => {
         <div className="space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Comprehensive insights into events, revenue, and attendance
+            Analysis of completed events - Revenue, attendance, and historical comparisons
           </p>
         </div>
 
@@ -262,8 +318,8 @@ const Dashboard = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Events</SelectItem>
-              <SelectItem value="upcoming">Upcoming</SelectItem>
-              <SelectItem value="past">Past Events</SelectItem>
+              <SelectItem value="past">Completed Events (Default)</SelectItem>
+              <SelectItem value="upcoming">Upcoming Events</SelectItem>
             </SelectContent>
           </Select>
         </section>
@@ -324,12 +380,115 @@ const Dashboard = () => {
         </section>
 
         {/* Tabs for different analytics */}
-        <Tabs defaultValue="tickets" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-3">
+        <Tabs defaultValue="comparison" className="space-y-4">
+          <TabsList className="w-full grid grid-cols-4">
+            <TabsTrigger value="comparison">Comparison</TabsTrigger>
             <TabsTrigger value="tickets">Tickets</TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
             <TabsTrigger value="revenue">Revenue</TabsTrigger>
           </TabsList>
+
+          {/* Historical Comparison Tab */}
+          <TabsContent value="comparison" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Event Performance vs Historical Average</CardTitle>
+                <CardDescription>
+                  Compare each completed event with previous events at the same venue
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {historicalComparison.map((comp, index) => (
+                    <div key={index} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold text-base">
+                            {comp.current.eventTitle}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(comp.current.startsAt).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })} • {comp.current.venueName}
+                          </p>
+                        </div>
+                        {comp.hasHistory && (
+                          <div className="text-xs text-muted-foreground">
+                            Compared with {comp.previousCount} previous event{comp.previousCount > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
+
+                      {comp.hasHistory ? (
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          {/* Revenue Comparison */}
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Revenue</div>
+                            <div className="text-2xl font-bold">
+                              {formatCurrency(comp.current.revenue)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Avg: {formatCurrency(comp.avgRevenue)}
+                            </div>
+                            <div className={`text-sm font-medium flex items-center gap-1 ${
+                              comp.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {comp.revenueChange >= 0 ? '↑' : '↓'} {Math.abs(comp.revenueChange)}%
+                            </div>
+                          </div>
+
+                          {/* Attendees Comparison */}
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Attendees</div>
+                            <div className="text-2xl font-bold">
+                              {comp.current.attendees}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Avg: {comp.avgAttendees}
+                            </div>
+                            <div className={`text-sm font-medium flex items-center gap-1 ${
+                              comp.attendeesChange >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {comp.attendeesChange >= 0 ? '↑' : '↓'} {Math.abs(comp.attendeesChange)}%
+                            </div>
+                          </div>
+
+                          {/* Tickets Sold Comparison */}
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Tickets Sold</div>
+                            <div className="text-2xl font-bold">
+                              {comp.current.ticketsSold}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Avg: {comp.avgTicketsSold}
+                            </div>
+                            <div className={`text-sm font-medium flex items-center gap-1 ${
+                              comp.ticketsChange >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {comp.ticketsChange >= 0 ? '↑' : '↓'} {Math.abs(comp.ticketsChange)}%
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground italic">
+                          No previous events at this venue for comparison
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {historicalComparison.length === 0 && (
+                    <div className="text-center text-muted-foreground py-8">
+                      No completed events to display. Change filter to see data.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Tickets Tab */}
           <TabsContent value="tickets" className="space-y-4">
@@ -344,9 +503,9 @@ const Dashboard = () => {
                 <div className="space-y-4">
                   {ticketsSoldChartData.map((item, index) => (
                     <div key={index} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium truncate max-w-[60%]">{item.name}</span>
-                        <span className="text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="font-medium text-sm">{item.name}</span>
+                        <span className="text-sm text-muted-foreground">
                           {item.sold} / {item.capacity} ({item.percentage}%)
                         </span>
                       </div>
@@ -371,15 +530,28 @@ const Dashboard = () => {
                   <BarChart data={ticketsSoldChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
-                      dataKey="name" 
+                      dataKey="shortName"
                       angle={-45} 
                       textAnchor="end" 
-                      height={100}
+                      height={120}
                       interval={0}
                       tick={{ fontSize: 10 }}
                     />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-background border rounded-lg p-3 shadow-lg">
+                              <p className="font-medium text-sm mb-2">{payload[0].payload.name}</p>
+                              <p className="text-sm">Sold: {payload[0].payload.sold}</p>
+                              <p className="text-sm">Capacity: {payload[0].payload.capacity}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                     <Bar dataKey="sold" fill={COLORS[0]} name="Tickets Sold" />
                     <Bar dataKey="capacity" fill={COLORS[3]} name="Capacity" />
                   </BarChart>
@@ -401,9 +573,9 @@ const Dashboard = () => {
                 <div className="space-y-4">
                   {attendeesChartData.map((item, index) => (
                     <div key={index} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium truncate max-w-[50%]">{item.name}</span>
-                        <div className="flex gap-4 text-muted-foreground">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium text-sm">{item.name}</span>
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                           <span>Attendees: {item.attendees}/{item.ticketsSold}</span>
                           <span>Checked: {item.checkedIn}/{item.attendees}</span>
                         </div>
@@ -443,15 +615,28 @@ const Dashboard = () => {
                   <BarChart data={attendeesChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
-                      dataKey="name" 
+                      dataKey="shortName"
                       angle={-45} 
                       textAnchor="end" 
-                      height={100}
+                      height={120}
                       interval={0}
                       tick={{ fontSize: 10 }}
                     />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-background border rounded-lg p-3 shadow-lg">
+                              <p className="font-medium text-sm mb-2">{payload[0].payload.name}</p>
+                              <p className="text-sm">Attendees: {payload[0].payload.attendees}</p>
+                              <p className="text-sm">Checked In: {payload[0].payload.checkedIn}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                     <Bar dataKey="attendees" fill={COLORS[0]} name="Attendees" />
                     <Bar dataKey="checkedIn" fill={COLORS[1]} name="Checked In" />
                   </BarChart>
@@ -527,14 +712,20 @@ const Dashboard = () => {
                   {filteredAnalytics
                     .sort((a, b) => b.revenue - a.revenue)
                     .map((event, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <span className="text-sm font-medium truncate max-w-[60%]">
-                          {event.eventTitle}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            {event.venueName}
-                          </span>
+                      <div key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 py-2 border-b last:border-0">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {event.eventTitle}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(event.startsAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })} • {event.venueName}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
                           <span className="text-sm font-bold">
                             {formatCurrency(event.revenue)}
                           </span>
