@@ -272,8 +272,11 @@ const EventAttendeesPage = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     
+    const eventDate = selectedEvent?.starts_at ? new Date(selectedEvent.starts_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    const fileName = `attendees-${selectedEvent?.title || 'event'}-${eventDate}.csv`;
+    
     link.setAttribute('href', url);
-    link.setAttribute('download', `attendees-${selectedEvent?.title || 'event'}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', fileName);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
