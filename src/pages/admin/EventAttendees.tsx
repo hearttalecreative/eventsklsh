@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CheckCircle, XCircle, Search, Filter, ArrowLeft, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Search, Filter, ArrowLeft, Trash2, Download } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -249,6 +249,37 @@ const EventAttendeesPage = () => {
     }
   };
 
+  const handleDownloadCSV = () => {
+    // CSV headers
+    const headers = ['Name', 'Email', 'Phone', 'Confirmation Code'];
+    
+    // CSV rows
+    const rows = filteredAttendees.map(attendee => [
+      attendee.name || '',
+      attendee.email || '',
+      attendee.phone || '',
+      attendee.confirmation_code
+    ]);
+    
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `attendees-${selectedEvent?.title || 'event'}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading && selectedEventId) {
     return (
       <AdminRoute>
@@ -360,6 +391,10 @@ const EventAttendeesPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  <Button onClick={handleDownloadCSV} variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download CSV
+                  </Button>
                 </div>
               </CardContent>
             </Card>
