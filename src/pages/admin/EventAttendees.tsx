@@ -38,6 +38,13 @@ interface Attendee {
   confirmation_code: string;
   checked_in_at: string | null;
   qr_code: string | null;
+  ticket?: {
+    name: string;
+  } | null;
+  addons?: Array<{
+    name: string;
+    quantity: number;
+  }>;
 }
 
 const EventAttendeesPage = () => {
@@ -79,14 +86,55 @@ const EventAttendeesPage = () => {
     const loadAttendees = async () => {
       setLoading(true);
       
-      // Load attendees - sorted alphabetically by name
+      // Load attendees with purchase info
       const { data: attendeesData } = await supabase
         .from("attendees")
-        .select("id, name, email, phone, confirmation_code, checked_in_at, qr_code")
+        .select(`
+          id, 
+          name, 
+          email, 
+          phone, 
+          confirmation_code, 
+          checked_in_at, 
+          qr_code,
+          order_item_id,
+          order_item:order_item_id (
+            order_id,
+            ticket:ticket_id (name)
+          )
+        `)
         .eq("event_id", selectedEventId);
+
+      // Load addons for each attendee's order
+      const attendeesWithAddons = await Promise.all(
+        (attendeesData || []).map(async (attendee) => {
+          if (!attendee.order_item?.ticket) {
+            return { ...attendee, ticket: null, addons: [] };
+          }
+
+          // Get all addons from the same order
+          const { data: addonsData } = await supabase
+            .from("order_items")
+            .select(`
+              quantity,
+              addon:addon_id (name)
+            `)
+            .eq("order_id", attendee.order_item.order_id)
+            .not("addon_id", "is", null);
+
+          return {
+            ...attendee,
+            ticket: attendee.order_item.ticket,
+            addons: addonsData?.map(item => ({
+              name: item.addon.name,
+              quantity: item.quantity
+            })) || []
+          };
+        })
+      );
       
       // Sort alphabetically by name in JavaScript to handle nulls properly
-      const sortedAttendees = (attendeesData || []).sort((a, b) => {
+      const sortedAttendees = attendeesWithAddons.sort((a, b) => {
         const nameA = (a.name || "").toLowerCase();
         const nameB = (b.name || "").toLowerCase();
         if (!nameA && !nameB) return 0;
@@ -350,14 +398,14 @@ const EventAttendeesPage = () => {
                                   htmlFor={`checkin-mobile-${attendee.id}`}
                                   className="text-sm font-medium cursor-pointer"
                                 >
-                                  Manual Check-in
+                                  Check-in
                                 </label>
                               </div>
                               <Badge variant={attendee.checked_in_at ? "default" : "secondary"} className="flex items-center gap-1">
                                 {attendee.checked_in_at ? (
                                   <>
                                     <CheckCircle className="h-3 w-3" />
-                                    {attendee.checked_in_at.includes('T') && !attendee.qr_code ? 'Manual Checked In' : 'Checked In'}
+                                    Checked In
                                   </>
                                 ) : (
                                   <>
@@ -377,9 +425,17 @@ const EventAttendeesPage = () => {
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground space-y-1">
-                            <div>{attendee.email || "No email"}</div>
-                            <div>{attendee.phone || "No phone"}</div>
                             <div className="font-mono">{attendee.confirmation_code}</div>
+                            {attendee.ticket && (
+                              <div className="font-medium text-foreground">
+                                🎫 {attendee.ticket.name}
+                              </div>
+                            )}
+                            {attendee.addons && attendee.addons.length > 0 && (
+                              <div className="text-foreground">
+                                ➕ {attendee.addons.map(a => `${a.name} (x${a.quantity})`).join(", ")}
+                              </div>
+                            )}
                             {attendee.checked_in_at && (
                               <div className="text-xs">
                                 Checked in: {new Date(attendee.checked_in_at).toLocaleString()}
@@ -394,12 +450,12 @@ const EventAttendeesPage = () => {
                         <table className="w-full">
                           <thead>
                             <tr className="border-b text-left">
-                              <th className="pb-3 font-medium">Manual Check-in</th>
+                              <th className="pb-3 font-medium">Check-in</th>
                               <th className="pb-3 font-medium">Status</th>
                               <th className="pb-3 font-medium">Name</th>
-                              <th className="pb-3 font-medium">Email</th>
-                              <th className="pb-3 font-medium">Phone</th>
-                              <th className="pb-3 font-medium">Confirmation Code</th>
+                              <th className="pb-3 font-medium">Ticket</th>
+                              <th className="pb-3 font-medium">Add-ons</th>
+                              <th className="pb-3 font-medium">Confirmation</th>
                               <th className="pb-3 font-medium">Check-in Time</th>
                               <th className="pb-3 font-medium">Actions</th>
                             </tr>
@@ -439,8 +495,26 @@ const EventAttendeesPage = () => {
                                   </Badge>
                                 </td>
                                 <td className="py-3">{attendee.name || "-"}</td>
-                                <td className="py-3">{attendee.email || "-"}</td>
-                                <td className="py-3">{attendee.phone || "-"}</td>
+                                <td className="py-3">
+                                  {attendee.ticket ? (
+                                    <span className="text-sm">{attendee.ticket.name}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  )}
+                                </td>
+                                <td className="py-3">
+                                  {attendee.addons && attendee.addons.length > 0 ? (
+                                    <div className="text-sm space-y-1">
+                                      {attendee.addons.map((addon, idx) => (
+                                        <div key={idx}>
+                                          {addon.name} (x{addon.quantity})
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  )}
+                                </td>
                                 <td className="py-3">
                                   <code className="bg-muted px-2 py-1 rounded text-sm">
                                     {attendee.confirmation_code}
