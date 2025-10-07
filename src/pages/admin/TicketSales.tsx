@@ -170,10 +170,20 @@ const TicketSales = () => {
         </Helmet>
 
         <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
-          <p className="text-muted-foreground">
-            Monitor ticket sales performance by event and ticket type
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
+              <p className="text-muted-foreground">
+                Monitor ticket sales performance by event and ticket type
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/checkout-logs">
+                <FileText className="h-4 w-4 mr-2" />
+                View Checkout Logs
+              </Link>
+            </Button>
+          </div>
         </header>
 
         {/* Events Grid */}

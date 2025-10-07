@@ -91,6 +91,12 @@ serve(async (req) => {
     if (!cart?.eventId || !cart?.ticketId || !cart?.ticketQty || cart.ticketQty < 1)
       throw new Error("Invalid cart");
 
+    // Log checkout initiation (before any payment processing)
+    const firstParticipant = cart.participants?.[0];
+    const nameParts = buyer.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     // 1) Load event + ticket + addons from DB to compute authoritative totals
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")
@@ -234,6 +240,23 @@ serve(async (req) => {
     const expectedParticipants = (ticket.participants_per_ticket || 1) * cart.ticketQty;
     if (!Array.isArray(cart.participants) || cart.participants.length !== expectedParticipants) {
       throw new Error('Participants count mismatch');
+    }
+
+    // Log checkout initiation to checkout_logs table
+    try {
+      await supabase.from('checkout_logs').insert({
+        first_name: firstName,
+        last_name: lastName,
+        email: buyer.email,
+        phone: firstParticipant?.phone || null,
+        total_amount_cents: total,
+        event_id: cart.eventId,
+        event_title: event.title
+      });
+      console.log(`[create-payment] Logged checkout for ${buyer.email}, total: ${total}`);
+    } catch (logErr) {
+      console.error('[create-payment] Failed to log checkout:', logErr);
+      // Continue with payment creation even if logging fails
     }
 
     const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || 'http://localhost:5173';

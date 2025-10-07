@@ -193,6 +193,57 @@ export type Database = {
           },
         ]
       }
+      checkout_logs: {
+        Row: {
+          created_at: string
+          email: string
+          event_id: string | null
+          event_title: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          total_amount_cents: number
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          event_id?: string | null
+          event_title?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          total_amount_cents: number
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          event_id?: string | null
+          event_title?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          total_amount_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_sales_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "checkout_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_redemptions: {
         Row: {
           amount_discount_cents: number
@@ -701,6 +752,10 @@ export type Database = {
           p_ticket_id: string
         }
         Returns: Json
+      }
+      cleanup_old_checkout_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       compute_event_slug: {
         Args: { _id: string; _title: string }
