@@ -64,10 +64,27 @@ serve(async (req) => {
     const { sessionId, cart }: { sessionId: string; cart: CartPayload } = await req.json();
     if (!sessionId) throw new Error("Missing sessionId");
 
-    // 1) Retrieve session and ensure paid
+    // 1) Retrieve session and ensure paid or processing (for Klarna)
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== "paid") {
-      throw new Error("Payment not completed");
+    console.log(`[verify-payment] Session ${sessionId} has payment_status: ${session.payment_status}, payment_method_types: ${session.payment_method_types?.join(', ')}`);
+    
+    // Accept both 'paid' and 'processing' status (Klarna uses 'processing')
+    if (session.payment_status !== "paid" && session.payment_status !== "processing") {
+      throw new Error(`Payment not completed. Status: ${session.payment_status}`);
+    }
+    
+    // For processing payments, verify it's a valid payment method like Klarna
+    if (session.payment_status === "processing") {
+      const validProcessingMethods = ['klarna', 'affirm', 'afterpay_clearpay'];
+      const hasValidMethod = session.payment_method_types?.some(method => 
+        validProcessingMethods.includes(method)
+      );
+      
+      if (!hasValidMethod) {
+        throw new Error(`Payment is processing but payment method not recognized: ${session.payment_method_types?.join(', ')}`);
+      }
+      
+      console.log(`[verify-payment] Accepting processing payment for method: ${session.payment_method_types?.join(', ')}`);
     }
 
     // 2) Load authoritative data from DB
