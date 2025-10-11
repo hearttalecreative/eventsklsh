@@ -51,9 +51,13 @@ const EventList = () => {
             <SelectTrigger><SelectValue placeholder="All months" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All months</SelectItem>
-              {monthOptions.map((m)=> (
-                <SelectItem key={m} value={m}>{new Date(m+"-01").toLocaleDateString(undefined,{ month:'long', year:'numeric'})}</SelectItem>
-              ))}
+              {monthOptions.map((m)=> {
+                const [year, monthNum] = m.split('-');
+                const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+                return (
+                  <SelectItem key={m} value={m}>{date.toLocaleDateString(undefined,{ month:'long', year:'numeric'})}</SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <Select value={order} onValueChange={(v)=>setOrder(v as any)}>
