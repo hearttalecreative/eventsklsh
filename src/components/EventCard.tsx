@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { EventItem, TicketType } from '@/types/events';
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
@@ -58,14 +59,16 @@ export const EventCard = ({ event }: Props) => {
   return (
     <Card className="h-full flex flex-col border bg-card">
       <CardHeader className="p-0">
-        <Link to={`/event/${slugPath}`} className="block relative h-48 w-full overflow-hidden rounded-t-lg">
-          <img
-            src={event.imageUrl}
-            alt={`${event.title} event image`}
-            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-            loading="lazy"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }}
-          />
+        <Link to={`/event/${slugPath}`} className="block relative w-full overflow-hidden rounded-t-lg">
+          <AspectRatio ratio={1230/693}>
+            <img
+              src={event.imageUrl}
+              alt={`${event.title} event image`}
+              className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+              loading="lazy"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }}
+            />
+          </AspectRatio>
           {(isSoldOut || isPaused) && (
             <div className="absolute top-2 right-2">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-destructive text-destructive-foreground">
