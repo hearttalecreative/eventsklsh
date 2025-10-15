@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { toast } from 'sonner';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
@@ -305,7 +306,9 @@ const proceed = async () => {
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-6">
           <div className="rounded-lg overflow-hidden border">
-            <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-64 object-cover" loading="lazy" decoding="async" onError={(e)=>{ (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+            <AspectRatio ratio={1230/693}>
+              <img src={event.imageUrl} alt={`${event.title} image`} className="w-full h-full object-cover" loading="lazy" decoding="async" onError={(e)=>{ (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+            </AspectRatio>
           </div>
           <article className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
