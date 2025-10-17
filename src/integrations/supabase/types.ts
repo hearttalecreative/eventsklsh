@@ -787,6 +787,8 @@ export type Database = {
           ticket_id: string
           ticket_name: string
           tickets_sold: number
+          total_revenue_cents: number
+          unit_price_cents: number
         }[]
       }
       get_venue_sales_summary_admin: {

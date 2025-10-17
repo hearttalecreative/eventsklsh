@@ -28,6 +28,8 @@ interface TicketSalesData {
   ticket_name: string;
   ticket_capacity: number;
   tickets_sold: number;
+  unit_price_cents: number;
+  total_revenue_cents: number;
 }
 
 interface EventSalesData {
@@ -36,11 +38,14 @@ interface EventSalesData {
   event_starts_at: string;
   event_capacity: number;
   total_tickets_sold: number;
+  total_revenue_cents: number;
   tickets: Array<{
     ticket_id: string;
     ticket_name: string;
     ticket_capacity: number;
     tickets_sold: number;
+    unit_price_cents: number;
+    total_revenue_cents: number;
   }>;
   attendees_with_notes: AttendeeWithNotes[];
 }
@@ -101,9 +106,12 @@ const TicketSales = () => {
           ticket_name: sale.ticket_name,
           ticket_capacity: sale.ticket_capacity,
           tickets_sold: sale.tickets_sold,
+          unit_price_cents: sale.unit_price_cents || 0,
+          total_revenue_cents: sale.total_revenue_cents || 0,
         })) || [];
 
         const totalTicketsSold = ticketsSalesData.reduce((sum: number, ticket: any) => sum + ticket.tickets_sold, 0);
+        const totalRevenue = ticketsSalesData.reduce((sum: number, ticket: any) => sum + ticket.total_revenue_cents, 0);
 
         return {
           event_id: event.id,
@@ -111,6 +119,7 @@ const TicketSales = () => {
           event_starts_at: event.starts_at,
           event_capacity: event.capacity_total || ticketsSalesData.reduce((sum: number, t: any) => sum + t.ticket_capacity, 0),
           total_tickets_sold: totalTicketsSold,
+          total_revenue_cents: totalRevenue,
           tickets: ticketsSalesData,
           attendees_with_notes: attendeesData || []
         };
@@ -134,6 +143,13 @@ const TicketSales = () => {
     if (percentage >= 80) return 'bg-red-500';
     if (percentage >= 60) return 'bg-yellow-500';
     return 'bg-green-500';
+  };
+
+  const formatCurrency = (cents: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(cents / 100);
   };
 
   if (isLoading) {
@@ -258,10 +274,15 @@ const TicketSales = () => {
                   </CardHeader>
 
                   <CardContent className="space-y-4">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <Ticket className="h-4 w-4" />
-                      Sales by Ticket Type
-                    </h4>
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Ticket className="h-4 w-4" />
+                        Sales by Ticket Type
+                      </h4>
+                      <Badge variant="outline" className="text-sm font-semibold">
+                        Total: {formatCurrency(event.total_revenue_cents)}
+                      </Badge>
+                    </div>
                     
                     <div className="space-y-3">
                       {event.tickets.map((ticket) => {
@@ -272,14 +293,25 @@ const TicketSales = () => {
                         
                         return (
                           <div key={ticket.ticket_id} className="space-y-2">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-start gap-2">
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">{ticket.ticket_name}</p>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                                  <span className="font-mono">
+                                    {ticket.tickets_sold}{!isUnassignedComped && `/${ticket.ticket_capacity}`}
+                                  </span>
+                                  {!isUnassignedComped && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{formatCurrency(ticket.unit_price_cents)} each</span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="font-mono">
-                                  {ticket.tickets_sold}{!isUnassignedComped && `/${ticket.ticket_capacity}`}
-                                </span>
+                              <div className="flex flex-col items-end gap-1">
+                                <Badge variant="default" className="font-semibold">
+                                  {formatCurrency(ticket.total_revenue_cents)}
+                                </Badge>
                                 {!isUnassignedComped && (
                                   <Badge variant="secondary" className="text-xs">
                                     {formatPercentage(ticket.tickets_sold, ticket.ticket_capacity)}
