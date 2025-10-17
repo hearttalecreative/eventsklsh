@@ -69,7 +69,7 @@ serve(async (req) => {
     const { data: attendeeRows, error: attErr } = await service
       .from("attendees")
       .select(
-        `id, name, email, phone, confirmation_code, checked_in_at, qr_code, order_item_id, comped_ticket_id, is_comped,
+        `id, name, email, phone, confirmation_code, checked_in_at, qr_code, order_item_id, comped_ticket_id, is_comped, ticket_label,
          order_item:order_item_id (order_id, ticket:ticket_id (name)),
          comped_ticket:comped_ticket_id (name)`
       )
@@ -103,7 +103,16 @@ serve(async (req) => {
     }
 
     const attendees = (attendeeRows || []).map((a: any) => {
-      const ticket = a.order_item?.ticket || a.comped_ticket || null;
+      // Get ticket name from order_item, comped_ticket, or custom ticket_label
+      let ticket = null;
+      if (a.order_item?.ticket) {
+        ticket = a.order_item.ticket;
+      } else if (a.comped_ticket) {
+        ticket = a.comped_ticket;
+      } else if (a.ticket_label) {
+        ticket = { name: a.ticket_label };
+      }
+      
       const addons = a.order_item?.order_id ? addonsByOrder[a.order_item.order_id] || [] : [];
       return {
         id: a.id,
