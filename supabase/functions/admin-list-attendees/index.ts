@@ -69,7 +69,7 @@ serve(async (req) => {
     const { data: attendeeRows, error: attErr } = await service
       .from("attendees")
       .select(
-        `id, name, email, phone, confirmation_code, checked_in_at, qr_code, order_item_id, comped_ticket_id, is_comped, ticket_label,
+        `id, name, email, phone, confirmation_code, checked_in_at, qr_code, order_item_id, comped_ticket_id, is_comped, ticket_label, internal_notes,
          order_item:order_item_id (order_id, ticket:ticket_id (name)),
          comped_ticket:comped_ticket_id (name)`
       )
@@ -124,6 +124,7 @@ serve(async (req) => {
         qr_code: a.qr_code,
         ticket,
         addons,
+        internal_notes: a.internal_notes,
       };
     });
 

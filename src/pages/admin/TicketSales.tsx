@@ -89,17 +89,26 @@ const TicketSales = () => {
           return null;
         }
 
-        // Get attendees with internal notes for this event
-        const { data: attendeesData, error: attendeesError } = await supabase
-          .from('attendees')
-          .select('id, name, email, ticket_label, internal_notes')
-          .eq('event_id', event.id)
-          .not('internal_notes', 'is', null)
-          .order('name', { ascending: true });
+        // Get attendees with internal notes using the admin edge function
+        const { data: attendeesResponse, error: attendeesError } = await supabase.functions.invoke(
+          'admin-list-attendees',
+          { body: { eventId: event.id } }
+        );
 
         if (attendeesError) {
           console.error(`Error fetching attendees for event ${event.id}:`, attendeesError);
         }
+
+        // Filter attendees that have internal notes
+        const attendeesData = attendeesResponse?.attendees
+          ?.filter((a: any) => a.internal_notes)
+          .map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+            ticket_label: a.ticket?.name || null,
+            internal_notes: a.internal_notes
+          })) || [];
 
         const ticketsSalesData = ticketSales?.map((sale: any) => ({
           ticket_id: sale.ticket_id || 'comped-unassigned',
