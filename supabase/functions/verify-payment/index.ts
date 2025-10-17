@@ -97,32 +97,25 @@ serve(async (req) => {
     if (!ticket) throw new Error("Ticket not found");
     if (ticket.event_id !== cart.eventId) throw new Error("Ticket not for event");
 
-    // Check ticket availability
-    const { data: paidOrders } = await supabase
-      .from("order_items")
-      .select("quantity, orders!inner(status)")
-      .eq("ticket_id", cart.ticketId)
-      .eq("orders.status", "paid");
+    // Use atomic capacity check with row-level locking to prevent race conditions
+    const { data: capacityCheck, error: capacityErr } = await supabase
+      .rpc('check_and_reserve_ticket_capacity', {
+        p_ticket_id: cart.ticketId,
+        p_requested_qty: cart.ticketQty,
+        p_order_id: '00000000-0000-0000-0000-000000000000' // Temporary placeholder for new order
+      });
 
-    const soldFromOrders = (paidOrders || []).reduce((sum: number, item: any) => {
-      return sum + (item.quantity * (ticket.participants_per_ticket || 1));
-    }, 0);
-
-    const { count: compedCount } = await supabase
-      .from("attendees")
-      .select("id", { count: "exact", head: true })
-      .eq("comped_ticket_id", cart.ticketId)
-      .eq("is_comped", true);
-
-    const totalSold = soldFromOrders + (compedCount || 0);
-    const requestedTotal = cart.ticketQty * (ticket.participants_per_ticket || 1);
-    const available = ticket.capacity_total - totalSold;
-
-    console.log(`[verify-payment] Ticket availability check: capacity=${ticket.capacity_total}, sold=${totalSold}, requested=${requestedTotal}, available=${available}`);
-
-    if (available < requestedTotal) {
-      throw new Error(`Only ${Math.floor(available / (ticket.participants_per_ticket || 1))} tickets available. This ticket is sold out or has limited capacity.`);
+    if (capacityErr) {
+      console.error(`[verify-payment] Capacity check failed:`, capacityErr);
+      throw new Error(`Failed to verify ticket availability: ${capacityErr.message}`);
     }
+
+    if (!capacityCheck?.success) {
+      console.log(`[verify-payment] Insufficient capacity: ${capacityCheck?.error}`);
+      throw new Error(capacityCheck?.error || 'Ticket sold out or insufficient capacity');
+    }
+
+    console.log(`[verify-payment] Capacity reserved: capacity=${capacityCheck.capacity_total}, sold=${capacityCheck.sold}, requested=${capacityCheck.requested}, available=${capacityCheck.available}`);
 
     const { data: event, error: eventErr } = await supabase
       .from("events")
