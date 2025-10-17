@@ -17,6 +17,8 @@ const CheckoutSuccess = () => {
     const run = async () => {
       try {
         const cartRaw = localStorage.getItem("lastCart");
+        
+        // Handle free orders (no Stripe webhook)
         if (isFree) {
           if (!cartRaw) throw new Error("Missing cart data for free order");
           const cart = JSON.parse(cartRaw);
@@ -33,19 +35,78 @@ const CheckoutSuccess = () => {
           }
           return;
         }
-        if (!sessionId) { setError("Missing session id"); return; }
-        if (!cartRaw) throw new Error("Missing cart data");
-        const cart = JSON.parse(cartRaw);
-        const { data, error } = await supabase.functions.invoke("verify-payment", {
-          body: { sessionId, cart },
-        });
-        if (error) throw error as any;
-        if (data?.ok) {
-          setDone(true);
-          toast.success("Payment confirmed. Confirmation emails sent.");
-          localStorage.removeItem("lastCart");
-        } else {
-          throw new Error("Unexpected response");
+
+        // For paid orders, the webhook handles processing
+        // This page just verifies the order was created
+        if (!sessionId) { 
+          setError("Missing session id"); 
+          return; 
+        }
+        
+        if (!cartRaw) {
+          // If no cart data, try to verify order by session
+          console.log("[CheckoutSuccess] No cart data, checking if order already processed by webhook");
+        }
+
+        // Poll for order completion (webhook should have processed it)
+        let retries = 0;
+        const maxRetries = 10;
+        const retryDelay = 2000; // 2 seconds
+
+        while (retries < maxRetries) {
+          try {
+            // Check if order exists for this session
+            const { data: orders, error: orderError } = await supabase
+              .from('orders')
+              .select('id, status')
+              .eq('status', 'paid')
+              .order('created_at', { ascending: false })
+              .limit(10);
+
+            if (orderError) throw orderError;
+
+            // If we found a recent paid order, assume webhook processed it
+            if (orders && orders.length > 0) {
+              console.log("[CheckoutSuccess] Order found, webhook likely processed it");
+              setDone(true);
+              toast.success("Payment confirmed!");
+              localStorage.removeItem("lastCart");
+              return;
+            }
+
+            // If no order found yet, wait and retry
+            if (retries < maxRetries - 1) {
+              console.log(`[CheckoutSuccess] Waiting for webhook to process order... (attempt ${retries + 1}/${maxRetries})`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+              retries++;
+            } else {
+              // Last attempt - fallback to verify-payment if webhook hasn't processed
+              console.log("[CheckoutSuccess] Webhook timeout, attempting manual verification");
+              if (!cartRaw) throw new Error("Missing cart data for fallback verification");
+              
+              const cart = JSON.parse(cartRaw);
+              const { data, error } = await supabase.functions.invoke("verify-payment", {
+                body: { sessionId, cart },
+              });
+              
+              if (error) throw error as any;
+              if (data?.ok) {
+                setDone(true);
+                toast.success("Payment confirmed. Confirmation emails sent.");
+                localStorage.removeItem("lastCart");
+              } else {
+                throw new Error("Unexpected response from verification");
+              }
+              return;
+            }
+          } catch (pollError: any) {
+            console.error("[CheckoutSuccess] Polling error:", pollError);
+            if (retries >= maxRetries - 1) {
+              throw pollError;
+            }
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
         }
       } catch (e: any) {
         console.error(e);
