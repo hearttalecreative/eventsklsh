@@ -25,8 +25,12 @@ interface PurchaseDetail {
   addons: Array<{
     name: string;
     quantity: number;
+    unit_amount_cents: number;
   }>;
   total_amount_cents: number;
+  ticket_amount_cents: number;
+  addons_amount_cents: number;
+  processing_fee_cents: number;
   is_comped: boolean;
 }
 
@@ -99,6 +103,9 @@ const EventPurchaseDetails = () => {
               ticket_quantity: 1,
               addons: [],
               total_amount_cents: 0,
+              ticket_amount_cents: 0,
+              addons_amount_cents: 0,
+              processing_fee_cents: 0,
               is_comped: true,
             };
           }
@@ -126,11 +133,19 @@ const EventPurchaseDetails = () => {
           .eq('id', orderItemData.order_id)
           .single();
 
-        // Get ticket name
+        // Get ticket name and price
         const { data: ticketData } = await supabase
           .from('tickets')
-          .select('name')
+          .select('name, unit_amount_cents')
           .eq('id', orderItemData.ticket_id)
+          .single();
+
+        // Get ticket items for this order to calculate ticket revenue
+        const { data: ticketOrderItem } = await supabase
+          .from('order_items')
+          .select('total_amount_cents')
+          .eq('order_id', orderItemData.order_id)
+          .eq('id', orderItemData.id)
           .single();
 
         // Get addons for this order
@@ -139,6 +154,8 @@ const EventPurchaseDetails = () => {
           .select(`
             addon_id,
             quantity,
+            unit_amount_cents,
+            total_amount_cents,
             addons:addon_id (name)
           `)
           .eq('order_id', orderItemData.order_id)
@@ -146,8 +163,15 @@ const EventPurchaseDetails = () => {
 
         const addons = addonItems?.map(item => ({
           name: (item.addons as any)?.name || 'Unknown',
-          quantity: item.quantity
+          quantity: item.quantity,
+          unit_amount_cents: item.unit_amount_cents || 0
         })) || [];
+
+        // Calculate amounts
+        const ticketAmount = ticketOrderItem?.total_amount_cents || 0;
+        const addonsAmount = addonItems?.reduce((sum, item) => sum + (item.total_amount_cents || 0), 0) || 0;
+        const totalAmount = orderData?.total_amount_cents || 0;
+        const processingFee = totalAmount - ticketAmount - addonsAmount;
 
         return {
           attendee_id: attendee.id,
@@ -159,7 +183,10 @@ const EventPurchaseDetails = () => {
           ticket_name: ticketData?.name || 'Unknown',
           ticket_quantity: orderItemData.quantity,
           addons,
-          total_amount_cents: orderData?.total_amount_cents || 0,
+          total_amount_cents: totalAmount,
+          ticket_amount_cents: ticketAmount,
+          addons_amount_cents: addonsAmount,
+          processing_fee_cents: processingFee,
           is_comped: attendee.is_comped || false
         };
       }) || [];
@@ -294,7 +321,7 @@ const EventPurchaseDetails = () => {
         </header>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -304,22 +331,6 @@ const EventPurchaseDetails = () => {
                 <div>
                   <p className="text-2xl font-bold">{purchases.length}</p>
                   <p className="text-sm text-muted-foreground">Total Purchases</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-green-500/10">
-                  <DollarSign className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(purchases.reduce((sum, p) => sum + p.total_amount_cents, 0))}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Total Revenue</p>
                 </div>
               </div>
             </CardContent>
@@ -336,6 +347,54 @@ const EventPurchaseDetails = () => {
                     {purchases.reduce((sum, p) => sum + p.ticket_quantity, 0)}
                   </p>
                   <p className="text-sm text-muted-foreground">Tickets Sold</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-green-500/10">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(purchases.reduce((sum, p) => sum + p.ticket_amount_cents, 0))}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Tickets Revenue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-purple-500/10">
+                  <DollarSign className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(purchases.reduce((sum, p) => sum + p.addons_amount_cents, 0))}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Add-ons Revenue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-orange-500/10">
+                  <DollarSign className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(purchases.reduce((sum, p) => sum + p.processing_fee_cents, 0))}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Processing Fees</p>
                 </div>
               </div>
             </CardContent>
