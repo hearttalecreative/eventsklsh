@@ -251,14 +251,16 @@ const EventAttendeesPage = () => {
 
   const handleDownloadCSV = () => {
     // CSV headers
-    const headers = ['Name', 'Email', 'Phone', 'Confirmation Code'];
+    const headers = ['Name', 'Email', 'Phone', 'Ticket Tier', 'Confirmation Code', 'Check-in Status'];
     
     // CSV rows
     const rows = filteredAttendees.map(attendee => [
       attendee.name || '',
       attendee.email || '',
       attendee.phone || '',
-      attendee.confirmation_code
+      attendee.ticket?.name || 'N/A',
+      attendee.confirmation_code,
+      attendee.checked_in_at ? 'Checked In' : 'Pending'
     ]);
     
     // Combine headers and rows
@@ -491,7 +493,9 @@ const EventAttendeesPage = () => {
                               <th className="pb-3 font-medium">Check-in</th>
                               <th className="pb-3 font-medium">Status</th>
                               <th className="pb-3 font-medium">Name</th>
-                              <th className="pb-3 font-medium">Ticket</th>
+                              <th className="pb-3 font-medium">Email</th>
+                              <th className="pb-3 font-medium">Phone</th>
+                              <th className="pb-3 font-medium">Ticket Tier</th>
                               <th className="pb-3 font-medium">Add-ons</th>
                               <th className="pb-3 font-medium">Confirmation</th>
                               <th className="pb-3 font-medium">Check-in Time</th>
@@ -533,9 +537,13 @@ const EventAttendeesPage = () => {
                                   </Badge>
                                 </td>
                                 <td className="py-3">{attendee.name || "-"}</td>
+                                <td className="py-3 text-sm">{attendee.email || "-"}</td>
+                                <td className="py-3 text-sm">{attendee.phone || "-"}</td>
                                 <td className="py-3">
                                   {attendee.ticket ? (
-                                    <span className="text-sm">{attendee.ticket.name}</span>
+                                    <Badge variant="outline" className="text-sm">
+                                      {attendee.ticket.name}
+                                    </Badge>
                                   ) : (
                                     <span className="text-muted-foreground text-sm">-</span>
                                   )}
