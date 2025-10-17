@@ -86,74 +86,113 @@ const EventAttendeesPage = () => {
     const loadAttendees = async () => {
       setLoading(true);
       
-      // Load attendees with purchase info
-      const { data: attendeesData } = await supabase
-        .from("attendees")
-        .select(`
-          id, 
-          name, 
-          email, 
-          phone, 
-          confirmation_code, 
-          checked_in_at, 
-          qr_code,
-          order_item_id,
-          order_item:order_item_id (
-            order_id,
-            ticket:ticket_id (name)
-          )
-        `)
-        .eq("event_id", selectedEventId);
+      try {
+        // Load attendees with purchase info
+        const { data: attendeesData, error: attendeesError } = await supabase
+          .from("attendees")
+          .select(`
+            id, 
+            name, 
+            email, 
+            phone, 
+            confirmation_code, 
+            checked_in_at, 
+            qr_code,
+            order_item_id,
+            comped_ticket_id,
+            is_comped
+          `)
+          .eq("event_id", selectedEventId);
 
-      // Load addons for each attendee's order
-      const attendeesWithAddons = await Promise.all(
-        (attendeesData || []).map(async (attendee) => {
-          if (!attendee.order_item?.ticket) {
-            return { ...attendee, ticket: null, addons: [] };
-          }
+        if (attendeesError) {
+          console.error("Error loading attendees:", attendeesError);
+          throw attendeesError;
+        }
 
-          // Get all addons from the same order
-          const { data: addonsData } = await supabase
-            .from("order_items")
-            .select(`
-              quantity,
-              addon:addon_id (name)
-            `)
-            .eq("order_id", attendee.order_item.order_id)
-            .not("addon_id", "is", null);
+        console.log("Loaded attendees:", attendeesData?.length || 0);
 
-          return {
-            ...attendee,
-            ticket: attendee.order_item.ticket,
-            addons: addonsData?.map(item => ({
-              name: item.addon.name,
-              quantity: item.quantity
-            })) || []
-          };
-        })
-      );
-      
-      // Sort alphabetically by name in JavaScript to handle nulls properly
-      const sortedAttendees = attendeesWithAddons.sort((a, b) => {
-        const nameA = (a.name || "").toLowerCase();
-        const nameB = (b.name || "").toLowerCase();
-        if (!nameA && !nameB) return 0;
-        if (!nameA) return 1;
-        if (!nameB) return -1;
-        return nameA.localeCompare(nameB);
-      });
-      
-      // Load total capacity for this event
-      const { data: ticketsData } = await supabase
-        .from("tickets")
-        .select("capacity_total")
-        .eq("event_id", selectedEventId);
-      
-      const capacity = ticketsData?.reduce((sum, ticket) => sum + (ticket.capacity_total || 0), 0) || 0;
-      
-      setAttendees(sortedAttendees);
-      setTotalCapacity(capacity);
-      setLoading(false);
+        // Load ticket and addon info for each attendee
+        const attendeesWithDetails = await Promise.all(
+          (attendeesData || []).map(async (attendee) => {
+            let ticketInfo = null;
+            let addonsInfo: Array<{ name: string; quantity: number }> = [];
+
+            // Get ticket info from order_item or comped_ticket
+            if (attendee.order_item_id) {
+              const { data: orderItemData } = await supabase
+                .from("order_items")
+                .select(`
+                  order_id,
+                  ticket:ticket_id (name)
+                `)
+                .eq("id", attendee.order_item_id)
+                .maybeSingle();
+
+              if (orderItemData?.ticket) {
+                ticketInfo = orderItemData.ticket;
+
+                // Get addons from the same order
+                const { data: addonsData } = await supabase
+                  .from("order_items")
+                  .select(`
+                    quantity,
+                    addon:addon_id (name)
+                  `)
+                  .eq("order_id", orderItemData.order_id)
+                  .not("addon_id", "is", null);
+
+                addonsInfo = addonsData?.map(item => ({
+                  name: item.addon.name,
+                  quantity: item.quantity
+                })) || [];
+              }
+            } else if (attendee.comped_ticket_id) {
+              // Get ticket info for comped attendees
+              const { data: ticketData } = await supabase
+                .from("tickets")
+                .select("name")
+                .eq("id", attendee.comped_ticket_id)
+                .maybeSingle();
+
+              if (ticketData) {
+                ticketInfo = ticketData;
+              }
+            }
+
+            return {
+              ...attendee,
+              ticket: ticketInfo,
+              addons: addonsInfo
+            };
+          })
+        );
+        
+        // Sort alphabetically by name in JavaScript to handle nulls properly
+        const sortedAttendees = attendeesWithDetails.sort((a, b) => {
+          const nameA = (a.name || "").toLowerCase();
+          const nameB = (b.name || "").toLowerCase();
+          if (!nameA && !nameB) return 0;
+          if (!nameA) return 1;
+          if (!nameB) return -1;
+          return nameA.localeCompare(nameB);
+        });
+        
+        // Load total capacity for this event
+        const { data: ticketsData } = await supabase
+          .from("tickets")
+          .select("capacity_total")
+          .eq("event_id", selectedEventId);
+        
+        const capacity = ticketsData?.reduce((sum, ticket) => sum + (ticket.capacity_total || 0), 0) || 0;
+        
+        console.log("Final attendees count:", sortedAttendees.length);
+        setAttendees(sortedAttendees);
+        setTotalCapacity(capacity);
+      } catch (error) {
+        console.error("Failed to load attendees:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadAttendees();
