@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.process-free-order]
 verify_jwt = false
+
+[functions.admin-list-attendees]
+verify_jwt = true

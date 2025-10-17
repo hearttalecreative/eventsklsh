@@ -87,88 +87,17 @@ const EventAttendeesPage = () => {
       setLoading(true);
       
       try {
-        // Load attendees with purchase info
-        const { data: attendeesData, error: attendeesError } = await supabase
-          .from("attendees")
-          .select(`
-            id, 
-            name, 
-            email, 
-            phone, 
-            confirmation_code, 
-            checked_in_at, 
-            qr_code,
-            order_item_id,
-            comped_ticket_id,
-            is_comped
-          `)
-          .eq("event_id", selectedEventId);
+        // Fetch attendees via admin edge function (bypasses RLS safely)
+        const { data, error } = await supabase.functions.invoke("admin-list-attendees", {
+          body: { eventId: selectedEventId },
+        });
+        if (error) throw error as any;
 
-        if (attendeesError) {
-          console.error("Error loading attendees:", attendeesError);
-          throw attendeesError;
-        }
+        const attendeesData = (data?.attendees || []) as any[];
+        console.log("Loaded attendees via function:", attendeesData.length);
 
-        console.log("Loaded attendees:", attendeesData?.length || 0);
-
-        // Load ticket and addon info for each attendee
-        const attendeesWithDetails = await Promise.all(
-          (attendeesData || []).map(async (attendee) => {
-            let ticketInfo = null;
-            let addonsInfo: Array<{ name: string; quantity: number }> = [];
-
-            // Get ticket info from order_item or comped_ticket
-            if (attendee.order_item_id) {
-              const { data: orderItemData } = await supabase
-                .from("order_items")
-                .select(`
-                  order_id,
-                  ticket:ticket_id (name)
-                `)
-                .eq("id", attendee.order_item_id)
-                .maybeSingle();
-
-              if (orderItemData?.ticket) {
-                ticketInfo = orderItemData.ticket;
-
-                // Get addons from the same order
-                const { data: addonsData } = await supabase
-                  .from("order_items")
-                  .select(`
-                    quantity,
-                    addon:addon_id (name)
-                  `)
-                  .eq("order_id", orderItemData.order_id)
-                  .not("addon_id", "is", null);
-
-                addonsInfo = addonsData?.map(item => ({
-                  name: item.addon.name,
-                  quantity: item.quantity
-                })) || [];
-              }
-            } else if (attendee.comped_ticket_id) {
-              // Get ticket info for comped attendees
-              const { data: ticketData } = await supabase
-                .from("tickets")
-                .select("name")
-                .eq("id", attendee.comped_ticket_id)
-                .maybeSingle();
-
-              if (ticketData) {
-                ticketInfo = ticketData;
-              }
-            }
-
-            return {
-              ...attendee,
-              ticket: ticketInfo,
-              addons: addonsInfo
-            };
-          })
-        );
-        
         // Sort alphabetically by name in JavaScript to handle nulls properly
-        const sortedAttendees = attendeesWithDetails.sort((a, b) => {
+        const sortedAttendees = attendeesData.sort((a, b) => {
           const nameA = (a.name || "").toLowerCase();
           const nameB = (b.name || "").toLowerCase();
           if (!nameA && !nameB) return 0;
@@ -185,8 +114,7 @@ const EventAttendeesPage = () => {
         
         const capacity = ticketsData?.reduce((sum, ticket) => sum + (ticket.capacity_total || 0), 0) || 0;
         
-        console.log("Final attendees count:", sortedAttendees.length);
-        setAttendees(sortedAttendees);
+        setAttendees(sortedAttendees as any);
         setTotalCapacity(capacity);
       } catch (error) {
         console.error("Failed to load attendees:", error);
