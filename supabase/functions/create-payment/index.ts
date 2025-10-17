@@ -376,12 +376,16 @@ serve(async (req) => {
       currency: curr,
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancel`,
-      metadata: chosen ? {
-        coupon_id: chosen.id,
-        coupon_code: chosen.code,
-        coupon_apply_to: chosen.apply_to,
-        coupon_discount_cents: String(discount),
-      } : undefined,
+      metadata: {
+        ...(chosen ? {
+          coupon_id: chosen.id,
+          coupon_code: chosen.code,
+          coupon_apply_to: chosen.apply_to,
+          coupon_discount_cents: String(discount),
+        } : {}),
+        // Include cart data so webhook can process the order
+        cart_data: JSON.stringify(cart),
+      },
       // Disable automatic emails from Stripe since we handle them ourselves
       automatic_tax: { enabled: false },
       invoice_creation: { enabled: false },
