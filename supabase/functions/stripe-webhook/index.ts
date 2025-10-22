@@ -49,21 +49,35 @@ serve(async (req) => {
         { auth: { persistSession: false } }
       );
 
-      // Check if order already exists for this session to prevent duplicates
-      const { data: existingOrder } = await supabase
+      // Check if order already exists for this specific Stripe session to prevent duplicates
+      const { data: existingOrders } = await supabase
         .from('orders')
-        .select('id')
+        .select('id, stripe_session_id')
         .eq('email', session.customer_details?.email || cart.participants[0]?.email)
         .eq('event_id', cart.eventId)
-        .eq('total_amount_cents', session.amount_total)
         .eq('status', 'paid')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .gte('created_at', new Date(Date.now() - 3600000).toISOString()) // Last hour only
+        .order('created_at', { ascending: false });
 
-      if (existingOrder) {
-        console.log(`[stripe-webhook] Order already processed for session ${session.id}`);
-        return new Response(JSON.stringify({ received: true, orderId: existingOrder.id }), { status: 200 });
+      // Check if we already processed this exact Stripe session
+      const sessionAlreadyProcessed = existingOrders?.some(
+        order => order.stripe_session_id === session.id
+      );
+
+      if (sessionAlreadyProcessed) {
+        console.log(`[stripe-webhook] Stripe session ${session.id} already processed, skipping duplicate`);
+        const existingOrder = existingOrders.find(o => o.stripe_session_id === session.id);
+        return new Response(JSON.stringify({ received: true, orderId: existingOrder?.id }), { status: 200 });
+      }
+
+      // Also check for potential duplicates by amount and timing (within 2 minutes)
+      const potentialDuplicate = existingOrders?.find(
+        order => order.stripe_session_id !== session.id &&
+                 new Date(order.created_at).getTime() > Date.now() - 120000
+      );
+
+      if (potentialDuplicate && existingOrders.length > 0) {
+        console.log(`[stripe-webhook] Potential duplicate order detected for session ${session.id}, but proceeding with caution`);
       }
 
       // Process the payment by calling verify-payment
