@@ -516,6 +516,7 @@ export type Database = {
           event_id: string
           id: string
           status: Database["public"]["Enums"]["order_status"]
+          stripe_session_id: string | null
           total_amount_cents: number
           updated_at: string
           user_id: string | null
@@ -527,6 +528,7 @@ export type Database = {
           event_id: string
           id?: string
           status?: Database["public"]["Enums"]["order_status"]
+          stripe_session_id?: string | null
           total_amount_cents?: number
           updated_at?: string
           user_id?: string | null
@@ -538,6 +540,7 @@ export type Database = {
           event_id?: string
           id?: string
           status?: Database["public"]["Enums"]["order_status"]
+          stripe_session_id?: string | null
           total_amount_cents?: number
           updated_at?: string
           user_id?: string | null
@@ -753,24 +756,15 @@ export type Database = {
         }
         Returns: Json
       }
-      cleanup_old_checkout_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_old_checkout_logs: { Args: never; Returns: undefined }
       compute_event_slug: {
         Args: { _id: string; _title: string }
         Returns: string
       }
-      generate_confirmation_code: {
-        Args: { _len?: number }
-        Returns: string
-      }
-      generate_qr_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_confirmation_code: { Args: { _len?: number }; Returns: string }
+      generate_qr_code: { Args: never; Returns: string }
       get_event_sales_summary_admin: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           event_id: string | null
           orders_paid: number | null
@@ -779,6 +773,12 @@ export type Database = {
           total_amount_cents: number | null
           venue_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "event_sales_summary"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_ticket_sales_for_event_admin: {
         Args: { ev_id: string }
@@ -792,13 +792,19 @@ export type Database = {
         }[]
       }
       get_venue_sales_summary_admin: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           name: string | null
           orders_paid: number | null
           total_amount_cents: number | null
           venue_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "venue_sales_summary"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       has_role: {
         Args: {
@@ -807,14 +813,8 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_primary_admin: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
-      promote_to_admin_if_allowlisted: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      is_primary_admin: { Args: { _user_id: string }; Returns: boolean }
+      promote_to_admin_if_allowlisted: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

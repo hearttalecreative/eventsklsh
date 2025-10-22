@@ -49,6 +49,18 @@ serve(async (req) => {
         { auth: { persistSession: false } }
       );
 
+      // Fast path: prevent duplicates by Stripe session id
+      const { data: existingBySession } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('stripe_session_id', session.id)
+        .maybeSingle();
+
+      if (existingBySession) {
+        console.log(`[stripe-webhook] Session ${session.id} already processed as order ${existingBySession.id}`);
+        return new Response(JSON.stringify({ received: true, orderId: existingBySession.id }), { status: 200 });
+      }
+
       // Check if order already exists for this specific Stripe session to prevent duplicates
       const { data: existingOrders } = await supabase
         .from('orders')

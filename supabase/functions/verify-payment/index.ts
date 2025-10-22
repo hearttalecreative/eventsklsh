@@ -87,6 +87,20 @@ serve(async (req) => {
       console.log(`[verify-payment] Accepting processing payment for method: ${session.payment_method_types?.join(', ')}`);
     }
 
+    // Idempotency: if an order already exists for this Stripe session, return early
+    const { data: existingBySession } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('stripe_session_id', sessionId)
+      .maybeSingle();
+    if (existingBySession) {
+      console.log(`[verify-payment] Order already exists for session ${sessionId}: ${existingBySession.id}`);
+      return new Response(JSON.stringify({ ok: true, orderId: existingBySession.id }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     // 2) Load authoritative data from DB
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")
@@ -168,18 +182,36 @@ serve(async (req) => {
 
     // 4) Insert Order, Items, and Attendees
     const orderCurrency = (session.currency || 'usd').toLowerCase();
-    const { data: order, error: orderErr } = await supabase
+    // Upsert by stripe_session_id to guarantee idempotency
+    const { data: upsertedOrders, error: orderErr } = await supabase
       .from("orders")
-      .insert({
+      .upsert({
         event_id: cart.eventId,
         email: (session.customer_details?.email as string) || undefined,
         total_amount_cents: total,
         currency: orderCurrency,
         status: "paid",
-      })
+        stripe_session_id: sessionId,
+      }, { onConflict: "stripe_session_id" })
       .select("id")
-      .single();
+      .limit(1);
     if (orderErr) throw orderErr;
+    const order = upsertedOrders?.[0];
+    if (!order) throw new Error("Failed to create or fetch order");
+
+    // If order_items already exist (duplicate call), skip further processing
+    const { data: existingItems, error: itemsSelErr } = await supabase
+      .from("order_items")
+      .select("id")
+      .eq("order_id", order.id);
+    if (itemsSelErr) throw itemsSelErr;
+    if (existingItems && existingItems.length > 0) {
+      console.log(`[verify-payment] Order items already exist for ${order.id}, skipping duplicate processing`);
+      return new Response(JSON.stringify({ ok: true, orderId: order.id }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     // Ticket item
     const { data: ticketItem, error: oiErr } = await supabase
