@@ -645,10 +645,40 @@ const updateTicketField = async (
   };
 
 const deleteTicket = async (id: string) => {
+    // Check if ticket has any orders
+    const { data: orders } = await supabase
+      .from('order_items')
+      .select('id')
+      .eq('ticket_id', id)
+      .limit(1);
+    
+    if (orders && orders.length > 0) {
+      toast.error('Cannot delete this ticket because it has existing orders/purchases.');
+      return;
+    }
+
+    // Check if ticket is used for comped attendees
+    const { data: comped } = await supabase
+      .from('attendees')
+      .select('id')
+      .eq('comped_ticket_id', id)
+      .limit(1);
+    
+    if (comped && comped.length > 0) {
+      toast.error('Cannot delete this ticket because it has comped attendees.');
+      return;
+    }
+
     if (!confirm('Delete this ticket?')) return;
+    
     const { error } = await supabase.from('tickets').delete().eq('id', id);
-    if (error) return alert(error.message);
+    if (error) {
+      toast.error(`Failed to delete ticket: ${error.message}`);
+      return;
+    }
+    
     setTickets(arr => arr.filter(t => t.id !== id));
+    toast.success('Ticket deleted successfully');
     await logAdmin('ticket_deleted','ticket', id);
   };
 
