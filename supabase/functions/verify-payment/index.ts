@@ -175,6 +175,14 @@ serve(async (req) => {
     const processingFee = Math.round(subtotalAfterDiscount * 0.035);
     const total = subtotalAfterDiscount + processingFee;
 
+    // Validate participants count matches ticket configuration
+    const expectedParticipants = (ticket.participants_per_ticket || 1) * cart.ticketQty;
+    if (!Array.isArray(cart.participants) || cart.participants.length !== expectedParticipants) {
+      const errorMsg = `Participants count mismatch: expected ${expectedParticipants} (${cart.ticketQty} tickets × ${ticket.participants_per_ticket || 1} participants each), got ${cart.participants?.length || 0}`;
+      console.error(`[verify-payment] ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+
     if (typeof session.amount_total === "number" && session.amount_total !== total) {
       console.warn("Amount mismatch:", { session: session.amount_total, computed: total });
       // Still proceed, but log warning; depending on policy, you could reject here.

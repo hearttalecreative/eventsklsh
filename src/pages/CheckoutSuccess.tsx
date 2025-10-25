@@ -74,7 +74,7 @@ const CheckoutSuccess = () => {
               return;
             }
 
-            // If no order found yet, wait and retry
+        // If no order found yet, wait and retry
             if (retries < maxRetries - 1) {
               console.log(`[CheckoutSuccess] Waiting for webhook to process order... (attempt ${retries + 1}/${maxRetries})`);
               await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -82,14 +82,26 @@ const CheckoutSuccess = () => {
             } else {
               // Last attempt - fallback to verify-payment if webhook hasn't processed
               console.log("[CheckoutSuccess] Webhook timeout, attempting manual verification");
-              if (!cartRaw) throw new Error("Missing cart data for fallback verification");
+              if (!cartRaw) {
+                // No cart data but payment succeeded - show user to contact support
+                setDone(true);
+                toast.success("Payment received! If you don't receive a confirmation email within 10 minutes, please contact us.");
+                return;
+              }
               
               const cart = JSON.parse(cartRaw);
               const { data, error } = await supabase.functions.invoke("verify-payment", {
                 body: { sessionId, cart },
               });
               
-              if (error) throw error as any;
+              if (error) {
+                console.error("[CheckoutSuccess] verify-payment error:", error);
+                // Payment succeeded but verification failed - user should contact support
+                setDone(true);
+                toast.success("Payment received! If you don't receive a confirmation email within 10 minutes, please contact us.");
+                return;
+              }
+              
               if (data?.ok) {
                 setDone(true);
                 toast.success("Payment confirmed. Confirmation emails sent.");
@@ -109,8 +121,14 @@ const CheckoutSuccess = () => {
           }
         }
       } catch (e: any) {
-        console.error(e);
-        setError(e?.message || "Failed to verify payment");
+        console.error("[CheckoutSuccess] Error:", e);
+        // For payment errors, show a user-friendly message
+        if (sessionId) {
+          // Payment was initiated, so it might have succeeded
+          setError("We're processing your payment. If you don't receive a confirmation email within 10 minutes, please contact us with your payment details.");
+        } else {
+          setError(e?.message || "Failed to verify payment");
+        }
       } finally {
         setLoading(false);
       }
