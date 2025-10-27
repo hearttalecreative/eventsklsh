@@ -36,8 +36,9 @@ serve(async (req) => {
       const metadata = session.metadata || {};
       
       if (!metadata.cart_data) {
-        console.error(`[stripe-webhook] No cart_data in session metadata`);
-        return new Response(JSON.stringify({ error: "Missing cart data in session" }), { status: 400 });
+        console.error(`[stripe-webhook] No cart_data in session metadata for ${session.id}`);
+        // Acknowledge to prevent Stripe retries; the frontend fallback will handle verification
+        return new Response(JSON.stringify({ received: true, reason: "missing_cart_data" }), { status: 200 });
       }
 
       const cart = JSON.parse(metadata.cart_data);
@@ -92,7 +93,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ received: true, orderId: data?.orderId }), { status: 200 });
     } catch (err: any) {
       console.error(`[stripe-webhook] Error processing checkout session:`, err);
-      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      // Acknowledge to stop Stripe retries; internal processing failed but will be handled via fallback/manual
+      return new Response(JSON.stringify({ received: true, error: err.message }), { status: 200 });
     }
   }
 
