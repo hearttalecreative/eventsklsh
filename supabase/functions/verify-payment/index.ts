@@ -190,22 +190,39 @@ serve(async (req) => {
 
     // 4) Insert Order, Items, and Attendees
     const orderCurrency = (session.currency || 'usd').toLowerCase();
-    // Upsert by stripe_session_id to guarantee idempotency
-    const { data: upsertedOrders, error: orderErr } = await supabase
+    // Insert order (idempotency already checked at line 91-102)
+    const { data: createdOrder, error: orderErr } = await supabase
       .from("orders")
-      .upsert({
+      .insert({
         event_id: cart.eventId,
         email: (session.customer_details?.email as string) || undefined,
         total_amount_cents: total,
         currency: orderCurrency,
         status: "paid",
         stripe_session_id: sessionId,
-      }, { onConflict: "stripe_session_id" })
+      })
       .select("id")
-      .limit(1);
-    if (orderErr) throw orderErr;
-    const order = upsertedOrders?.[0];
-    if (!order) throw new Error("Failed to create or fetch order");
+      .single();
+    
+    // If duplicate key error, fetch existing order
+    if (orderErr) {
+      if (orderErr.code === '23505') { // Unique violation
+        const { data: existingOrder } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('stripe_session_id', sessionId)
+          .single();
+        if (existingOrder) {
+          console.log(`[verify-payment] Order already exists for session ${sessionId}: ${existingOrder.id}`);
+          return new Response(JSON.stringify({ ok: true, orderId: existingOrder.id }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+      }
+      throw orderErr;
+    }
+    const order = createdOrder;
 
     // If order_items already exist (duplicate call), skip further processing
     const { data: existingItems, error: itemsSelErr } = await supabase
