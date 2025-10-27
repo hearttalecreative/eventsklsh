@@ -11,7 +11,9 @@ const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") || "";
 serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
   if (!signature) {
-    return new Response(JSON.stringify({ error: "No signature" }), { status: 400 });
+    console.error(`[stripe-webhook] Missing Stripe signature header`);
+    // Acknowledge to avoid Stripe retries; CheckoutSuccess will fallback if needed
+    return new Response(JSON.stringify({ received: true, reason: "no_signature" }), { status: 200 });
   }
 
   let event: Stripe.Event;
@@ -23,7 +25,7 @@ serve(async (req) => {
     console.log(`[stripe-webhook] Received event: ${event.type}`);
   } catch (err: any) {
     console.error(`[stripe-webhook] Webhook signature verification failed:`, err.message);
-    return new Response(JSON.stringify({ error: `Webhook Error: ${err.message}` }), { status: 400 });
+    return new Response(JSON.stringify({ received: true, reason: "bad_signature" }), { status: 200 });
   }
 
   // Handle checkout completion (sync or async)
