@@ -55,21 +55,17 @@ const CheckoutSuccess = () => {
 
         while (retries < maxRetries) {
           try {
-            // Check if order exists for this session
-            const { data: orders, error: orderError } = await supabase
-              .from('orders')
-              .select('id, status')
-              .eq('status', 'paid')
-              .order('created_at', { ascending: false })
-              .limit(10);
+            // Ask server if this specific session has an order
+            const { data: checkData, error: checkError } = await supabase.functions.invoke("check-order-by-session", {
+              body: { sessionId },
+            });
 
-            if (orderError) throw orderError;
+            if (checkError) throw checkError as any;
 
-            // If we found a recent paid order, assume webhook processed it
-            if (orders && orders.length > 0) {
-              console.log("[CheckoutSuccess] Order found, webhook likely processed it");
+            if (checkData?.exists && checkData?.paid) {
+              console.log("[CheckoutSuccess] Order found for session, webhook processed it");
               setDone(true);
-              toast.success("Payment confirmed!");
+              toast.success("Payment confirmed. Confirmation emails sent.");
               localStorage.removeItem("lastCart");
               return;
             }

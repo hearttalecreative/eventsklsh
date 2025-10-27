@@ -26,10 +26,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: `Webhook Error: ${err.message}` }), { status: 400 });
   }
 
-  // Handle the checkout.session.completed event
-  if (event.type === "checkout.session.completed") {
+  // Handle checkout completion (sync or async)
+  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
     const session = event.data.object as Stripe.Checkout.Session;
-    console.log(`[stripe-webhook] Processing checkout.session.completed for session: ${session.id}`);
+    console.log(`[stripe-webhook] Processing ${event.type} for session: ${session.id}`);
 
     try {
       // Extract cart data from session metadata
@@ -61,38 +61,24 @@ serve(async (req) => {
         return new Response(JSON.stringify({ received: true, orderId: existingBySession.id }), { status: 200 });
       }
 
-      // Check if order already exists for this specific Stripe session to prevent duplicates
+      // Also check for potential duplicates by email+event (last hour)
       const { data: existingOrders } = await supabase
         .from('orders')
-        .select('id, stripe_session_id')
+        .select('id, stripe_session_id, created_at')
         .eq('email', session.customer_details?.email || cart.participants[0]?.email)
         .eq('event_id', cart.eventId)
         .eq('status', 'paid')
-        .gte('created_at', new Date(Date.now() - 3600000).toISOString()) // Last hour only
+        .gte('created_at', new Date(Date.now() - 3600000).toISOString())
         .order('created_at', { ascending: false });
 
-      // Check if we already processed this exact Stripe session
-      const sessionAlreadyProcessed = existingOrders?.some(
-        order => order.stripe_session_id === session.id
-      );
-
+      const sessionAlreadyProcessed = existingOrders?.some(order => order.stripe_session_id === session.id);
       if (sessionAlreadyProcessed) {
         console.log(`[stripe-webhook] Stripe session ${session.id} already processed, skipping duplicate`);
-        const existingOrder = existingOrders.find(o => o.stripe_session_id === session.id);
+        const existingOrder = existingOrders!.find(o => o.stripe_session_id === session.id);
         return new Response(JSON.stringify({ received: true, orderId: existingOrder?.id }), { status: 200 });
       }
 
-      // Also check for potential duplicates by amount and timing (within 2 minutes)
-      const potentialDuplicate = existingOrders?.find(
-        order => order.stripe_session_id !== session.id &&
-                 new Date(order.created_at).getTime() > Date.now() - 120000
-      );
-
-      if (potentialDuplicate && existingOrders.length > 0) {
-        console.log(`[stripe-webhook] Potential duplicate order detected for session ${session.id}, but proceeding with caution`);
-      }
-
-      // Process the payment by calling verify-payment
+      // Process the payment by calling verify-payment (idempotent)
       const { data, error } = await supabase.functions.invoke("verify-payment", {
         body: { sessionId: session.id, cart },
       });
@@ -103,7 +89,6 @@ serve(async (req) => {
       }
 
       console.log(`[stripe-webhook] Successfully processed order:`, data);
-      
       return new Response(JSON.stringify({ received: true, orderId: data?.orderId }), { status: 200 });
     } catch (err: any) {
       console.error(`[stripe-webhook] Error processing checkout session:`, err);
@@ -111,6 +96,6 @@ serve(async (req) => {
     }
   }
 
-  // Return a 200 response to acknowledge receipt of the event
+  // Return a 200 response to acknowledge receipt of the event in other cases
   return new Response(JSON.stringify({ received: true }), { status: 200 });
 });
