@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { validateCart, validateEmail } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,11 +86,19 @@ serve(async (req) => {
   }
 
   try {
-    const { buyer, cart, currency }: CreatePaymentRequest = await req.json();
+    const payload = await req.json();
+    
+    // Validate and sanitize inputs
+    const validatedCart = validateCart(payload.cart);
+    const buyerEmail = validateEmail(payload.buyer?.email);
+    const buyerName = payload.buyer?.name?.trim() || '';
+    if (!buyerName) throw new Error("Buyer name is required");
+    
     const curr = 'usd';
-    if (!buyer?.email || !buyer?.name) throw new Error("Missing buyer info");
-    if (!cart?.eventId || !cart?.ticketId || !cart?.ticketQty || cart.ticketQty < 1)
-      throw new Error("Invalid cart");
+    
+    // Reconstruct validated objects
+    const cart = validatedCart;
+    const buyer = { email: buyerEmail, name: buyerName };
 
     // Log checkout initiation (before any payment processing)
     const firstParticipant = cart.participants?.[0];
@@ -242,18 +251,14 @@ serve(async (req) => {
       throw new Error('Participants count mismatch');
     }
 
-    // Log checkout initiation to checkout_logs table
+    // Log anonymized checkout metrics (no PII)
     try {
       await supabase.from('checkout_logs').insert({
-        first_name: firstName,
-        last_name: lastName,
-        email: buyer.email,
-        phone: firstParticipant?.phone || null,
         total_amount_cents: total,
         event_id: cart.eventId,
         event_title: event.title
       });
-      console.log(`[create-payment] Logged checkout for ${buyer.email}, total: ${total}`);
+      console.log(`[create-payment] Logged checkout attempt for event ${event.title}, total: ${total}`);
     } catch (logErr) {
       console.error('[create-payment] Failed to log checkout:', logErr);
       // Continue with payment creation even if logging fails

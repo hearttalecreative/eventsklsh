@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { validateCart } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,14 +20,13 @@ serve(async (req: Request) => {
   );
 
   try {
-    const { cart } = await req.json();
-    console.log("[process-free-order] Processing cart:", cart);
+    const payload = await req.json();
+    
+    // Validate and sanitize cart input
+    const cart = validateCart(payload.cart);
+    console.log("[process-free-order] Processing validated cart:", cart);
 
-    if (!cart || !cart.eventId) {
-      throw new Error("Invalid cart data");
-    }
-
-    // 1) Fetch event and related data
+    // 1) Fetch event and validate it's published
     const { data: event, error: eventErr } = await supabase
       .from("events")
       .select("*")
@@ -46,32 +46,21 @@ serve(async (req: Request) => {
       .single();
     if (ticketErr) throw ticketErr;
 
-    // Check ticket availability
-    const { data: paidOrders } = await supabase
-      .from("order_items")
-      .select("quantity, orders!inner(status)")
-      .eq("ticket_id", cart.ticketId)
-      .eq("orders.status", "paid");
+    // Use atomic capacity check function (same as paid orders)
+    // This prevents race conditions during high-demand free events
+    const { data: capacityCheck, error: capErr } = await supabase
+      .rpc('check_and_reserve_ticket_capacity', {
+        p_ticket_id: cart.ticketId,
+        p_requested_qty: cart.ticketQty || 1,
+        p_order_id: '00000000-0000-0000-0000-000000000000' // placeholder for free orders
+      });
 
-    const soldFromOrders = (paidOrders || []).reduce((sum: number, item: any) => {
-      return sum + (item.quantity * (ticket.participants_per_ticket || 1));
-    }, 0);
-
-    const { count: compedCount } = await supabase
-      .from("attendees")
-      .select("id", { count: "exact", head: true })
-      .eq("comped_ticket_id", cart.ticketId)
-      .eq("is_comped", true);
-
-    const totalSold = soldFromOrders + (compedCount || 0);
-    const requestedTotal = (cart.ticketQty || 1) * (ticket.participants_per_ticket || 1);
-    const available = ticket.capacity_total - totalSold;
-
-    console.log(`[process-free-order] Ticket availability check: capacity=${ticket.capacity_total}, sold=${totalSold}, requested=${requestedTotal}, available=${available}`);
-
-    if (available < requestedTotal) {
-      throw new Error(`Only ${Math.floor(available / (ticket.participants_per_ticket || 1))} tickets available. This ticket is sold out or has limited capacity.`);
+    if (capErr) throw capErr;
+    if (!capacityCheck?.success) {
+      throw new Error(capacityCheck?.error || 'Ticket capacity check failed');
     }
+
+    console.log(`[process-free-order] Capacity check passed:`, capacityCheck);
 
     const { data: venue } = await supabase
       .from("venues")

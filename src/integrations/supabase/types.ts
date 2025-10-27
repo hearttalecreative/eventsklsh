@@ -196,35 +196,23 @@ export type Database = {
       checkout_logs: {
         Row: {
           created_at: string
-          email: string
           event_id: string | null
           event_title: string | null
-          first_name: string | null
           id: string
-          last_name: string | null
-          phone: string | null
           total_amount_cents: number
         }
         Insert: {
           created_at?: string
-          email: string
           event_id?: string | null
           event_title?: string | null
-          first_name?: string | null
           id?: string
-          last_name?: string | null
-          phone?: string | null
           total_amount_cents: number
         }
         Update: {
           created_at?: string
-          email?: string
           event_id?: string | null
           event_title?: string | null
-          first_name?: string | null
           id?: string
-          last_name?: string | null
-          phone?: string | null
           total_amount_cents?: number
         }
         Relationships: [

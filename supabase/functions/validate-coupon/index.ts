@@ -1,15 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { validateCouponInput } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-interface Payload {
-  eventId: string;
-  code: string;
-}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -17,13 +13,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { eventId, code } = (await req.json()) as Payload;
-    if (!eventId || !code) {
-      return new Response(JSON.stringify({ error: "Invalid payload" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
+    const payload = await req.json();
+    
+    // Validate and sanitize input
+    const { eventId, code } = validateCouponInput(payload.eventId, payload.code);
 
     const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -35,14 +28,14 @@ serve(async (req: Request) => {
       { auth: { persistSession: false } }
     );
 
-    const codeUpper = code.trim().toUpperCase();
+    // code is already uppercased and sanitized by validateCouponInput
 
     // Prefer event-specific coupon over global; only admins can read coupons via service role
     const { data: coupons, error } = await supabaseService
       .from('coupons')
       .select('id, code, discount_percent, discount_amount_cents, apply_to, event_id, starts_at, ends_at, max_redemptions, active')
       .or(`event_id.eq.${eventId},event_id.is.null`)
-      .ilike('code', codeUpper)
+      .ilike('code', code)
       .eq('active', true)
       .order('event_id', { ascending: false, nullsFirst: false });
 

@@ -20,10 +20,6 @@ import { toast } from "sonner";
 
 interface CheckoutLog {
   id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string;
-  phone: string | null;
   total_amount_cents: number;
   event_id: string | null;
   event_title: string | null;
@@ -43,14 +39,14 @@ const CheckoutLogs = () => {
     try {
       setIsLoading(true);
       
-      // Fetch logs from last 90 days
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      // Fetch logs from last 30 days (updated retention policy)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       const { data, error } = await supabase
         .from('checkout_logs')
         .select('*')
-        .gte('created_at', ninetyDaysAgo.toISOString())
+        .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -69,14 +65,10 @@ const CheckoutLogs = () => {
       return;
     }
 
-    // Create CSV content
-    const headers = ['Date', 'First Name', 'Last Name', 'Email', 'Phone', 'Total Amount', 'Event'];
+    // Create CSV content with anonymized data
+    const headers = ['Date', 'Total Amount', 'Event'];
     const rows = logs.map(log => [
       new Date(log.created_at).toLocaleString(),
-      log.first_name || '',
-      log.last_name || '',
-      log.email,
-      log.phone || '',
       `$${(log.total_amount_cents / 100).toFixed(2)}`,
       log.event_title || 'N/A'
     ]);
@@ -91,7 +83,7 @@ const CheckoutLogs = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     
-    const fileName = `checkout-logs-${new Date().toISOString().split('T')[0]}.csv`;
+    const fileName = `checkout-metrics-${new Date().toISOString().split('T')[0]}.csv`;
     
     link.setAttribute('href', url);
     link.setAttribute('download', fileName);
@@ -126,8 +118,8 @@ const CheckoutLogs = () => {
       <AdminHeader />
       <main className="container mx-auto py-8 space-y-8">
         <Helmet>
-          <title>Checkout Logs | Admin Dashboard</title>
-          <meta name="description" content="View all checkout initiations from the last 90 days" />
+          <title>Checkout Analytics | Admin Dashboard</title>
+          <meta name="description" content="View anonymized checkout metrics from the last 30 days" />
           <link rel="canonical" href={`${baseUrl}/admin/checkout-logs`} />
         </Helmet>
 
@@ -141,10 +133,10 @@ const CheckoutLogs = () => {
                 </Link>
               </Button>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Checkout Logs</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Checkout Analytics</h1>
             <p className="text-muted-foreground flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              All checkout initiations from the last 90 days
+              Anonymized checkout metrics from the last 30 days
             </p>
           </div>
           
@@ -156,12 +148,12 @@ const CheckoutLogs = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Checkout Attempts ({logs.length})</CardTitle>
+            <CardTitle>Checkout Metrics ({logs.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {logs.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No checkout logs found</p>
+                <p className="text-muted-foreground">No checkout data available</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -169,9 +161,6 @@ const CheckoutLogs = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date & Time</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
                       <TableHead>Event</TableHead>
                       <TableHead className="text-right">Total Amount</TableHead>
                     </TableRow>
@@ -188,12 +177,7 @@ const CheckoutLogs = () => {
                             minute: '2-digit',
                           })}
                         </TableCell>
-                        <TableCell>
-                          {[log.first_name, log.last_name].filter(Boolean).join(' ') || 'N/A'}
-                        </TableCell>
-                        <TableCell>{log.email}</TableCell>
-                        <TableCell>{log.phone || 'N/A'}</TableCell>
-                        <TableCell className="max-w-xs truncate">
+                        <TableCell className="max-w-md truncate">
                           {log.event_title || 'N/A'}
                         </TableCell>
                         <TableCell className="text-right font-mono">
