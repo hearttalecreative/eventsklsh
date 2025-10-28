@@ -77,7 +77,7 @@ const TicketSales = () => {
           ends_at
         `)
         .eq('status', 'published')
-        .order('starts_at', { ascending: false });
+        .order('starts_at', { ascending: true });
 
       if (error) throw error;
 
