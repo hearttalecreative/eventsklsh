@@ -86,8 +86,18 @@ const EventPurchaseDetails = () => {
 
       const attendeesData = attendeesResponse.attendees;
 
+      // Use a Map to prevent duplicate attendees
+      const attendeeMap = new Map<string, any>();
+      
       // For each attendee, get their order details
       const purchaseDetailsPromises = attendeesData?.map(async (attendee) => {
+        // Skip if already processed (prevent duplicates)
+        if (attendeeMap.has(attendee.id)) {
+          console.log(`[EventPurchaseDetails] Skipping duplicate attendee: ${attendee.id}`);
+          return null;
+        }
+        attendeeMap.set(attendee.id, true);
+
         // Handle comped attendees (no order)
         if (!attendee.order_item_id) {
           if (attendee.is_comped) {
@@ -125,12 +135,18 @@ const EventPurchaseDetails = () => {
 
         if (!orderItemData) return null;
 
-        // Get order details
+        // Get order details with validation
         const { data: orderData } = await supabase
           .from('orders')
-          .select('created_at, total_amount_cents')
+          .select('created_at, total_amount_cents, stripe_session_id, status')
           .eq('id', orderItemData.order_id)
           .single();
+
+        // Skip orders that aren't paid (prevents showing pending/failed orders)
+        if (orderData?.status !== 'paid') {
+          console.log(`[EventPurchaseDetails] Skipping non-paid order: ${orderItemData.order_id}`);
+          return null;
+        }
 
         // Get ticket name and price
         const { data: ticketData } = await supabase
@@ -226,22 +242,41 @@ const EventPurchaseDetails = () => {
     });
   };
 
-  // Calculate ticket breakdown - group by order_item to avoid double-counting multi-participant tickets
+  // Calculate ticket breakdown - group by order_id to avoid duplicates
   const ticketBreakdown = useMemo(() => {
-    const breakdown = new Map<string, { orderItems: Set<string>; attendeeCount: number }>();
+    // Use order_id + ticket_name as unique key to prevent counting same order multiple times
+    const orderTicketMap = new Map<string, { name: string; attendeeCount: number }>();
+    
     purchases.forEach(purchase => {
-      const current = breakdown.get(purchase.ticket_name) || { orderItems: new Set(), attendeeCount: 0 };
-      // Track unique order_item_ids to count actual ticket purchases (not attendees)
-      if (purchase.order_id) {
-        current.orderItems.add(purchase.order_id); // Use order_id as proxy for unique purchases
+      const key = `${purchase.order_id}-${purchase.ticket_name}`;
+      
+      if (orderTicketMap.has(key)) {
+        // Same order, same ticket - just count attendee
+        const current = orderTicketMap.get(key)!;
+        current.attendeeCount++;
+      } else {
+        // New order or new ticket type
+        orderTicketMap.set(key, {
+          name: purchase.ticket_name,
+          attendeeCount: 1
+        });
       }
-      current.attendeeCount += 1; // Count each attendee
-      breakdown.set(purchase.ticket_name, current);
     });
+
+    // Now group by ticket name for display
+    const breakdown = new Map<string, { ticketsSold: number; attendeeCount: number }>();
+    
+    orderTicketMap.forEach((value) => {
+      const current = breakdown.get(value.name) || { ticketsSold: 0, attendeeCount: 0 };
+      current.ticketsSold += 1; // Each unique order-ticket combination is one ticket sold
+      current.attendeeCount += value.attendeeCount;
+      breakdown.set(value.name, current);
+    });
+
     return Array.from(breakdown.entries()).map(([name, data]) => ({ 
       name, 
-      ticketsSold: data.orderItems.size, // Unique orders/ticket items
-      attendeeCount: data.attendeeCount  // Total attendees
+      ticketsSold: data.ticketsSold,
+      attendeeCount: data.attendeeCount
     }));
   }, [purchases]);
 
