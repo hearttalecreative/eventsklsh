@@ -4,7 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Ticket, Users, BarChart3, FileText, StickyNote, History, Calendar } from "lucide-react";
+import { ArrowLeft, Ticket, Users, BarChart3, FileText, StickyNote, History, Calendar, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -240,12 +240,20 @@ const TicketSales = () => {
                 )}
               </Button>
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/checkout-logs">
-                <FileText className="h-4 w-4 mr-2" />
-                View Checkout Logs
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/stripe-logs">
+                  <Database className="h-4 w-4 mr-2" />
+                  Stripe Logs
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin/checkout-logs">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Checkout Logs
+                </Link>
+              </Button>
+            </div>
           </div>
         </header>
 

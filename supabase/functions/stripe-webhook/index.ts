@@ -31,7 +31,14 @@ serve(async (req) => {
   // Handle checkout completion (sync or async)
   if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
     const session = event.data.object as Stripe.Checkout.Session;
+    const startTime = Date.now();
     console.log(`[stripe-webhook] Processing ${event.type} for session: ${session.id}`);
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     try {
       // Extract cart data from session metadata
@@ -39,18 +46,27 @@ serve(async (req) => {
       
       if (!metadata.cart_data) {
         console.error(`[stripe-webhook] No cart_data in session metadata for ${session.id}`);
+        
+        // Log the error
+        await supabase.from('stripe_logs').insert({
+          event_type: event.type,
+          stripe_session_id: session.id,
+          stripe_event_id: event.id,
+          customer_email: session.customer_details?.email || 'unknown',
+          customer_name: session.customer_details?.name,
+          amount_cents: session.amount_total || 0,
+          currency: session.currency || 'usd',
+          status: 'error',
+          error_message: 'Missing cart_data in session metadata',
+          processing_time_ms: Date.now() - startTime
+        });
+
         // Acknowledge to prevent Stripe retries; the frontend fallback will handle verification
         return new Response(JSON.stringify({ received: true, reason: "missing_cart_data" }), { status: 200 });
       }
 
       const cart = JSON.parse(metadata.cart_data);
       console.log(`[stripe-webhook] Cart data:`, cart);
-
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-        { auth: { persistSession: false } }
-      );
 
       // Fast path: prevent duplicates by Stripe session id
       const { data: existingBySession } = await supabase
@@ -61,6 +77,23 @@ serve(async (req) => {
 
       if (existingBySession) {
         console.log(`[stripe-webhook] Session ${session.id} already processed as order ${existingBySession.id}`);
+        
+        // Log duplicate attempt
+        await supabase.from('stripe_logs').insert({
+          event_type: `${event.type}_duplicate`,
+          stripe_session_id: session.id,
+          stripe_event_id: event.id,
+          customer_email: session.customer_details?.email || cart.participants[0]?.email,
+          customer_name: session.customer_details?.name || cart.participants[0]?.fullName,
+          amount_cents: session.amount_total || 0,
+          currency: session.currency || 'usd',
+          status: 'duplicate',
+          order_id: existingBySession.id,
+          event_id: cart.eventId,
+          processing_time_ms: Date.now() - startTime,
+          metadata: { session_payment_status: session.payment_status }
+        });
+
         return new Response(JSON.stringify({ received: true, orderId: existingBySession.id }), { status: 200 });
       }
 
@@ -78,8 +111,50 @@ serve(async (req) => {
       if (sessionAlreadyProcessed) {
         console.log(`[stripe-webhook] Stripe session ${session.id} already processed, skipping duplicate`);
         const existingOrder = existingOrders!.find(o => o.stripe_session_id === session.id);
+        
+        // Log duplicate
+        await supabase.from('stripe_logs').insert({
+          event_type: `${event.type}_duplicate`,
+          stripe_session_id: session.id,
+          stripe_event_id: event.id,
+          customer_email: session.customer_details?.email || cart.participants[0]?.email,
+          customer_name: session.customer_details?.name || cart.participants[0]?.fullName,
+          amount_cents: session.amount_total || 0,
+          currency: session.currency || 'usd',
+          status: 'duplicate',
+          order_id: existingOrder?.id,
+          event_id: cart.eventId,
+          processing_time_ms: Date.now() - startTime
+        });
+
         return new Response(JSON.stringify({ received: true, orderId: existingOrder?.id }), { status: 200 });
       }
+
+      // Get event title for logging
+      const { data: eventData } = await supabase
+        .from('events')
+        .select('title')
+        .eq('id', cart.eventId)
+        .single();
+
+      // Log webhook receipt
+      await supabase.from('stripe_logs').insert({
+        event_type: event.type,
+        stripe_session_id: session.id,
+        stripe_event_id: event.id,
+        customer_email: session.customer_details?.email || cart.participants[0]?.email,
+        customer_name: session.customer_details?.name || cart.participants[0]?.fullName,
+        amount_cents: session.amount_total || 0,
+        currency: session.currency || 'usd',
+        status: 'processing',
+        event_id: cart.eventId,
+        event_title: eventData?.title,
+        tickets_count: cart.participants?.length || 0,
+        metadata: {
+          payment_status: session.payment_status,
+          payment_method_types: session.payment_method_types
+        }
+      });
 
       // Process the payment by calling verify-payment (idempotent)
       const { data, error } = await supabase.functions.invoke("verify-payment", {
@@ -88,13 +163,71 @@ serve(async (req) => {
 
       if (error) {
         console.error(`[stripe-webhook] Error calling verify-payment:`, error);
+        
+        // Log error
+        await supabase.from('stripe_logs').insert({
+          event_type: `${event.type}_error`,
+          stripe_session_id: session.id,
+          stripe_event_id: event.id,
+          customer_email: session.customer_details?.email || cart.participants[0]?.email,
+          customer_name: session.customer_details?.name || cart.participants[0]?.fullName,
+          amount_cents: session.amount_total || 0,
+          currency: session.currency || 'usd',
+          status: 'error',
+          event_id: cart.eventId,
+          event_title: eventData?.title,
+          error_message: error.message || String(error),
+          processing_time_ms: Date.now() - startTime
+        });
+
         throw error;
       }
 
       console.log(`[stripe-webhook] Successfully processed order:`, data);
+      
+      // Log success
+      await supabase.from('stripe_logs').insert({
+        event_type: `${event.type}_success`,
+        stripe_session_id: session.id,
+        stripe_event_id: event.id,
+        customer_email: session.customer_details?.email || cart.participants[0]?.email,
+        customer_name: session.customer_details?.name || cart.participants[0]?.fullName,
+        amount_cents: session.amount_total || 0,
+        currency: session.currency || 'usd',
+        status: 'success',
+        order_id: data?.orderId,
+        event_id: cart.eventId,
+        event_title: eventData?.title,
+        tickets_count: cart.participants?.length || 0,
+        processing_time_ms: Date.now() - startTime,
+        metadata: {
+          payment_status: session.payment_status,
+          order_created: true
+        }
+      });
+
       return new Response(JSON.stringify({ received: true, orderId: data?.orderId }), { status: 200 });
     } catch (err: any) {
       console.error(`[stripe-webhook] Error processing checkout session:`, err);
+      
+      // Try to log the error even if it failed
+      try {
+        await supabase.from('stripe_logs').insert({
+          event_type: `${event.type}_error`,
+          stripe_session_id: session.id,
+          stripe_event_id: event.id,
+          customer_email: session.customer_details?.email || 'unknown',
+          customer_name: session.customer_details?.name,
+          amount_cents: session.amount_total || 0,
+          currency: session.currency || 'usd',
+          status: 'error',
+          error_message: err.message || String(err),
+          processing_time_ms: Date.now() - startTime
+        });
+      } catch (logErr) {
+        console.error('[stripe-webhook] Failed to log error:', logErr);
+      }
+
       // Acknowledge to stop Stripe retries; internal processing failed but will be handled via fallback/manual
       return new Response(JSON.stringify({ received: true, error: err.message }), { status: 200 });
     }

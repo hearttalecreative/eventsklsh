@@ -574,6 +574,88 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_logs: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          currency: string | null
+          customer_email: string
+          customer_name: string | null
+          error_message: string | null
+          event_id: string | null
+          event_title: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          order_id: string | null
+          processing_time_ms: number | null
+          status: string
+          stripe_event_id: string | null
+          stripe_session_id: string | null
+          tickets_count: number | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_email: string
+          customer_name?: string | null
+          error_message?: string | null
+          event_id?: string | null
+          event_title?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          processing_time_ms?: number | null
+          status: string
+          stripe_event_id?: string | null
+          stripe_session_id?: string | null
+          tickets_count?: number | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string
+          customer_name?: string | null
+          error_message?: string | null
+          event_id?: string | null
+          event_title?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          processing_time_ms?: number | null
+          status?: string
+          stripe_event_id?: string | null
+          stripe_session_id?: string | null
+          tickets_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_sales_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "stripe_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           capacity_total: number
