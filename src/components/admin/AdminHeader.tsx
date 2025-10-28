@@ -11,7 +11,8 @@ import {
   X,
   Users,
   UserPlus,
-  Shield
+  Shield,
+  AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -72,6 +73,11 @@ const AdminHeader = () => {
       path: "/admin/ticket-sales",
       label: "Sales Analytics",
       icon: BarChart3,
+    },
+    {
+      path: "/admin/cleanup-duplicates",
+      label: "Cleanup Duplicates",
+      icon: AlertTriangle,
     },
     {
       path: "/admin/manage-admins",

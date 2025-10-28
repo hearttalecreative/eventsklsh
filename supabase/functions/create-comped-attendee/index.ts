@@ -59,6 +59,59 @@ serve(async (req) => {
       }
     }
 
+    // Check for existing paid tickets for each email
+    const warnings = [];
+    for (const attendeeData of attendees) {
+      const { email } = attendeeData;
+      
+      // Check if this email already has a paid ticket for this event
+      const { data: existingPaid, error: paidCheckErr } = await supabase
+        .from('attendees')
+        .select(`
+          id,
+          name,
+          email,
+          order_item_id,
+          order_item:order_item_id (
+            order:order_id (
+              status
+            )
+          )
+        `)
+        .eq('event_id', event_id)
+        .ilike('email', email)
+        .not('order_item_id', 'is', null);
+      
+      if (!paidCheckErr && existingPaid && existingPaid.length > 0) {
+        const paidTickets = existingPaid.filter((a: any) => 
+          a.order_item?.order?.status === 'paid'
+        );
+        
+        if (paidTickets.length > 0) {
+          warnings.push({
+            email,
+            message: `Email ${email} already has ${paidTickets.length} paid ticket(s) for this event`,
+            existingCount: paidTickets.length
+          });
+        }
+      }
+    }
+
+    // If warnings exist, return them without creating attendees
+    if (warnings.length > 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          warnings,
+          message: 'Some attendees already have paid tickets for this event'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 409 // Conflict status
+        }
+      );
+    }
+
     // Process each attendee
     const createdAttendees = [];
     

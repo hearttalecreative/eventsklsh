@@ -119,6 +119,13 @@ const AddAttendeePage = () => {
 
       if (error) throw error;
       
+      // Check for duplicate warnings
+      if (data && !data.success && data.warnings) {
+        const warningMessage = data.warnings.map((w: any) => w.message).join('\n');
+        toast.error(`Cannot create comped tickets:\n${warningMessage}`, { duration: 6000 });
+        return;
+      }
+      
       toast.success(`${attendees.length} attendee(s) added and emails sent`);
       setAttendees([{name: '', email: '', phone: ''}]);
       setQuantity(1);

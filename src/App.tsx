@@ -23,6 +23,7 @@ import TicketSales from "./pages/admin/TicketSales";
 import EventPurchaseDetails from "./pages/admin/EventPurchaseDetails";
 import ManageAdmins from "./pages/admin/ManageAdmins";
 import CheckoutLogs from "./pages/admin/CheckoutLogs";
+import CleanupDuplicates from "./pages/admin/CleanupDuplicates";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
             <Route path="/admin/events/:eventId/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />
             <Route path="/admin/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />
+            <Route path="/admin/cleanup-duplicates" element={<AdminRoute><CleanupDuplicates /></AdminRoute>} />
             <Route path="/admin/manage-admins" element={<AdminRoute><ManageAdmins /></AdminRoute>} />
             <Route path="/qr/:qrCode" element={<QRCheckIn />} />
             <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
