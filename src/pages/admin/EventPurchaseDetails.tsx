@@ -539,13 +539,13 @@ const EventPurchaseDetails = () => {
                             {purchase.addons.map((addon, idx) => (
                               <li key={idx}>• {addon.name} (x{addon.quantity})</li>
                             ))}
-                          </ul>
+                              </ul>
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium">Purchase Date:</span> {purchase.is_comped ? '-' : formatDate(purchase.purchase_date)}
+                          </div>
                         </div>
-                      )}
-                      <div>
-                        <span className="font-medium">Purchase Date:</span> {formatDate(purchase.purchase_date)}
-                      </div>
-                    </div>
                   </div>
                 ))}
               </div>
