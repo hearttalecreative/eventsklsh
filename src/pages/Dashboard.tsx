@@ -297,7 +297,7 @@ const Dashboard = () => {
         <div className="space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Analysis of completed events - Revenue, attendance, and historical comparisons
+            Comprehensive event analytics - Use filters below to view different time periods
           </p>
         </div>
 
@@ -323,7 +323,7 @@ const Dashboard = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Events</SelectItem>
-              <SelectItem value="past">Completed Events (Default)</SelectItem>
+              <SelectItem value="past">Completed Events</SelectItem>
               <SelectItem value="upcoming">Upcoming Events</SelectItem>
             </SelectContent>
           </Select>
@@ -352,7 +352,7 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">{totalTicketsSold}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                Total capacity: {filteredAnalytics.reduce((sum, a) => sum + a.capacity, 0)}
+                {filteredAnalytics.length} event{filteredAnalytics.length !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
@@ -501,28 +501,36 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle>Capacity Utilization by Event</CardTitle>
                 <CardDescription>
-                  Seats filled vs total capacity for each event
+                  {filteredAnalytics.length > 0 
+                    ? `Showing ${filteredAnalytics.length} event${filteredAnalytics.length !== 1 ? 's' : ''}`
+                    : 'No events match the selected filters'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {ticketsSoldChartData.map((item, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                        <span className="font-medium text-sm">{item.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {item.seats} / {item.capacity} ({item.percentage}%)
-                        </span>
+                {ticketsSoldChartData.length > 0 ? (
+                  <div className="space-y-4">
+                    {ticketsSoldChartData.map((item, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                          <span className="font-medium text-sm">{item.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {item.seats} / {item.capacity} ({item.percentage}%)
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all"
+                            style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary transition-all"
-                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No events found. Try changing the filters above.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
