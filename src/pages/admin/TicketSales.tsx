@@ -293,7 +293,7 @@ const TicketSales = () => {
                           <div className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
                             <span>
-                              {event.total_tickets_sold}/{event.event_capacity} sold
+                              {event.total_tickets_sold} seat{event.total_tickets_sold !== 1 ? 's' : ''} / {event.event_capacity}
                             </span>
                           </div>
                           <Badge variant="outline">
@@ -349,7 +349,7 @@ const TicketSales = () => {
                                 <p className="font-medium truncate">{ticket.ticket_name}</p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                                   <span className="font-mono">
-                                    {ticket.tickets_sold}{!isUnassignedComped && `/${ticket.ticket_capacity}`}
+                                    {ticket.tickets_sold} seat{ticket.tickets_sold !== 1 ? 's' : ''}{!isUnassignedComped && ` / ${ticket.ticket_capacity}`}
                                   </span>
                                   {!isUnassignedComped && (
                                     <>

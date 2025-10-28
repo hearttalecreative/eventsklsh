@@ -226,14 +226,23 @@ const EventPurchaseDetails = () => {
     });
   };
 
-  // Calculate ticket breakdown
+  // Calculate ticket breakdown - group by order_item to avoid double-counting multi-participant tickets
   const ticketBreakdown = useMemo(() => {
-    const breakdown = new Map<string, number>();
+    const breakdown = new Map<string, { orderItems: Set<string>; attendeeCount: number }>();
     purchases.forEach(purchase => {
-      const current = breakdown.get(purchase.ticket_name) || 0;
-      breakdown.set(purchase.ticket_name, current + purchase.ticket_quantity);
+      const current = breakdown.get(purchase.ticket_name) || { orderItems: new Set(), attendeeCount: 0 };
+      // Track unique order_item_ids to count actual ticket purchases (not attendees)
+      if (purchase.order_id) {
+        current.orderItems.add(purchase.order_id); // Use order_id as proxy for unique purchases
+      }
+      current.attendeeCount += 1; // Count each attendee
+      breakdown.set(purchase.ticket_name, current);
     });
-    return Array.from(breakdown.entries()).map(([name, count]) => ({ name, count }));
+    return Array.from(breakdown.entries()).map(([name, data]) => ({ 
+      name, 
+      ticketsSold: data.orderItems.size, // Unique orders/ticket items
+      attendeeCount: data.attendeeCount  // Total attendees
+    }));
   }, [purchases]);
 
   // Calculate addon breakdown
@@ -425,16 +434,24 @@ const EventPurchaseDetails = () => {
               ) : (
                 <div className="space-y-3">
                   {ticketBreakdown.map((ticket, idx) => (
-                    <div key={idx} className="flex justify-between items-center">
+                    <div key={idx} className="flex justify-between items-start gap-2">
                       <span className="text-sm font-medium">{ticket.name}</span>
-                      <Badge variant="secondary">{ticket.count} sold</Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant="secondary">{ticket.ticketsSold} sold</Badge>
+                        <span className="text-xs text-muted-foreground">({ticket.attendeeCount} attendee{ticket.attendeeCount !== 1 ? 's' : ''})</span>
+                      </div>
                     </div>
                   ))}
                   <div className="pt-3 border-t flex justify-between items-center">
                     <span className="text-sm font-bold">Total</span>
-                    <Badge variant="default">
-                      {ticketBreakdown.reduce((sum, t) => sum + t.count, 0)} tickets
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant="default">
+                        {ticketBreakdown.reduce((sum, t) => sum + t.ticketsSold, 0)} tickets sold
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ({ticketBreakdown.reduce((sum, t) => sum + t.attendeeCount, 0)} attendees)
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
