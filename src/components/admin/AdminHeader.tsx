@@ -7,12 +7,12 @@ import {
   MapPin, 
   Tag, 
   LogOut, 
-  Menu, 
-  X,
+  Menu,
   Users,
   UserPlus,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  Home
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -42,47 +42,56 @@ const AdminHeader = () => {
     {
       path: "/dashboard",
       label: "Dashboard",
-      icon: BarChart3,
+      icon: Home,
+      iconOnly: true, // Solo ícono en desktop
     },
     {
       path: "/admin/events",
       label: "Events",
       icon: CalendarPlus,
+      iconOnly: false,
     },
     {
       path: "/admin/venues",
       label: "Venues",
       icon: MapPin,
+      iconOnly: false,
     },
     {
       path: "/admin/coupons",
       label: "Coupons",
       icon: Tag,
+      iconOnly: false,
     },
     {
       path: "/admin/attendees",
       label: "Attendees",
       icon: Users,
+      iconOnly: false,
     },
     {
       path: "/admin/attendees/add",
       label: "Add Attendee",
       icon: UserPlus,
+      iconOnly: false,
     },
     {
       path: "/admin/ticket-sales",
-      label: "Sales Analytics",
+      label: "Sales",
       icon: BarChart3,
+      iconOnly: false,
     },
     {
       path: "/admin/cleanup-duplicates",
-      label: "Cleanup Duplicates",
+      label: "Cleanup",
       icon: AlertTriangle,
+      iconOnly: false,
     },
     {
       path: "/admin/manage-admins",
-      label: "Manage Admins",
+      label: "Admins",
       icon: Shield,
+      iconOnly: true, // Solo ícono en desktop
     },
   ];
 
@@ -143,36 +152,41 @@ const AdminHeader = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto h-16 flex items-center justify-between px-4">
+      <div className="container mx-auto h-14 flex items-center justify-between px-4">
         <div>
-          <h1 className="text-xl font-bold">Admin Panel</h1>
+          <h1 className="text-lg font-semibold">Admin</h1>
         </div>
         
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-1.5">
           {navigationItems.map((item) => {
             const Icon = item.icon;
+            const showLabel = !item.iconOnly;
+            
             return (
               <Button
                 key={item.path}
-                variant={isActive(item.path) ? "default" : "outline"}
+                variant={isActive(item.path) ? "default" : "ghost"}
                 size="sm"
+                className="h-8"
                 asChild
+                title={item.label}
               >
                 <Link to={item.path}>
-                  <Icon className="w-4 h-4 mr-2" />
-                  {item.label}
+                  <Icon className={showLabel ? "w-4 h-4 mr-1.5" : "w-4 h-4"} />
+                  {showLabel && <span className="text-xs">{item.label}</span>}
                 </Link>
               </Button>
             );
           })}
           
           <Button 
-            variant="destructive" 
+            variant="ghost" 
             size="sm"
+            className="h-8"
             onClick={logout}
+            title="Logout"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            <LogOut className="w-4 h-4" />
           </Button>
         </nav>
       </div>
