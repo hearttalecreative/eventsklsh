@@ -581,20 +581,23 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle>Attendees by Event</CardTitle>
                 <CardDescription>
-                  Attendance rate and check-in status per event
+                  {filteredAnalytics.length > 0 
+                    ? `Attendance rate and check-in status for ${filteredAnalytics.length} event${filteredAnalytics.length !== 1 ? 's' : ''}`
+                    : 'No events match the selected filters'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {attendeesChartData.map((item, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium text-sm">{item.name}</span>
-                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                          <span>Attendees: {item.attendees}/{item.ticketsSold}</span>
-                          <span>Checked: {item.checkedIn}/{item.attendees}</span>
+                {attendeesChartData.length > 0 ? (
+                  <div className="space-y-4">
+                    {attendeesChartData.map((item, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium text-sm">{item.name}</span>
+                          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                            <span>Attendees: {item.attendees}/{item.ticketsSold}</span>
+                            <span>Checked: {item.checkedIn}/{item.attendees}</span>
+                          </div>
                         </div>
-                      </div>
                       <div className="space-y-1">
                         <div className="text-xs text-muted-foreground">
                           Attendance: {item.attendeePercentage}%
@@ -618,6 +621,11 @@ const Dashboard = () => {
                     </div>
                   ))}
                 </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No events found. Try changing the filters above.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
