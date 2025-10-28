@@ -29,6 +29,7 @@ interface DuplicateAttendee {
   comped_count: number;
   comped_attendee_ids: string[];
   attendee_names: string[];
+  phantom_orders?: string[]; // Orders without valid Stripe session
 }
 
 const CleanupDuplicates = () => {
@@ -47,14 +48,6 @@ const CleanupDuplicates = () => {
     try {
       setIsLoading(true);
 
-      // Find attendees with both paid and comped tickets
-      const { data: attendeesData, error } = await supabase.functions.invoke(
-        'admin-list-attendees',
-        { body: { eventId: 'all' } }
-      );
-
-      if (error) throw error;
-
       // Get all events to group by
       const { data: eventsData } = await supabase
         .from('events')
@@ -67,15 +60,25 @@ const CleanupDuplicates = () => {
       const duplicateMap = new Map<string, DuplicateAttendee>();
 
       for (const event of eventsData) {
-        // Filter attendees for this event
-        const { data: attendeesResponse, error: attendeesError } = await supabase.functions.invoke(
-          'admin-list-attendees',
-          { body: { eventId: event.id } }
-        );
+        // Get attendees with order information to detect phantom orders
+        const { data: attendees, error: attendeesError } = await supabase
+          .from('attendees')
+          .select(`
+            id,
+            name,
+            email,
+            is_comped,
+            order_item_id,
+            order_items!left(
+              order_id,
+              orders!left(
+                stripe_session_id
+              )
+            )
+          `)
+          .eq('event_id', event.id);
 
-        if (attendeesError || !attendeesResponse?.attendees) continue;
-
-        const attendees = attendeesResponse.attendees;
+        if (attendeesError || !attendees) continue;
 
         // Group by email (case-insensitive)
         const emailMap = new Map<string, any[]>();
@@ -87,12 +90,23 @@ const CleanupDuplicates = () => {
           emailMap.set(emailKey, list);
         }
 
-        // Find duplicates (paid + comped for same email)
+        // Find duplicates (paid + comped for same email) or phantom orders
         for (const [email, group] of emailMap.entries()) {
           const paid = group.filter(a => !a.is_comped && a.order_item_id);
           const comped = group.filter(a => a.is_comped);
+          
+          // Track phantom orders (paid orders without Stripe session)
+          const phantomOrders: string[] = [];
+          paid.forEach(a => {
+            const stripeSessionId = a.order_items?.orders?.stripe_session_id;
+            const orderId = a.order_items?.order_id;
+            if (!stripeSessionId && orderId && !phantomOrders.includes(orderId)) {
+              phantomOrders.push(orderId);
+            }
+          });
 
-          if (paid.length > 0 && comped.length > 0) {
+          // Show if: (1) has both paid and comped OR (2) has phantom orders
+          if ((paid.length > 0 && comped.length > 0) || phantomOrders.length > 0) {
             const key = `${event.id}-${email}`;
             duplicateMap.set(key, {
               event_id: event.id,
@@ -101,7 +115,8 @@ const CleanupDuplicates = () => {
               paid_count: paid.length,
               comped_count: comped.length,
               comped_attendee_ids: comped.map(a => a.id),
-              attendee_names: group.map(a => a.name || 'No name').filter((v, i, arr) => arr.indexOf(v) === i)
+              attendee_names: group.map(a => a.name || 'No name').filter((v, i, arr) => arr.indexOf(v) === i),
+              phantom_orders: phantomOrders.length > 0 ? phantomOrders : undefined
             });
           }
         }
@@ -144,17 +159,36 @@ const CleanupDuplicates = () => {
 
     try {
       setDeleting(true);
-      const idsToDelete = Array.from(selectedIds);
 
-      // Delete attendees
-      const { error } = await supabase
-        .from('attendees')
-        .delete()
-        .in('id', idsToDelete);
+      // First, delete phantom orders
+      const duplicatesWithPhantoms = duplicates.filter(d => d.phantom_orders && d.phantom_orders.length > 0);
+      for (const dup of duplicatesWithPhantoms) {
+        if (dup.phantom_orders) {
+          for (const orderId of dup.phantom_orders) {
+            const { error } = await supabase.functions.invoke('delete-duplicate-order', {
+              body: { orderId }
+            });
+            if (error) {
+              console.error('Error deleting phantom order:', error);
+              toast.error(`Failed to delete phantom order: ${error.message}`);
+            }
+          }
+        }
+      }
 
-      if (error) throw error;
+      // Then delete selected comped attendees
+      if (selectedIds.size > 0) {
+        const idsToDelete = Array.from(selectedIds);
+        const { error } = await supabase
+          .from('attendees')
+          .delete()
+          .in('id', idsToDelete);
 
-      toast.success(`Deleted ${idsToDelete.length} comped ticket(s)`);
+        if (error) throw error;
+
+        toast.success(`Deleted ${idsToDelete.length} comped ticket(s)${duplicatesWithPhantoms.length > 0 ? ` and ${duplicatesWithPhantoms.reduce((sum, d) => sum + (d.phantom_orders?.length || 0), 0)} phantom order(s)` : ''}`);
+      }
+
       setSelectedIds(new Set());
       setDeleteDialogOpen(false);
       
@@ -249,19 +283,31 @@ const CleanupDuplicates = () => {
                   return (
                     <div key={idx} className="border rounded-lg p-4 space-y-3">
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                      <div className="flex-1">
                           <h3 className="font-semibold">{dup.event_title}</h3>
                           <p className="text-sm text-muted-foreground mt-1">
                             {dup.attendee_names.join(', ')} ({dup.email})
                           </p>
                           <div className="flex items-center gap-3 mt-2">
+                            {dup.phantom_orders && dup.phantom_orders.length > 0 && (
+                              <Badge variant="destructive">
+                                {dup.phantom_orders.length} Phantom Order{dup.phantom_orders.length > 1 ? 's' : ''}
+                              </Badge>
+                            )}
                             <Badge variant="default" className="bg-blue-500">
                               {dup.paid_count} Paid
                             </Badge>
-                            <Badge variant="outline" className="border-orange-500 text-orange-700">
-                              {dup.comped_count} Comped (duplicate{dup.comped_count > 1 ? 's' : ''})
-                            </Badge>
+                            {dup.comped_count > 0 && (
+                              <Badge variant="outline" className="border-orange-500 text-orange-700">
+                                {dup.comped_count} Comped (duplicate{dup.comped_count > 1 ? 's' : ''})
+                              </Badge>
+                            )}
                           </div>
+                          {dup.phantom_orders && dup.phantom_orders.length > 0 && (
+                            <p className="text-xs text-destructive mt-2">
+                              ⚠️ Phantom orders detected: paid orders without valid Stripe sessions
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
