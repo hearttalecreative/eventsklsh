@@ -76,34 +76,33 @@ const Dashboard = () => {
       }
 
       try {
-        const eventIds = events.map((e) => e.id);
-
-        // Fetch all data in parallel
-        const [
-          { data: attendees },
-          { data: orders },
-        ] = await Promise.all([
-          supabase
-            .from('attendees')
-            .select('event_id, checked_in_at, is_comped, order_item_id')
-            .in('event_id', eventIds),
-          supabase
-            .from('orders')
-            .select('id, event_id, status, total_amount_cents, created_at')
-            .in('event_id', eventIds),
-        ]);
-
-        // Calculate analytics per event using the same logic as Sales Analytics
+        // Use admin edge function to get attendees data (bypasses RLS)
         const analyticsData: EventAnalytics[] = await Promise.all(
           events.map(async (event) => {
-            // Get ticket sales data using the admin function (same as Sales Analytics)
-            const { data: ticketSales } = await supabase
+            // Get ticket sales data using the admin function
+            const { data: ticketSales, error: salesError } = await supabase
               .rpc('get_ticket_sales_for_event_admin', { ev_id: event.id });
 
-            const eventAttendees = (attendees || []).filter((a: any) => a.event_id === event.id);
-            const eventOrders = (orders || []).filter(
-              (o: any) => o.event_id === event.id && o.status === 'paid'
+            if (salesError) {
+              console.error('Error fetching ticket sales:', salesError);
+            }
+
+            // Get attendees using admin edge function
+            const { data: attendeesData, error: attendeesError } = await supabase.functions.invoke(
+              'admin-list-attendees',
+              { body: { eventId: event.id } }
             );
+
+            const attendeesList = attendeesData?.attendees || [];
+            const attendeesCount = attendeesList.length;
+            const checkedIn = attendeesList.filter((a: any) => a.checked_in_at).length;
+
+            // Get paid orders for revenue
+            const { data: orders } = await supabase
+              .from('orders')
+              .select('total_amount_cents')
+              .eq('event_id', event.id)
+              .eq('status', 'paid');
 
             // Calculate seats sold (sum from ticket sales function)
             const seatsSold = (ticketSales || []).reduce(
@@ -114,14 +113,8 @@ const Dashboard = () => {
             // Total capacity from event tickets
             const capacity = event.tickets.reduce((sum, t) => sum + (t.capacityTotal || 0), 0);
 
-            // Attendees count
-            const attendeesCount = eventAttendees.length;
-
-            // Checked in count
-            const checkedIn = eventAttendees.filter((a: any) => a.checked_in_at).length;
-
             // Revenue
-            const revenue = eventOrders.reduce(
+            const revenue = (orders || []).reduce(
               (sum: number, o: any) => sum + (o.total_amount_cents || 0),
               0
             );
@@ -133,8 +126,8 @@ const Dashboard = () => {
               venueName: event.venue?.name || 'Unknown',
               startsAt: event.startsAt,
               capacity,
-              ticketsSold: seatsSold, // Seats sold (using same logic as Sales Analytics)
-              attendees: attendeesCount, // Actual people count
+              ticketsSold: seatsSold,
+              attendees: attendeesCount,
               checkedIn,
               revenue,
             };
@@ -143,21 +136,32 @@ const Dashboard = () => {
 
         setAnalytics(analyticsData);
 
-        // Calculate monthly revenue
+        // Calculate monthly revenue using the fetched data
         const revenueByMonth: Record<string, number> = {};
-        (orders || [])
-          .filter((o: any) => o.status === 'paid')
-          .forEach((o: any) => {
+        
+        for (const event of events) {
+          const { data: orders } = await supabase
+            .from('orders')
+            .select('created_at, total_amount_cents')
+            .eq('event_id', event.id)
+            .eq('status', 'paid');
+
+          (orders || []).forEach((o: any) => {
             const month = new Date(o.created_at).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'short',
             });
-            revenueByMonth[month] = (revenueByMonth[month] || 0) + (o.total_amount_cents || 0);
+            revenueByMonth[month] = (revenueByMonth[month] || 0) + o.total_amount_cents;
           });
+        }
 
         const monthlyData = Object.entries(revenueByMonth)
           .map(([month, revenue]) => ({ month, revenue }))
-          .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+          .sort((a, b) => {
+            const dateA = new Date(a.month);
+            const dateB = new Date(b.month);
+            return dateA.getTime() - dateB.getTime();
+          });
 
         setMonthlyRevenue(monthlyData);
       } catch (error) {
