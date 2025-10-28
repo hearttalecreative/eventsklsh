@@ -4,7 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Ticket, Users, BarChart3, FileText, StickyNote } from "lucide-react";
+import { ArrowLeft, Ticket, Users, BarChart3, FileText, StickyNote, History, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ interface EventSalesData {
   event_id: string;
   event_title: string;
   event_starts_at: string;
+  event_ends_at: string | null;
   event_capacity: number;
   total_tickets_sold: number;
   total_revenue_cents: number;
@@ -55,6 +56,7 @@ const TicketSales = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const [salesData, setSalesData] = useState<EventSalesData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPastEvents, setShowPastEvents] = useState(false);
 
   useEffect(() => {
     fetchTicketSales();
@@ -71,10 +73,11 @@ const TicketSales = () => {
           id,
           title,
           capacity_total,
-          starts_at
+          starts_at,
+          ends_at
         `)
         .eq('status', 'published')
-        .order('starts_at', { ascending: true });
+        .order('starts_at', { ascending: false });
 
       if (error) throw error;
 
@@ -126,6 +129,7 @@ const TicketSales = () => {
           event_id: event.id,
           event_title: event.title,
           event_starts_at: event.starts_at,
+          event_ends_at: event.ends_at,
           event_capacity: event.capacity_total || ticketsSalesData.reduce((sum: number, t: any) => sum + t.ticket_capacity, 0),
           total_tickets_sold: totalTicketsSold,
           total_revenue_cents: totalRevenue,
@@ -160,6 +164,20 @@ const TicketSales = () => {
       currency: 'USD',
     }).format(cents / 100);
   };
+
+  // Separate current and past events
+  const now = new Date();
+  const currentEvents = salesData.filter(event => {
+    if (!event.event_ends_at) return true; // If no end time, treat as current
+    return new Date(event.event_ends_at) >= now;
+  });
+  
+  const pastEvents = salesData.filter(event => {
+    if (!event.event_ends_at) return false;
+    return new Date(event.event_ends_at) < now;
+  });
+
+  const eventsToDisplay = showPastEvents ? pastEvents : currentEvents;
 
   if (isLoading) {
     return (
@@ -196,11 +214,31 @@ const TicketSales = () => {
 
         <header className="space-y-2">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
-              <p className="text-muted-foreground">
-                Monitor ticket sales performance by event and ticket type
-              </p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
+                <p className="text-muted-foreground">
+                  Monitor ticket sales performance by event and ticket type
+                </p>
+              </div>
+              <Button
+                variant={showPastEvents ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowPastEvents(!showPastEvents)}
+                className="ml-4"
+              >
+                {showPastEvents ? (
+                  <>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Current Events ({currentEvents.length})
+                  </>
+                ) : (
+                  <>
+                    <History className="h-4 w-4 mr-2" />
+                    Past Events ({pastEvents.length})
+                  </>
+                )}
+              </Button>
             </div>
             <Button variant="outline" size="sm" asChild>
               <Link to="/admin/checkout-logs">
@@ -213,20 +251,24 @@ const TicketSales = () => {
 
         {/* Events Grid */}
         <div className="grid gap-6">
-          {salesData.length === 0 ? (
+          {eventsToDisplay.length === 0 ? (
             <Card>
               <CardContent className="flex items-center justify-center py-12">
                 <div className="text-center space-y-2">
                   <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto" />
-                  <h3 className="text-lg font-medium">No events found</h3>
+                  <h3 className="text-lg font-medium">
+                    {showPastEvents ? 'No past events found' : 'No current events found'}
+                  </h3>
                   <p className="text-muted-foreground">
-                    No published events with ticket sales data available.
+                    {showPastEvents 
+                      ? 'No completed events with ticket sales data available.'
+                      : 'No current events with ticket sales data available.'}
                   </p>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            salesData.map((event) => {
+            eventsToDisplay.map((event) => {
               const overallPercentage = (event.total_tickets_sold / event.event_capacity) * 100;
               
               return (
