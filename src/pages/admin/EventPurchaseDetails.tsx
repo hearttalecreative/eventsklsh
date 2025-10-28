@@ -71,21 +71,20 @@ const EventPurchaseDetails = () => {
         setEventTitle(eventData.title);
       }
 
-      // Get all attendees for this event with their order information
-      const { data: attendeesData, error: attendeesError } = await supabase
-        .from('attendees')
-        .select(`
-          id,
-          name,
-          email,
-          phone,
-          order_item_id,
-          is_comped,
-          ticket_label
-        `)
-        .eq('event_id', eventId);
+      // Get all attendees for this event with their order information using admin edge function
+      const { data: attendeesResponse, error: attendeesError } = await supabase.functions.invoke(
+        'admin-list-attendees',
+        {
+          body: { eventId }
+        }
+      );
 
       if (attendeesError) throw attendeesError;
+      if (!attendeesResponse?.ok || !attendeesResponse?.attendees) {
+        throw new Error('Failed to fetch attendees');
+      }
+
+      const attendeesData = attendeesResponse.attendees;
 
       // For each attendee, get their order details
       const purchaseDetailsPromises = attendeesData?.map(async (attendee) => {
