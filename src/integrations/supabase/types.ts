@@ -833,6 +833,20 @@ export type Database = {
       }
       generate_confirmation_code: { Args: { _len?: number }; Returns: string }
       generate_qr_code: { Args: never; Returns: string }
+      get_dashboard_analytics_admin: {
+        Args: never
+        Returns: {
+          attendees_count: number
+          capacity_total: number
+          checked_in_count: number
+          event_id: string
+          event_starts_at: string
+          event_title: string
+          seats_sold: number
+          total_revenue_cents: number
+          venue_name: string
+        }[]
+      }
       get_event_sales_summary_admin: {
         Args: never
         Returns: {

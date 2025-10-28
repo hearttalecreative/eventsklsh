@@ -76,84 +76,46 @@ const Dashboard = () => {
       }
 
       try {
-        // Use admin edge function to get attendees data (bypasses RLS)
-        const analyticsData: EventAnalytics[] = await Promise.all(
-          events.map(async (event) => {
-            // Get ticket sales data using the admin function
-            const { data: ticketSales, error: salesError } = await supabase
-              .rpc('get_ticket_sales_for_event_admin', { ev_id: event.id });
+        // Use the optimized admin function to get all analytics data
+        const { data: analyticsFromDb, error: analyticsError } = await supabase
+          .rpc('get_dashboard_analytics_admin');
 
-            if (salesError) {
-              console.error('Error fetching ticket sales:', salesError);
-            }
+        if (analyticsError) {
+          console.error('Error fetching dashboard analytics:', analyticsError);
+          setLoading(false);
+          return;
+        }
 
-            // Get attendees using admin edge function
-            const { data: attendeesData, error: attendeesError } = await supabase.functions.invoke(
-              'admin-list-attendees',
-              { body: { eventId: event.id } }
-            );
-
-            const attendeesList = attendeesData?.attendees || [];
-            const attendeesCount = attendeesList.length;
-            const checkedIn = attendeesList.filter((a: any) => a.checked_in_at).length;
-
-            // Get paid orders for revenue
-            const { data: orders } = await supabase
-              .from('orders')
-              .select('total_amount_cents')
-              .eq('event_id', event.id)
-              .eq('status', 'paid');
-
-            // Calculate seats sold (sum from ticket sales function)
-            const seatsSold = (ticketSales || []).reduce(
-              (sum: number, ts: any) => sum + (ts.tickets_sold || 0),
-              0
-            );
-
-            // Total capacity from event tickets
-            const capacity = event.tickets.reduce((sum, t) => sum + (t.capacityTotal || 0), 0);
-
-            // Revenue
-            const revenue = (orders || []).reduce(
-              (sum: number, o: any) => sum + (o.total_amount_cents || 0),
-              0
-            );
-
-            return {
-              eventId: event.id,
-              eventTitle: event.title,
-              venueId: event.venue?.name || '',
-              venueName: event.venue?.name || 'Unknown',
-              startsAt: event.startsAt,
-              capacity,
-              ticketsSold: seatsSold,
-              attendees: attendeesCount,
-              checkedIn,
-              revenue,
-            };
-          })
-        );
+        // Transform the data to match our EventAnalytics interface
+        const analyticsData: EventAnalytics[] = (analyticsFromDb || []).map((row: any) => ({
+          eventId: row.event_id,
+          eventTitle: row.event_title,
+          venueId: row.venue_name,
+          venueName: row.venue_name,
+          startsAt: row.event_starts_at,
+          capacity: row.capacity_total,
+          ticketsSold: Number(row.seats_sold),
+          attendees: Number(row.attendees_count),
+          checkedIn: Number(row.checked_in_count),
+          revenue: Number(row.total_revenue_cents),
+        }));
 
         setAnalytics(analyticsData);
 
-        // Calculate monthly revenue using the fetched data
-        const revenueByMonth: Record<string, number> = {};
-        
-        for (const event of events) {
-          const { data: orders } = await supabase
-            .from('orders')
-            .select('created_at, total_amount_cents')
-            .eq('event_id', event.id)
-            .eq('status', 'paid');
+        // Calculate monthly revenue
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('created_at, total_amount_cents')
+          .eq('status', 'paid');
 
-          (orders || []).forEach((o: any) => {
-            const month = new Date(o.created_at).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-            });
-            revenueByMonth[month] = (revenueByMonth[month] || 0) + o.total_amount_cents;
+        const revenueByMonth: Record<string, number> = {};
+        (orders || []).forEach((o: any) => {
+          const month = new Date(o.created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
           });
-        }
+          revenueByMonth[month] = (revenueByMonth[month] || 0) + o.total_amount_cents;
+        });
 
         const monthlyData = Object.entries(revenueByMonth)
           .map(([month, revenue]) => ({ month, revenue }))
