@@ -320,7 +320,7 @@ const EventPurchaseDetails = () => {
         </header>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -329,7 +329,7 @@ const EventPurchaseDetails = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{purchases.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Purchases</p>
+                  <p className="text-sm text-muted-foreground">Total Attendees</p>
                 </div>
               </div>
             </CardContent>
@@ -339,23 +339,35 @@ const EventPurchaseDetails = () => {
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-blue-500/10">
-                  <Calendar className="h-6 w-6 text-blue-600" />
+                  <ShoppingCart className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
-                    {purchases.reduce((sum, p) => sum + p.ticket_quantity, 0)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Tickets Sold</p>
+                  <p className="text-2xl font-bold">{purchases.filter(p => !p.is_comped).length}</p>
+                  <p className="text-sm text-muted-foreground">Paid Tickets</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-green-500/10">
-                  <DollarSign className="h-6 w-6 text-green-600" />
+                  <ShoppingCart className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{purchases.filter(p => p.is_comped).length}</p>
+                  <p className="text-sm text-muted-foreground">Comped Tickets</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-emerald-500/10">
+                  <DollarSign className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -391,9 +403,9 @@ const EventPurchaseDetails = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
-                    {formatCurrency(purchases.reduce((sum, p) => sum + p.processing_fee_cents, 0))}
+                    {formatCurrency(purchases.reduce((sum, p) => sum + p.total_amount_cents, 0))}
                   </p>
-                  <p className="text-sm text-muted-foreground">Processing Fees</p>
+                  <p className="text-sm text-muted-foreground">Total Revenue</p>
                 </div>
               </div>
             </CardContent>

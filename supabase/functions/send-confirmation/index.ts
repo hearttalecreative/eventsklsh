@@ -145,7 +145,9 @@ serve(async (req: Request) => {
       }).format(amount);
     };
 
-    const subject = `Event Ticket Confirmation - ${eventTitle || "Event"}`;
+    const subject = is_comped 
+      ? `Complimentary Ticket Confirmation - ${eventTitle || "Event"}`
+      : `Event Ticket Confirmation - ${eventTitle || "Event"}`;
     const html = `
       <div style="background:#ffffff;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen','Ubuntu','Cantarell',sans-serif;color:#2c1810;line-height:1.6;">
         <div style="max-width:580px;margin:0 auto;">
@@ -351,7 +353,9 @@ serve(async (req: Request) => {
       
       // Send copy to Info@kylelamsoundhealing.com
       try {
-        const copySubject = `[COPY] ${subject} - ${name}`;
+        const copySubject = is_comped 
+          ? `[COPY - COMPLIMENTARY] ${subject} - ${name}`
+          : `[COPY] ${subject} - ${name}`;
         const copyResponse = await sendBrevoEmail("Info@kylelamsoundhealing.com", "Kyle Lam Sound Healing", copySubject, html);
         console.log("Copy email sent to Info@kylelamsoundhealing.com:", copyResponse);
       } catch (copyError: any) {
