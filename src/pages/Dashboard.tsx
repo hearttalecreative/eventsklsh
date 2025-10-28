@@ -98,7 +98,7 @@ const Dashboard = () => {
             .not('ticket_id', 'is', null),
         ]);
 
-        const paidOrders = new Set(
+        const paidOrderIds = new Set(
           (orders || []).filter((o: any) => o.status === 'paid').map((o: any) => o.id)
         );
 
@@ -113,7 +113,12 @@ const Dashboard = () => {
             eventOrderIds.includes(oi.order_id)
           );
 
+          // Calculate tickets sold = sum of quantities in order_items
           const ticketsSold = eventOrderItems.reduce((sum: number, oi: any) => sum + (oi.quantity || 0), 0);
+          
+          // Calculate attendees count (actual number of people)
+          const attendeesCount = eventAttendees.length;
+          
           const checkedIn = eventAttendees.filter((a: any) => a.checked_in_at).length;
           const revenue = eventOrders.reduce((sum: number, o: any) => sum + (o.total_amount_cents || 0), 0);
 
@@ -126,8 +131,8 @@ const Dashboard = () => {
             venueName: event.venue?.name || 'Unknown',
             startsAt: event.startsAt,
             capacity,
-            ticketsSold,
-            attendees: eventAttendees.length,
+            ticketsSold, // This is order items quantity (ticket packages sold)
+            attendees: attendeesCount, // This is actual people count
             checkedIn,
             revenue,
           };
@@ -208,14 +213,14 @@ const Dashboard = () => {
     return `${title} - ${formattedDate}`;
   };
 
-  // Chart data for tickets sold by event
+  // Chart data for tickets sold by event (showing capacity utilization)
   const ticketsSoldChartData = filteredAnalytics.map((a) => ({
     name: formatEventName(a.eventTitle, a.startsAt),
-    shortName: a.eventTitle.length > 15 ? a.eventTitle.slice(0, 15) + '...' : a.eventTitle,
+    shortName: a.eventTitle.length > 20 ? a.eventTitle.slice(0, 20) + '...' : a.eventTitle,
     date: new Date(a.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    sold: a.ticketsSold,
+    seats: a.attendees, // Use attendees (actual people) for seats
     capacity: a.capacity,
-    percentage: a.capacity > 0 ? Math.round((a.ticketsSold / a.capacity) * 100) : 0,
+    percentage: a.capacity > 0 ? Math.round((a.attendees / a.capacity) * 100) : 0,
   }));
 
   // Chart data for attendees by event
@@ -494,9 +499,9 @@ const Dashboard = () => {
           <TabsContent value="tickets" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Tickets Sold by Event</CardTitle>
+                <CardTitle>Capacity Utilization by Event</CardTitle>
                 <CardDescription>
-                  Number of tickets sold and percentage of capacity filled
+                  Seats filled vs total capacity for each event
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -506,7 +511,7 @@ const Dashboard = () => {
                       <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                         <span className="font-medium text-sm">{item.name}</span>
                         <span className="text-sm text-muted-foreground">
-                          {item.sold} / {item.capacity} ({item.percentage}%)
+                          {item.seats} / {item.capacity} ({item.percentage}%)
                         </span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -523,7 +528,8 @@ const Dashboard = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Tickets Sold Chart</CardTitle>
+                <CardTitle>Capacity Chart</CardTitle>
+                <CardDescription>Seats filled compared to total capacity</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px] md:h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -544,16 +550,17 @@ const Dashboard = () => {
                           return (
                             <div className="bg-background border rounded-lg p-3 shadow-lg">
                               <p className="font-medium text-sm mb-2">{payload[0].payload.name}</p>
-                              <p className="text-sm">Sold: {payload[0].payload.sold}</p>
+                              <p className="text-sm">Seats: {payload[0].payload.seats}</p>
                               <p className="text-sm">Capacity: {payload[0].payload.capacity}</p>
+                              <p className="text-sm">Filled: {payload[0].payload.percentage}%</p>
                             </div>
                           );
                         }
                         return null;
                       }}
                     />
-                    <Bar dataKey="sold" fill={COLORS[0]} name="Tickets Sold" />
-                    <Bar dataKey="capacity" fill={COLORS[3]} name="Capacity" />
+                    <Bar dataKey="seats" fill={COLORS[0]} name="Seats Filled" />
+                    <Bar dataKey="capacity" fill={COLORS[3]} name="Total Capacity" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
