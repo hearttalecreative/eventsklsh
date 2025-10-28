@@ -82,61 +82,64 @@ const Dashboard = () => {
         const [
           { data: attendees },
           { data: orders },
-          { data: orderItems },
         ] = await Promise.all([
           supabase
             .from('attendees')
-            .select('event_id, checked_in_at')
+            .select('event_id, checked_in_at, is_comped, order_item_id')
             .in('event_id', eventIds),
           supabase
             .from('orders')
             .select('id, event_id, status, total_amount_cents, created_at')
             .in('event_id', eventIds),
-          supabase
-            .from('order_items')
-            .select('order_id, quantity, total_amount_cents, ticket_id')
-            .not('ticket_id', 'is', null),
         ]);
 
-        const paidOrderIds = new Set(
-          (orders || []).filter((o: any) => o.status === 'paid').map((o: any) => o.id)
+        // Calculate analytics per event using the same logic as Sales Analytics
+        const analyticsData: EventAnalytics[] = await Promise.all(
+          events.map(async (event) => {
+            // Get ticket sales data using the admin function (same as Sales Analytics)
+            const { data: ticketSales } = await supabase
+              .rpc('get_ticket_sales_for_event_admin', { ev_id: event.id });
+
+            const eventAttendees = (attendees || []).filter((a: any) => a.event_id === event.id);
+            const eventOrders = (orders || []).filter(
+              (o: any) => o.event_id === event.id && o.status === 'paid'
+            );
+
+            // Calculate seats sold (sum from ticket sales function)
+            const seatsSold = (ticketSales || []).reduce(
+              (sum: number, ts: any) => sum + (ts.tickets_sold || 0),
+              0
+            );
+
+            // Total capacity from event tickets
+            const capacity = event.tickets.reduce((sum, t) => sum + (t.capacityTotal || 0), 0);
+
+            // Attendees count
+            const attendeesCount = eventAttendees.length;
+
+            // Checked in count
+            const checkedIn = eventAttendees.filter((a: any) => a.checked_in_at).length;
+
+            // Revenue
+            const revenue = eventOrders.reduce(
+              (sum: number, o: any) => sum + (o.total_amount_cents || 0),
+              0
+            );
+
+            return {
+              eventId: event.id,
+              eventTitle: event.title,
+              venueId: event.venue?.name || '',
+              venueName: event.venue?.name || 'Unknown',
+              startsAt: event.startsAt,
+              capacity,
+              ticketsSold: seatsSold, // Seats sold (using same logic as Sales Analytics)
+              attendees: attendeesCount, // Actual people count
+              checkedIn,
+              revenue,
+            };
+          })
         );
-
-        // Calculate analytics per event
-        const analyticsData: EventAnalytics[] = events.map((event) => {
-          const eventAttendees = (attendees || []).filter((a: any) => a.event_id === event.id);
-          const eventOrders = (orders || []).filter(
-            (o: any) => o.event_id === event.id && o.status === 'paid'
-          );
-          const eventOrderIds = eventOrders.map((o: any) => o.id);
-          const eventOrderItems = (orderItems || []).filter((oi: any) =>
-            eventOrderIds.includes(oi.order_id)
-          );
-
-          // Calculate tickets sold = sum of quantities in order_items
-          const ticketsSold = eventOrderItems.reduce((sum: number, oi: any) => sum + (oi.quantity || 0), 0);
-          
-          // Calculate attendees count (actual number of people)
-          const attendeesCount = eventAttendees.length;
-          
-          const checkedIn = eventAttendees.filter((a: any) => a.checked_in_at).length;
-          const revenue = eventOrders.reduce((sum: number, o: any) => sum + (o.total_amount_cents || 0), 0);
-
-          const capacity = event.tickets.reduce((sum, t) => sum + (t.capacityTotal || 0), 0);
-
-          return {
-            eventId: event.id,
-            eventTitle: event.title,
-            venueId: event.venue?.name || '',
-            venueName: event.venue?.name || 'Unknown',
-            startsAt: event.startsAt,
-            capacity,
-            ticketsSold, // This is order items quantity (ticket packages sold)
-            attendees: attendeesCount, // This is actual people count
-            checkedIn,
-            revenue,
-          };
-        });
 
         setAnalytics(analyticsData);
 
