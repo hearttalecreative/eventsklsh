@@ -104,7 +104,7 @@ const EventPurchaseDetails = () => {
           const [ticketsRes, ordersRes, addonItemsRes] = await Promise.all([
             supabase.from('tickets').select('id, name, unit_amount_cents, participants_per_ticket').in('id', ticketIds),
             supabase.from('orders').select('id, created_at, total_amount_cents, stripe_session_id, status').in('id', orderIds),
-            supabase.from('order_items').select('order_id, quantity, unit_amount_cents, total_amount_cents, addon:addon_id (name)').in('order_id', orderIds).not('addon_id', 'is', null),
+            supabase.from('order_items').select('order_id, addon_id, quantity, unit_amount_cents, total_amount_cents').in('order_id', orderIds).not('addon_id', 'is', null),
           ]);
 
           const tickets = ticketsRes.data || [];
@@ -114,11 +114,18 @@ const EventPurchaseDetails = () => {
           const ticketById = new Map(tickets.map((t: any) => [t.id, t]));
           const orderById = new Map(orders.map((o: any) => [o.id, o]));
 
+          // Resolve addon names without relying on FK-based embedding
+          const addonIds = Array.from(new Set((addonItems || []).map((ai: any) => ai.addon_id).filter(Boolean)));
+          const { data: addonsRows } = addonIds.length > 0
+            ? await supabase.from('addons').select('id, name').in('id', addonIds)
+            : { data: [] as any[] } as any;
+          const addonNameById = new Map((addonsRows || []).map((a: any) => [a.id, a.name]));
+
           const addonsByOrder = new Map<string, any[]>();
           (addonItems || []).forEach((it: any) => {
             const list = addonsByOrder.get(it.order_id) || [];
             list.push({
-              name: it.addon?.name || 'Unknown',
+              name: addonNameById.get(it.addon_id) || 'Unknown',
               quantity: it.quantity,
               unit_amount_cents: it.unit_amount_cents,
               total_amount_cents: it.total_amount_cents,
@@ -201,6 +208,14 @@ const EventPurchaseDetails = () => {
 
       if (eventData) {
         setEventTitle(eventData.title);
+      }
+
+      // Prefer direct queries first to ensure data even if edge function has issues
+      const direct = await buildPurchasesFromDirectQueries();
+      if (direct.length > 0) {
+        console.log('[EventPurchaseDetails] Using direct query path:', direct.length);
+        setPurchases(direct);
+        return;
       }
 
       // Get all attendees for this event with their order information using admin edge function
