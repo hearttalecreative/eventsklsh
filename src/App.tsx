@@ -22,10 +22,8 @@ import QRCheckIn from "./pages/QRCheckIn";
 import TicketSales from "./pages/admin/TicketSales";
 import EventPurchaseDetails from "./pages/admin/EventPurchaseDetails";
 import ManageAdmins from "./pages/admin/ManageAdmins";
-import CheckoutLogs from "./pages/admin/CheckoutLogs";
 import CleanupDuplicates from "./pages/admin/CleanupDuplicates";
-import StripeLogs from "./pages/admin/StripeLogs";
-import PaymentErrorLogs from "./pages/admin/PaymentErrorLogs";
+import SystemLogs from "./pages/admin/SystemLogs";
 
 const queryClient = new QueryClient();
 
@@ -59,9 +57,7 @@ const App = () => (
             <Route path="/admin/coupons" element={<AdminRoute><CouponsPage /></AdminRoute>} />
             <Route path="/admin/venues" element={<AdminRoute><VenuesPage /></AdminRoute>} />
             <Route path="/admin/ticket-sales" element={<AdminRoute><TicketSales /></AdminRoute>} />
-            <Route path="/admin/checkout-logs" element={<AdminRoute><CheckoutLogs /></AdminRoute>} />
-            <Route path="/admin/stripe-logs" element={<AdminRoute><StripeLogs /></AdminRoute>} />
-            <Route path="/admin/payment-error-logs" element={<AdminRoute><PaymentErrorLogs /></AdminRoute>} />
+            <Route path="/admin/system-logs" element={<AdminRoute><SystemLogs /></AdminRoute>} />
             <Route path="/admin/events/:eventId/purchases" element={<AdminRoute><EventPurchaseDetails /></AdminRoute>} />
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
             <Route path="/admin/events/:eventId/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />

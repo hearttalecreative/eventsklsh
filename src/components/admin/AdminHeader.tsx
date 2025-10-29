@@ -83,8 +83,8 @@ const AdminHeader = () => {
       iconOnly: false,
     },
     {
-      path: "/admin/payment-error-logs",
-      label: "Error Logs",
+      path: "/admin/system-logs",
+      label: "Logs",
       icon: FileWarning,
       iconOnly: false,
     },
