@@ -125,12 +125,23 @@ const EventPurchaseDetails = () => {
       }));
 
       // Process order items (one row per order_item, showing first attendee's details)
+      // Group order items by order_id to properly handle addons
+      const orderMap = new Map<string, { orderItemIds: string[]; attendees: any[] }>();
+      
+      orderItemMap.forEach((attendees, orderItemId) => {
+        if (attendees.length === 0) return;
+        const firstAttendee = attendees[0];
+        // We need to get the order_id - we'll fetch it in the next step
+        // For now, group by order_item_id temporarily
+        orderMap.set(orderItemId, { orderItemIds: [orderItemId], attendees });
+      });
+
       const orderItemPurchasesPromises = Array.from(orderItemMap.entries()).map(async ([orderItemId, attendees]) => {
         try {
           // Use first attendee for display (they're all part of same purchase)
           const firstAttendee = attendees[0];
           
-          // Get order item data
+          // Get order item data - only for TICKET items, not addons
           const { data: orderItemData } = await supabase
             .from('order_items')
             .select('order_id, ticket_id, addon_id, quantity, unit_amount_cents, total_amount_cents')
@@ -139,6 +150,12 @@ const EventPurchaseDetails = () => {
 
           if (!orderItemData) {
             console.log(`[EventPurchaseDetails] Order item not found: ${orderItemId}`);
+            return null;
+          }
+
+          // Skip if this is an addon item (not a ticket)
+          if (orderItemData.addon_id !== null) {
+            console.log(`[EventPurchaseDetails] Skipping addon-only order item: ${orderItemId}`);
             return null;
           }
 
