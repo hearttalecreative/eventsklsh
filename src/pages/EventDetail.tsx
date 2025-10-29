@@ -273,14 +273,29 @@ const proceed = async () => {
           cart,
         },
       });
-      if (error) throw error as any;
+      
+      console.log('[EventDetail] create-payment response:', { data, error });
+      
+      if (error) {
+        console.error('[EventDetail] create-payment error:', error);
+        throw new Error(error.message || 'Payment creation failed');
+      }
+      
+      if (data?.error) {
+        console.error('[EventDetail] create-payment returned error:', data.error);
+        throw new Error(data.error);
+      }
+      
       if (data?.url) {
         window.location.assign(data.url);
       } else {
+        console.error('[EventDetail] No checkout URL in response:', data);
         throw new Error('No checkout URL returned');
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to start checkout');
+      console.error('[EventDetail] Checkout error:', err);
+      const errorMessage = err?.message || 'Failed to start checkout. Please try again.';
+      toast.error(errorMessage);
     }
   };
 

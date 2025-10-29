@@ -86,10 +86,34 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
+    let payload;
+    try {
+      payload = await req.json();
+    } catch (parseErr: any) {
+      console.error("[create-payment] JSON parse error:", parseErr);
+      throw new Error("Invalid request format");
+    }
+
+    // Validate payload structure
+    if (!payload || typeof payload !== 'object') {
+      throw new Error("Invalid request payload");
+    }
+    if (!payload.cart) {
+      throw new Error("Cart is required");
+    }
+    if (!payload.buyer) {
+      throw new Error("Buyer information is required");
+    }
     
     // Validate and sanitize inputs
-    const validatedCart = validateCart(payload.cart);
+    let validatedCart;
+    try {
+      validatedCart = validateCart(payload.cart);
+    } catch (validationErr: any) {
+      console.error("[create-payment] Cart validation error:", validationErr);
+      throw new Error(`Cart validation failed: ${validationErr.message}`);
+    }
+
     const buyerEmail = validateEmail(payload.buyer?.email);
     const buyerName = payload.buyer?.name?.trim() || '';
     if (!buyerName) throw new Error("Buyer name is required");
