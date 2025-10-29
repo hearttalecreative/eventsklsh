@@ -435,7 +435,11 @@ const TicketSales = () => {
                           <div key={ticket.ticket_id} className="space-y-2">
                             <div className="flex justify-between items-start gap-2">
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{ticket.ticket_name}</p>
+                                <p className="font-medium truncate">
+                                  {!isUnassignedComped && ticket.participants_per_ticket > 1 
+                                    ? `${Math.floor(ticket.tickets_sold / ticket.participants_per_ticket)} x ${ticket.ticket_name}`
+                                    : ticket.ticket_name}
+                                </p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                                   <span className="font-mono">
                                     {ticket.tickets_sold} seat{ticket.tickets_sold !== 1 ? 's' : ''}{!isUnassignedComped && ` / ${attendeeCapacity}`}
