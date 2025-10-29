@@ -104,7 +104,7 @@ const EventPurchaseDetails = () => {
           const [ticketsRes, ordersRes, addonItemsRes] = await Promise.all([
             supabase.from('tickets').select('id, name, unit_amount_cents, participants_per_ticket').in('id', ticketIds),
             supabase.from('orders').select('id, created_at, total_amount_cents, stripe_session_id, status').in('id', orderIds),
-            supabase.from('order_items').select('order_id, quantity, unit_amount_cents, total_amount_cents, addons(name)').in('order_id', orderIds).not('addon_id', 'is', null),
+            supabase.from('order_items').select('order_id, quantity, unit_amount_cents, total_amount_cents, addon:addon_id (name)').in('order_id', orderIds).not('addon_id', 'is', null),
           ]);
 
           const tickets = ticketsRes.data || [];
@@ -118,7 +118,7 @@ const EventPurchaseDetails = () => {
           (addonItems || []).forEach((it: any) => {
             const list = addonsByOrder.get(it.order_id) || [];
             list.push({
-              name: it.addons?.name || 'Unknown',
+              name: it.addon?.name || 'Unknown',
               quantity: it.quantity,
               unit_amount_cents: it.unit_amount_cents,
               total_amount_cents: it.total_amount_cents,
@@ -212,13 +212,17 @@ const EventPurchaseDetails = () => {
       );
 
       if (attendeesError) {
-        console.error('[EventPurchaseDetails] Error from edge function:', attendeesError);
-        throw attendeesError;
+        console.warn('[EventPurchaseDetails] Edge function failed, using fallback:', attendeesError);
+        const fallback = await buildPurchasesFromDirectQueries();
+        setPurchases(fallback);
+        return;
       }
       
       if (!attendeesResponse?.ok || !attendeesResponse?.attendees) {
-        console.error('[EventPurchaseDetails] Invalid response:', attendeesResponse);
-        throw new Error('Failed to fetch attendees');
+        console.warn('[EventPurchaseDetails] Invalid edge response, using fallback:', attendeesResponse);
+        const fallback = await buildPurchasesFromDirectQueries();
+        setPurchases(fallback);
+        return;
       }
 
       const attendeesData = attendeesResponse.attendees;
@@ -320,16 +324,16 @@ const EventPurchaseDetails = () => {
           // Get all addons for this order
           const { data: orderAddons } = await supabase
             .from('order_items')
-            .select('addon_id, quantity, unit_amount_cents, total_amount_cents, addons(name)')
+            .select('addon_id, quantity, unit_amount_cents, total_amount_cents, addon:addon_id (name)')
             .eq('order_id', orderItemData.order_id)
             .not('addon_id', 'is', null);
 
-          const addons = (orderAddons || []).map((item: any) => ({
-            name: item.addons?.name || 'Unknown',
-            quantity: item.quantity,
-            unit_amount_cents: item.unit_amount_cents,
-            total_amount_cents: item.total_amount_cents,
-          }));
+            const addons = (orderAddons || []).map((item: any) => ({
+              name: item.addon?.name || 'Unknown',
+              quantity: item.quantity,
+              unit_amount_cents: item.unit_amount_cents,
+              total_amount_cents: item.total_amount_cents,
+            }));
 
           const addonsTotal = addons.reduce((sum, addon) => sum + addon.total_amount_cents, 0);
           const ticketTotal = orderItemData.total_amount_cents;
