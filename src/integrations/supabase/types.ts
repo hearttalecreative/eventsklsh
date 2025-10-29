@@ -918,6 +918,7 @@ export type Database = {
       get_ticket_sales_for_event_admin: {
         Args: { ev_id: string }
         Returns: {
+          participants_per_ticket: number
           ticket_capacity: number
           ticket_id: string
           ticket_name: string

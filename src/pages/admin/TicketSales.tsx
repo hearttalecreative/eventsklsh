@@ -30,6 +30,7 @@ interface TicketSalesData {
   tickets_sold: number;
   unit_price_cents: number;
   total_revenue_cents: number;
+  participants_per_ticket: number;
 }
 
 interface EventSalesData {
@@ -47,6 +48,7 @@ interface EventSalesData {
     tickets_sold: number;
     unit_price_cents: number;
     total_revenue_cents: number;
+    participants_per_ticket: number;
   }>;
   attendees_with_notes: AttendeeWithNotes[];
 }
@@ -120,6 +122,7 @@ const TicketSales = () => {
           tickets_sold: sale.tickets_sold,
           unit_price_cents: sale.unit_price_cents || 0,
           total_revenue_cents: sale.total_revenue_cents || 0,
+          participants_per_ticket: sale.participants_per_ticket || 1,
         })) || [];
 
         const totalTicketsSold = ticketsSalesData.reduce((sum: number, ticket: any) => sum + ticket.tickets_sold, 0);
@@ -332,8 +335,10 @@ const TicketSales = () => {
                     <div className="space-y-3">
                       {event.tickets.map((ticket) => {
                         const isUnassignedComped = ticket.ticket_id === 'comped-unassigned';
-                        const ticketPercentage = ticket.ticket_capacity > 0 
-                          ? (ticket.tickets_sold / ticket.ticket_capacity) * 100 
+                        // Calculate actual attendee capacity: ticket_capacity × participants_per_ticket
+                        const attendeeCapacity = ticket.ticket_capacity * ticket.participants_per_ticket;
+                        const ticketPercentage = attendeeCapacity > 0 
+                          ? (ticket.tickets_sold / attendeeCapacity) * 100 
                           : 0;
                         
                         return (
@@ -343,7 +348,7 @@ const TicketSales = () => {
                                 <p className="font-medium truncate">{ticket.ticket_name}</p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                                   <span className="font-mono">
-                                    {ticket.tickets_sold} seat{ticket.tickets_sold !== 1 ? 's' : ''}{!isUnassignedComped && ` / ${ticket.ticket_capacity}`}
+                                    {ticket.tickets_sold} seat{ticket.tickets_sold !== 1 ? 's' : ''}{!isUnassignedComped && ` / ${attendeeCapacity}`}
                                   </span>
                                   {!isUnassignedComped && (
                                     <>
@@ -359,7 +364,7 @@ const TicketSales = () => {
                                 </Badge>
                                 {!isUnassignedComped && (
                                   <Badge variant="secondary" className="text-xs">
-                                    {formatPercentage(ticket.tickets_sold, ticket.ticket_capacity)}
+                                    {formatPercentage(ticket.tickets_sold, attendeeCapacity)}
                                   </Badge>
                                 )}
                               </div>
