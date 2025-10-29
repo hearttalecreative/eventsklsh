@@ -85,7 +85,7 @@ const TicketSales = () => {
 
       // For each event, call the database function to get ticket sales
       const salesDataPromises = data?.map(async (event) => {
-        // Use the database function that bypasses RLS
+        // Try RPC first (bypasses RLS, includes revenue + comped row)
         const { data: ticketSales, error: salesError } = await supabase
           .rpc('get_ticket_sales_for_event_admin', { ev_id: event.id });
 
@@ -93,7 +93,97 @@ const TicketSales = () => {
           console.error(`Error fetching sales for event ${event.id}:`, salesError);
         }
 
-        const ticketSalesSafe = salesError ? [] : (ticketSales || []);
+        let ticketsSalesData: any[] = [];
+
+        if (!salesError && Array.isArray(ticketSales) && ticketSales.length > 0) {
+          ticketsSalesData = ticketSales.map((sale: any) => ({
+            ticket_id: sale.ticket_id || 'comped-unassigned',
+            ticket_name: sale.ticket_name,
+            ticket_capacity: sale.ticket_capacity,
+            tickets_sold: sale.tickets_sold,
+            unit_price_cents: sale.unit_price_cents || 0,
+            total_revenue_cents: sale.total_revenue_cents || 0,
+            participants_per_ticket: sale.participants_per_ticket || 1,
+          }));
+        } else {
+          // Fallback path: build analytics on the client using tables
+          // 1) Fetch tickets
+          const { data: tickets } = await supabase
+            .from('tickets')
+            .select('id, name, capacity_total, participants_per_ticket, unit_amount_cents')
+            .eq('event_id', event.id)
+            .order('display_order', { ascending: true });
+
+          // 2) Fetch paid orders and their items
+          const { data: paidOrders } = await supabase
+            .from('orders')
+            .select('id')
+            .eq('event_id', event.id)
+            .eq('status', 'paid');
+
+          let orderItems: any[] = [];
+          if (paidOrders && paidOrders.length) {
+            const orderIds = paidOrders.map(o => o.id);
+            const { data: items } = await supabase
+              .from('order_items')
+              .select('ticket_id, quantity, total_amount_cents')
+              .in('order_id', orderIds);
+            orderItems = items || [];
+          }
+
+          // 3) Count comped attendees by ticket
+          const { data: compedAttendees } = await supabase
+            .from('attendees')
+            .select('comped_ticket_id')
+            .eq('event_id', event.id)
+            .eq('is_comped', true);
+
+          const compedByTicket: Record<string, number> = {};
+          let compedUnassigned = 0;
+          (compedAttendees || []).forEach(a => {
+            if (a.comped_ticket_id) {
+              compedByTicket[a.comped_ticket_id] = (compedByTicket[a.comped_ticket_id] || 0) + 1;
+            } else {
+              compedUnassigned += 1;
+            }
+          });
+
+          ticketsSalesData = (tickets || []).map((t: any) => {
+            const parts = t.participants_per_ticket || 1;
+            const capacity = t.capacity_total || 0;
+            const paidSeats = orderItems
+              .filter(oi => oi.ticket_id === t.id)
+              .reduce((sum, oi) => sum + (oi.quantity * parts), 0);
+            const paidRevenue = orderItems
+              .filter(oi => oi.ticket_id === t.id)
+              .reduce((sum, oi) => sum + (oi.total_amount_cents || 0), 0);
+            const compedSeats = compedByTicket[t.id] || 0;
+            return {
+              ticket_id: t.id,
+              ticket_name: t.name,
+              ticket_capacity: capacity,
+              tickets_sold: paidSeats + compedSeats,
+              unit_price_cents: t.unit_amount_cents || 0,
+              total_revenue_cents: paidRevenue,
+              participants_per_ticket: parts,
+            };
+          });
+
+          // Add comped-unassigned bucket if needed
+          if (compedUnassigned > 0) {
+            ticketsSalesData.push({
+              ticket_id: 'comped-unassigned',
+              ticket_name: 'Comped / Credited (Custom)',
+              ticket_capacity: 0,
+              tickets_sold: compedUnassigned,
+              unit_price_cents: 0,
+              total_revenue_cents: 0,
+              participants_per_ticket: 1,
+            });
+          }
+        }
+
+        // Get attendees with internal notes using the admin edge function
         const { data: attendeesResponse, error: attendeesError } = await supabase.functions.invoke(
           'admin-list-attendees',
           { body: { eventId: event.id } }
@@ -113,16 +203,6 @@ const TicketSales = () => {
             ticket_label: a.ticket?.name || null,
             internal_notes: a.internal_notes
           })) || [];
-
-        const ticketsSalesData = ticketSalesSafe?.map((sale: any) => ({
-          ticket_id: sale.ticket_id || 'comped-unassigned',
-          ticket_name: sale.ticket_name,
-          ticket_capacity: sale.ticket_capacity,
-          tickets_sold: sale.tickets_sold,
-          unit_price_cents: sale.unit_price_cents || 0,
-          total_revenue_cents: sale.total_revenue_cents || 0,
-          participants_per_ticket: sale.participants_per_ticket || 1,
-        })) || [];
 
         const totalTicketsSold = ticketsSalesData.reduce((sum: number, ticket: any) => sum + ticket.tickets_sold, 0);
         const totalRevenue = ticketsSalesData.reduce((sum: number, ticket: any) => sum + ticket.total_revenue_cents, 0);
