@@ -86,127 +86,127 @@ const EventPurchaseDetails = () => {
 
       const attendeesData = attendeesResponse.attendees;
 
-      // Use a Map to prevent duplicate attendees
-      const attendeeMap = new Map<string, any>();
+      // Group attendees by order_item_id to avoid showing duplicate purchases
+      const orderItemMap = new Map<string, any[]>();
+      const compedAttendees: any[] = [];
       
-      // For each attendee, get their order details
-      const purchaseDetailsPromises = attendeesData?.map(async (attendee) => {
-        // Skip if already processed (prevent duplicates)
-        if (attendeeMap.has(attendee.id)) {
-          console.log(`[EventPurchaseDetails] Skipping duplicate attendee: ${attendee.id}`);
-          return null;
-        }
-        attendeeMap.set(attendee.id, true);
-
-        // Handle comped attendees (no order)
+      // Group attendees
+      attendeesData?.forEach((attendee) => {
         if (!attendee.order_item_id) {
+          // Comped attendees (no order)
           if (attendee.is_comped) {
-            return {
-              attendee_id: attendee.id,
-              attendee_name: attendee.name,
-              attendee_email: attendee.email,
-              attendee_phone: attendee.phone,
-              order_id: '',
-              purchase_date: '',
-              ticket_name: attendee.ticket_label || 'Comped',
-              ticket_quantity: 1,
-              addons: [],
-              total_amount_cents: 0,
-              ticket_amount_cents: 0,
-              addons_amount_cents: 0,
-              processing_fee_cents: 0,
-              is_comped: true,
-            };
+            compedAttendees.push(attendee);
           }
+        } else {
+          // Regular paid attendees - group by order_item_id
+          if (!orderItemMap.has(attendee.order_item_id)) {
+            orderItemMap.set(attendee.order_item_id, []);
+          }
+          orderItemMap.get(attendee.order_item_id)!.push(attendee);
+        }
+      });
+      
+      // Process comped attendees (one row per comped attendee)
+      const compedPurchases = compedAttendees.map((attendee) => ({
+        attendee_id: attendee.id,
+        attendee_name: attendee.name,
+        attendee_email: attendee.email,
+        attendee_phone: attendee.phone,
+        order_id: '',
+        purchase_date: '',
+        ticket_name: attendee.ticket_label || 'Comped',
+        ticket_quantity: 1,
+        addons: [],
+        total_amount_cents: 0,
+        ticket_amount_cents: 0,
+        addons_amount_cents: 0,
+        processing_fee_cents: 0,
+        is_comped: true,
+      }));
+
+      // Process order items (one row per order_item, showing first attendee's details)
+      const orderItemPurchasesPromises = Array.from(orderItemMap.entries()).map(async ([orderItemId, attendees]) => {
+        try {
+          // Use first attendee for display (they're all part of same purchase)
+          const firstAttendee = attendees[0];
+          
+          // Get order item data
+          const { data: orderItemData } = await supabase
+            .from('order_items')
+            .select('order_id, ticket_id, addon_id, quantity, unit_amount_cents, total_amount_cents')
+            .eq('id', orderItemId)
+            .single();
+
+          if (!orderItemData) {
+            console.log(`[EventPurchaseDetails] Order item not found: ${orderItemId}`);
+            return null;
+          }
+
+          // Get order data
+          const { data: orderData } = await supabase
+            .from('orders')
+            .select('created_at, total_amount_cents, stripe_session_id, status')
+            .eq('id', orderItemData.order_id)
+            .single();
+
+          // Skip orders that aren't paid
+          if (orderData?.status !== 'paid') {
+            console.log(`[EventPurchaseDetails] Skipping non-paid order: ${orderItemData.order_id}`);
+            return null;
+          }
+
+          // Get ticket name and price
+          const { data: ticketData } = await supabase
+            .from('tickets')
+            .select('name, unit_amount_cents, participants_per_ticket')
+            .eq('id', orderItemData.ticket_id!)
+            .single();
+
+          // Get all addons for this order
+          const { data: orderAddons } = await supabase
+            .from('order_items')
+            .select('addon_id, quantity, unit_amount_cents, total_amount_cents, addons(name)')
+            .eq('order_id', orderItemData.order_id)
+            .not('addon_id', 'is', null);
+
+          const addons = (orderAddons || []).map((item: any) => ({
+            name: item.addons?.name || 'Unknown',
+            quantity: item.quantity,
+            unit_amount_cents: item.unit_amount_cents,
+            total_amount_cents: item.total_amount_cents,
+          }));
+
+          const addonsTotal = addons.reduce((sum, addon) => sum + addon.total_amount_cents, 0);
+          const ticketTotal = orderItemData.total_amount_cents;
+          const orderTotal = orderData?.total_amount_cents || 0;
+          const processingFee = Math.max(0, orderTotal - ticketTotal - addonsTotal);
+
+          return {
+            attendee_id: firstAttendee.id,
+            attendee_name: firstAttendee.name,
+            attendee_email: firstAttendee.email,
+            attendee_phone: firstAttendee.phone,
+            order_id: orderData?.stripe_session_id || orderItemData.order_id,
+            purchase_date: orderData?.created_at || '',
+            ticket_name: ticketData?.name || 'Unknown',
+            ticket_quantity: orderItemData.quantity,
+            addons,
+            total_amount_cents: orderTotal,
+            ticket_amount_cents: ticketTotal,
+            addons_amount_cents: addonsTotal,
+            processing_fee_cents: processingFee,
+            is_comped: false,
+          };
+        } catch (error) {
+          console.error(`[EventPurchaseDetails] Error processing order item ${orderItemId}:`, error);
           return null;
         }
+      });
 
-        // Get order item details
-        const { data: orderItemData } = await supabase
-          .from('order_items')
-          .select(`
-            id,
-            order_id,
-            ticket_id,
-            quantity
-          `)
-          .eq('id', attendee.order_item_id)
-          .single();
-
-        if (!orderItemData) return null;
-
-        // Get order details with validation
-        const { data: orderData } = await supabase
-          .from('orders')
-          .select('created_at, total_amount_cents, stripe_session_id, status')
-          .eq('id', orderItemData.order_id)
-          .single();
-
-        // Skip orders that aren't paid (prevents showing pending/failed orders)
-        if (orderData?.status !== 'paid') {
-          console.log(`[EventPurchaseDetails] Skipping non-paid order: ${orderItemData.order_id}`);
-          return null;
-        }
-
-        // Get ticket name and price
-        const { data: ticketData } = await supabase
-          .from('tickets')
-          .select('name, unit_amount_cents')
-          .eq('id', orderItemData.ticket_id)
-          .single();
-
-        // Get ticket items for this order to calculate ticket revenue
-        const { data: ticketOrderItem } = await supabase
-          .from('order_items')
-          .select('total_amount_cents')
-          .eq('order_id', orderItemData.order_id)
-          .eq('id', orderItemData.id)
-          .single();
-
-        // Get addons for this order
-        const { data: addonItems } = await supabase
-          .from('order_items')
-          .select(`
-            addon_id,
-            quantity,
-            unit_amount_cents,
-            total_amount_cents,
-            addons:addon_id (name)
-          `)
-          .eq('order_id', orderItemData.order_id)
-          .not('addon_id', 'is', null);
-
-        const addons = addonItems?.map(item => ({
-          name: (item.addons as any)?.name || 'Unknown',
-          quantity: item.quantity,
-          unit_amount_cents: item.unit_amount_cents || 0
-        })) || [];
-
-        // Calculate amounts
-        const ticketAmount = ticketOrderItem?.total_amount_cents || 0;
-        const addonsAmount = addonItems?.reduce((sum, item) => sum + (item.total_amount_cents || 0), 0) || 0;
-        const totalAmount = orderData?.total_amount_cents || 0;
-        const processingFee = totalAmount - ticketAmount - addonsAmount;
-
-        return {
-          attendee_id: attendee.id,
-          attendee_name: attendee.name,
-          attendee_email: attendee.email,
-          attendee_phone: attendee.phone,
-          order_id: orderItemData.order_id,
-          purchase_date: orderData?.created_at || '',
-          ticket_name: ticketData?.name || 'Unknown',
-          ticket_quantity: orderItemData.quantity,
-          addons,
-          total_amount_cents: totalAmount,
-          ticket_amount_cents: ticketAmount,
-          addons_amount_cents: addonsAmount,
-          processing_fee_cents: processingFee,
-          is_comped: attendee.is_comped || false
-        };
-      }) || [];
-
-      const purchaseDetails = (await Promise.all(purchaseDetailsPromises)).filter(Boolean) as PurchaseDetail[];
+      const orderItemPurchases = (await Promise.all(orderItemPurchasesPromises)).filter(Boolean) as PurchaseDetail[];
+      
+      // Combine comped and paid purchases
+      const purchaseDetails = [...compedPurchases, ...orderItemPurchases];
       setPurchases(purchaseDetails);
     } catch (error) {
       console.error('Error fetching purchase details:', error);
