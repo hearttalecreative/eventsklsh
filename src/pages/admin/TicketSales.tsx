@@ -91,10 +91,9 @@ const TicketSales = () => {
 
         if (salesError) {
           console.error(`Error fetching sales for event ${event.id}:`, salesError);
-          return null;
         }
 
-        // Get attendees with internal notes using the admin edge function
+        const ticketSalesSafe = salesError ? [] : (ticketSales || []);
         const { data: attendeesResponse, error: attendeesError } = await supabase.functions.invoke(
           'admin-list-attendees',
           { body: { eventId: event.id } }
@@ -115,7 +114,7 @@ const TicketSales = () => {
             internal_notes: a.internal_notes
           })) || [];
 
-        const ticketsSalesData = ticketSales?.map((sale: any) => ({
+        const ticketsSalesData = ticketSalesSafe?.map((sale: any) => ({
           ticket_id: sale.ticket_id || 'comped-unassigned',
           ticket_name: sale.ticket_name,
           ticket_capacity: sale.ticket_capacity,
@@ -133,7 +132,9 @@ const TicketSales = () => {
           event_title: event.title,
           event_starts_at: event.starts_at,
           event_ends_at: event.ends_at,
-          event_capacity: event.capacity_total || ticketsSalesData.reduce((sum: number, t: any) => sum + t.ticket_capacity, 0),
+          event_capacity: event.capacity_total || ticketsSalesData
+            .filter((t: any) => t.ticket_id !== 'comped-unassigned')
+            .reduce((sum: number, t: any) => sum + (t.ticket_capacity * (t.participants_per_ticket || 1)), 0),
           total_tickets_sold: totalTicketsSold,
           total_revenue_cents: totalRevenue,
           tickets: ticketsSalesData,
