@@ -465,10 +465,26 @@ serve(async (req) => {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
   } catch (error: any) {
-    console.error("[create-payment] error:", error);
-    return new Response(JSON.stringify({ error: error?.message || String(error) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+    const errorMessage = error?.message || String(error);
+    const errorStack = error?.stack || '';
+    
+    console.error("[create-payment] ERROR:", {
+      message: errorMessage,
+      stack: errorStack,
+      name: error?.name,
+      type: typeof error,
     });
+    
+    // Return user-friendly error message
+    return new Response(
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error?.name || 'PaymentError'
+      }), 
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
   }
 });
