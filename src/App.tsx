@@ -25,6 +25,7 @@ import ManageAdmins from "./pages/admin/ManageAdmins";
 import CheckoutLogs from "./pages/admin/CheckoutLogs";
 import CleanupDuplicates from "./pages/admin/CleanupDuplicates";
 import StripeLogs from "./pages/admin/StripeLogs";
+import PaymentErrorLogs from "./pages/admin/PaymentErrorLogs";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/admin/ticket-sales" element={<AdminRoute><TicketSales /></AdminRoute>} />
             <Route path="/admin/checkout-logs" element={<AdminRoute><CheckoutLogs /></AdminRoute>} />
             <Route path="/admin/stripe-logs" element={<AdminRoute><StripeLogs /></AdminRoute>} />
+            <Route path="/admin/payment-error-logs" element={<AdminRoute><PaymentErrorLogs /></AdminRoute>} />
             <Route path="/admin/events/:eventId/purchases" element={<AdminRoute><EventPurchaseDetails /></AdminRoute>} />
             <Route path="/admin/attendees/add" element={<AdminRoute><AddAttendeePage /></AdminRoute>} />
             <Route path="/admin/events/:eventId/attendees" element={<AdminRoute><EventAttendeesPage /></AdminRoute>} />

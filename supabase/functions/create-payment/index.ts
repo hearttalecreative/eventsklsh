@@ -498,6 +498,23 @@ serve(async (req) => {
       name: error?.name,
       type: typeof error,
     });
+
+    // Log error to database for debugging
+    try {
+      const userAgent = req.headers.get('user-agent') || '';
+      const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '';
+      
+      await supabase.from('payment_error_logs').insert({
+        error_type: error?.name || 'PaymentError',
+        error_message: errorMessage,
+        error_stack: errorStack,
+        request_payload: null, // Don't log sensitive payload data
+        user_agent: userAgent,
+        ip_address: ipAddress,
+      });
+    } catch (logErr) {
+      console.error("[create-payment] Failed to log error to database:", logErr);
+    }
     
     // Return user-friendly error message
     return new Response(

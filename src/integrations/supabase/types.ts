@@ -550,6 +550,57 @@ export type Database = {
           },
         ]
       }
+      payment_error_logs: {
+        Row: {
+          buyer_email: string | null
+          buyer_name: string | null
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          error_type: string
+          event_id: string | null
+          id: string
+          ip_address: string | null
+          request_payload: Json | null
+          ticket_id: string | null
+          ticket_qty: number | null
+          user_agent: string | null
+          validation_errors: Json | null
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          error_type: string
+          event_id?: string | null
+          id?: string
+          ip_address?: string | null
+          request_payload?: Json | null
+          ticket_id?: string | null
+          ticket_qty?: number | null
+          user_agent?: string | null
+          validation_errors?: Json | null
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          error_type?: string
+          event_id?: string | null
+          id?: string
+          ip_address?: string | null
+          request_payload?: Json | null
+          ticket_id?: string | null
+          ticket_qty?: number | null
+          user_agent?: string | null
+          validation_errors?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

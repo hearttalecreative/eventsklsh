@@ -12,7 +12,8 @@ import {
   UserPlus,
   Shield,
   AlertTriangle,
-  Home
+  Home,
+  FileWarning
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -79,6 +80,12 @@ const AdminHeader = () => {
       path: "/admin/ticket-sales",
       label: "Sales",
       icon: BarChart3,
+      iconOnly: false,
+    },
+    {
+      path: "/admin/payment-error-logs",
+      label: "Error Logs",
+      icon: FileWarning,
       iconOnly: false,
     },
     {
