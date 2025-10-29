@@ -171,12 +171,21 @@ const TicketSales = () => {
   // Separate current and past events
   const now = new Date();
   const currentEvents = salesData.filter(event => {
-    if (!event.event_ends_at) return true; // If no end time, treat as current
+    // If no end time, check if start time is in the future or within last 24 hours
+    if (!event.event_ends_at) {
+      const eventStart = new Date(event.event_starts_at);
+      const hoursSinceStart = (now.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
+      return hoursSinceStart < 24; // Show events that started less than 24 hours ago
+    }
     return new Date(event.event_ends_at) >= now;
   });
   
   const pastEvents = salesData.filter(event => {
-    if (!event.event_ends_at) return false;
+    if (!event.event_ends_at) {
+      const eventStart = new Date(event.event_starts_at);
+      const hoursSinceStart = (now.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
+      return hoursSinceStart >= 24;
+    }
     return new Date(event.event_ends_at) < now;
   });
 
