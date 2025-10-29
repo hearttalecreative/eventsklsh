@@ -79,12 +79,18 @@ const EventPurchaseDetails = () => {
         }
       );
 
-      if (attendeesError) throw attendeesError;
+      if (attendeesError) {
+        console.error('[EventPurchaseDetails] Error from edge function:', attendeesError);
+        throw attendeesError;
+      }
+      
       if (!attendeesResponse?.ok || !attendeesResponse?.attendees) {
+        console.error('[EventPurchaseDetails] Invalid response:', attendeesResponse);
         throw new Error('Failed to fetch attendees');
       }
 
       const attendeesData = attendeesResponse.attendees;
+      console.log('[EventPurchaseDetails] Fetched attendees:', attendeesData.length);
 
       // Group attendees by order_item_id to avoid showing duplicate purchases
       const orderItemMap = new Map<string, any[]>();
