@@ -137,8 +137,8 @@ serve(async (req) => {
         .eq('id', cart.eventId)
         .single();
 
-      // Log webhook receipt
-      await supabase.from('stripe_logs').insert({
+      // Log webhook receipt with a unique identifier we can update later
+      const { data: initialLog } = await supabase.from('stripe_logs').insert({
         event_type: event.type,
         stripe_session_id: session.id,
         stripe_event_id: event.id,
@@ -154,7 +154,7 @@ serve(async (req) => {
           payment_status: session.payment_status,
           payment_method_types: session.payment_method_types
         }
-      });
+      }).select().single();
 
       // Process the payment by calling verify-payment (idempotent)
       const { data, error } = await supabase.functions.invoke("verify-payment", {
@@ -164,47 +164,36 @@ serve(async (req) => {
       if (error) {
         console.error(`[stripe-webhook] Error calling verify-payment:`, error);
         
-        // Log error
-        await supabase.from('stripe_logs').insert({
-          event_type: `${event.type}_error`,
-          stripe_session_id: session.id,
-          stripe_event_id: event.id,
-          customer_email: session.customer_details?.email || cart.participants[0]?.email,
-          customer_name: session.customer_details?.name || cart.participants[0]?.fullName,
-          amount_cents: session.amount_total || 0,
-          currency: session.currency || 'usd',
-          status: 'error',
-          event_id: cart.eventId,
-          event_title: eventData?.title,
-          error_message: error.message || String(error),
-          processing_time_ms: Date.now() - startTime
-        });
+        // Update the existing log to error instead of creating a new one
+        if (initialLog?.id) {
+          await supabase.from('stripe_logs')
+            .update({
+              status: 'error',
+              error_message: error.message || String(error),
+              processing_time_ms: Date.now() - startTime
+            })
+            .eq('id', initialLog.id);
+        }
 
         throw error;
       }
 
       console.log(`[stripe-webhook] Successfully processed order:`, data);
       
-      // Log success
-      await supabase.from('stripe_logs').insert({
-        event_type: `${event.type}_success`,
-        stripe_session_id: session.id,
-        stripe_event_id: event.id,
-        customer_email: session.customer_details?.email || cart.participants[0]?.email,
-        customer_name: session.customer_details?.name || cart.participants[0]?.fullName,
-        amount_cents: session.amount_total || 0,
-        currency: session.currency || 'usd',
-        status: 'success',
-        order_id: data?.orderId,
-        event_id: cart.eventId,
-        event_title: eventData?.title,
-        tickets_count: cart.participants?.length || 0,
-        processing_time_ms: Date.now() - startTime,
-        metadata: {
-          payment_status: session.payment_status,
-          order_created: true
-        }
-      });
+      // Update the existing log to success instead of creating a new one
+      if (initialLog?.id) {
+        await supabase.from('stripe_logs')
+          .update({
+            status: 'success',
+            order_id: data?.orderId,
+            processing_time_ms: Date.now() - startTime,
+            metadata: {
+              payment_status: session.payment_status,
+              order_created: true
+            }
+          })
+          .eq('id', initialLog.id);
+      }
 
       return new Response(JSON.stringify({ received: true, orderId: data?.orderId }), { status: 200 });
     } catch (err: any) {
