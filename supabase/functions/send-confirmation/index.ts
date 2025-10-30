@@ -72,6 +72,9 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  
+  console.log("[send-confirmation] Function invoked - START");
+  
   try {
     const { 
       name, 
@@ -89,12 +92,28 @@ serve(async (req: Request) => {
       eventSlug,
       is_comped = false
     }: Payload & { is_comped?: boolean } = await req.json();
-    console.log("send-confirmation invoked with:", { name, email, eventTitle, eventImageUrl });
+    
+    console.log("[send-confirmation] Payload received:", { 
+      name, 
+      email, 
+      eventTitle, 
+      hasOrderDetails: !!orderDetails,
+      is_comped 
+    });
 
     if (!email || !name) {
-      console.error("Missing fields", { name, email });
+      console.error("[send-confirmation] ERROR - Missing required fields:", { name, email });
       return new Response(JSON.stringify({ ok: false, error: "Missing name or email" }), {
-        status: 200,
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Check if Brevo API key is configured
+    if (!BREVO_API_KEY) {
+      console.error("[send-confirmation] ERROR - BREVO_API_KEY not configured");
+      return new Response(JSON.stringify({ ok: false, error: "Email service not configured" }), {
+        status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
@@ -347,39 +366,43 @@ serve(async (req: Request) => {
     `;
 
     try {
+      console.log(`[send-confirmation] Sending email to ${email}...`);
+      
       // Send email to the original recipient
       const response = await sendBrevoEmail(email, name, subject, html);
-      console.log("Brevo response:", response);
+      console.log("[send-confirmation] Email sent successfully to recipient:", { email, response });
       
       // Send copy to Info@kylelamsoundhealing.com
       try {
         const copySubject = is_comped 
           ? `[COPY - COMPLIMENTARY] ${subject} - ${name}`
           : `[COPY] ${subject} - ${name}`;
+        console.log("[send-confirmation] Sending copy to Info@kylelamsoundhealing.com...");
         const copyResponse = await sendBrevoEmail("Info@kylelamsoundhealing.com", "Kyle Lam Sound Healing", copySubject, html);
-        console.log("Copy email sent to Info@kylelamsoundhealing.com:", copyResponse);
+        console.log("[send-confirmation] Copy email sent successfully to Info@kylelamsoundhealing.com");
       } catch (copyError: any) {
-        console.error("Failed to send copy email:", copyError?.message || String(copyError));
+        console.error("[send-confirmation] WARNING - Failed to send copy email:", copyError?.message || String(copyError));
         // Don't fail the main request if copy email fails
       }
       
+      console.log("[send-confirmation] SUCCESS - All emails sent");
       return new Response(JSON.stringify({ ok: true, response }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     } catch (e: any) {
-      console.error("Brevo send error:", e?.message || String(e));
+      console.error("[send-confirmation] ERROR - Brevo send error:", e?.message || String(e));
       return new Response(
         JSON.stringify({ ok: false, error: e?.message || String(e) }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
   } catch (error: any) {
-    console.error("Error in send-confirmation:", error);
+    console.error("[send-confirmation] CRITICAL ERROR in send-confirmation:", error?.message || String(error));
     return new Response(
       JSON.stringify({ ok: false, error: error?.message || String(error) }),
       {
-        status: 200,
+        status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       },
     );
