@@ -307,7 +307,7 @@ serve(async (req) => {
         try {
           const attendee = insertedAttendees[index];
           
-          await supabase.functions.invoke('send-confirmation', {
+          const { error: sendErr } = await supabase.functions.invoke('send-confirmation', {
             body: {
               name: p.fullName || 'Guest',
               email: p.email,
@@ -347,6 +347,7 @@ serve(async (req) => {
               }
             }
           });
+          if (sendErr) throw sendErr;
         } catch (e) {
           console.error('[verify-payment send-confirmation] failed for', p.email, e);
         }
