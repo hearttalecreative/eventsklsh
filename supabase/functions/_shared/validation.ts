@@ -88,12 +88,21 @@ export function validatePhone(phone: string | undefined | null): string | undefi
     throw new Error('Phone must be a string');
   }
   
-  const sanitized = phone.trim().slice(0, 20);
-  // Allow common phone formats: digits, spaces, dashes, parentheses, plus
-  const phoneRegex = /^[\d\s\-\(\)\+]+$/;
+  const sanitized = phone.trim().slice(0, 30);
+  
+  // If empty string after trimming, return undefined
+  if (sanitized.length === 0) return undefined;
+  
+  // Allow common phone formats: digits, spaces, dashes, parentheses, plus, dots, and common extensions (x, ext)
+  // This regex is more permissive to handle international formats
+  const phoneRegex = /^[\d\s\-\(\)\+\.x]+$/i;
   
   if (!phoneRegex.test(sanitized)) {
-    throw new Error('Phone contains invalid characters');
+    // If still invalid, try removing common separators and checking if what remains are digits
+    const digitsOnly = sanitized.replace(/[\s\-\(\)\+\.]/g, '');
+    if (!/^[\dx]+$/i.test(digitsOnly)) {
+      throw new Error('Phone contains invalid characters. Please use only numbers, spaces, dashes, parentheses, dots, or plus sign.');
+    }
   }
   
   return sanitized;
