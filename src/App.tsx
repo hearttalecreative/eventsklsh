@@ -24,6 +24,8 @@ import EventPurchaseDetails from "./pages/admin/EventPurchaseDetails";
 import ManageAdmins from "./pages/admin/ManageAdmins";
 import CleanupDuplicates from "./pages/admin/CleanupDuplicates";
 import SystemLogs from "./pages/admin/SystemLogs";
+import CaliforniaEvents from "./pages/CaliforniaEvents";
+import FloridaEvents from "./pages/FloridaEvents";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/event/:slugOrId" element={<EventDetail />} />
+            <Route path="/events/california" element={<CaliforniaEvents />} />
+            <Route path="/events/florida" element={<FloridaEvents />} />
             <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
