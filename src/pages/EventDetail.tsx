@@ -680,21 +680,6 @@ const proceed = async () => {
         </aside>
       </div>
     </main>
-    
-    <footer className="py-6 text-center text-sm text-muted-foreground">
-      <p>&copy; 2024 Kyle Lam Sound Healing. All rights reserved.</p>
-      <p className="mt-2">
-        Created by{" "}
-        <a
-          href="https://hearttalecreative.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:underline"
-        >
-          Hearttale Creative
-        </a>
-      </p>
-    </footer>
     </>
   );
 };
