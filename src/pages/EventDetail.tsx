@@ -300,9 +300,10 @@ const proceed = async () => {
   };
 
   return (
-    <main className="container mx-auto py-10 space-y-10">
-      <Helmet>
-        <title>{event.title}</title>
+    <>
+      <main className="container mx-auto py-10 space-y-10">
+        <Helmet>
+          <title>{event.title}</title>
         <meta name="description" content={event.shortDescription} />
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
         <meta property="og:site_name" content="Kyle Lam Sound Healing" />
@@ -679,6 +680,22 @@ const proceed = async () => {
         </aside>
       </div>
     </main>
+    
+    <footer className="py-6 text-center text-sm text-muted-foreground">
+      <p>&copy; 2024 Kyle Lam Sound Healing. All rights reserved.</p>
+      <p className="mt-2">
+        Created by{" "}
+        <a
+          href="https://hearttalecreative.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          Hearttale Creative
+        </a>
+      </p>
+    </footer>
+    </>
   );
 };
 
