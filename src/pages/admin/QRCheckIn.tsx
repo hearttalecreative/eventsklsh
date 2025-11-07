@@ -74,6 +74,7 @@ const QRCheckInPage = () => {
           .from("attendees")
           .select("id, name, email, phone, confirmation_code, checked_in_at, event_id, order_item_id")
           .eq("qr_code", qrCode)
+          .limit(1)
           .maybeSingle();
 
         if (attendeeError) throw attendeeError;

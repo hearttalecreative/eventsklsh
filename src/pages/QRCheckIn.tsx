@@ -148,7 +148,8 @@ const QRCheckIn = () => {
           )
         `)
         .eq("qr_code", qrCode)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
         console.error("Supabase error:", error);
