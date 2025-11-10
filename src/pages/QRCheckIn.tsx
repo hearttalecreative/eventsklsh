@@ -10,12 +10,14 @@ import { toast } from "sonner";
 
 interface AttendeeData {
   id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  checked_in_at?: string;
+  name: string | null;
+  email: string | null;
+  phone?: string | null;
+  checked_in_at?: string | null;
   confirmation_code: string;
   qr_code: string;
+  is_comped?: boolean;
+  ticket_label?: string | null;
   event: {
     id: string;
     title: string;
@@ -25,18 +27,18 @@ interface AttendeeData {
       address: string;
     };
   };
-  order_item: {
-    order: {
+  order_item?: {
+    order?: {
       id: string;
       total_amount_cents: number;
       currency: string;
-    };
-    ticket: {
+    } | null;
+    ticket?: {
       name: string;
       unit_amount_cents: number;
-    };
+    } | null;
     quantity: number;
-  };
+  } | null;
   addons?: Array<{
     name: string;
     quantity: number;
@@ -156,18 +158,22 @@ const QRCheckIn = () => {
         throw new Error(`QR code not found: ${error.message}`);
       }
 
-      // Fetch addons for this order
-      const { data: addonsData } = await supabase
-        .from("order_items")
-        .select(`
-          quantity,
-          addon:addon_id (
-            name,
-            unit_amount_cents
-          )
-        `)
-        .eq("order_id", data.order_item.order.id)
-        .not("addon_id", "is", null);
+      let addonsData: any[] | null = null;
+      const orderId = data?.order_item?.order?.id;
+      if (orderId) {
+        const { data: _addonsData } = await supabase
+          .from("order_items")
+          .select(`
+            quantity,
+            addon:addon_id (
+              name,
+              unit_amount_cents
+            )
+          `)
+          .eq("order_id", orderId)
+          .not("addon_id", "is", null);
+        addonsData = _addonsData;
+      }
 
       setAttendee({
         ...data,
@@ -389,25 +395,36 @@ const QRCheckIn = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <div className="p-3 bg-background rounded-lg border-2 border-primary/20">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-lg">{attendee.order_item.ticket.name}</p>
-                    <p className="text-sm text-muted-foreground">Ticket</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Quantity: {attendee.order_item.quantity}</p>
-                    <p className="font-semibold text-lg">
-                      {formatCurrency(
-                        attendee.order_item.ticket.unit_amount_cents * attendee.order_item.quantity,
-                        attendee.order_item.order.currency
-                      )}
-                    </p>
+              {attendee.order_item?.ticket ? (
+                <div className="p-3 bg-background rounded-lg border-2 border-primary/20">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-lg">{attendee.order_item.ticket.name}</p>
+                      <p className="text-sm text-muted-foreground">Ticket</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Quantity: {attendee.order_item.quantity}</p>
+                      <p className="font-semibold text-lg">
+                        {formatCurrency(
+                          attendee.order_item.ticket.unit_amount_cents * attendee.order_item.quantity,
+                          attendee.order_item.order?.currency || 'usd'
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-3 bg-background rounded-lg border-2 border-primary/20">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-lg">{attendee.ticket_label || (attendee.is_comped ? 'Comped Ticket' : 'Ticket')}</p>
+                      <p className="text-sm text-muted-foreground">{attendee.is_comped ? 'Comped / Manual' : 'Ticket'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              {attendee.addons && attendee.addons.length > 0 && (
+              {attendee.addons && attendee.addons.length > 0 && attendee.order_item?.order?.currency && (
                 <>
                   <p className="text-sm font-medium text-muted-foreground">Add-ons:</p>
                   {attendee.addons.map((addon, index) => (
@@ -422,7 +439,7 @@ const QRCheckIn = () => {
                           <p className="font-medium">
                             {formatCurrency(
                               addon.unit_amount_cents * addon.quantity,
-                              attendee.order_item.order.currency
+                              attendee.order_item?.order?.currency || 'usd'
                             )}
                           </p>
                         </div>
@@ -433,14 +450,17 @@ const QRCheckIn = () => {
               )}
             </div>
 
-            <Separator />
-
-            <div className="flex justify-between items-center font-semibold text-lg">
-              <span>Total Paid</span>
-              <span className="text-primary">
-                {formatCurrency(attendee.order_item.order.total_amount_cents, attendee.order_item.order.currency)}
-              </span>
-            </div>
+            {attendee.order_item?.order && (
+              <>
+                <Separator />
+                <div className="flex justify-between items-center font-semibold text-lg">
+                  <span>Total Paid</span>
+                  <span className="text-primary">
+                    {formatCurrency(attendee.order_item.order.total_amount_cents, attendee.order_item.order.currency)}
+                  </span>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
