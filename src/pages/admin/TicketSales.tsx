@@ -68,7 +68,7 @@ const TicketSales = () => {
     try {
       setIsLoading(true);
       
-      // Query to get published events
+      // Query to get published and sold out events
       const { data, error } = await supabase
         .from('events')
         .select(`
@@ -78,7 +78,7 @@ const TicketSales = () => {
           starts_at,
           ends_at
         `)
-        .eq('status', 'published')
+        .in('status', ['published', 'sold_out'])
         .order('starts_at', { ascending: true });
 
       if (error) throw error;
