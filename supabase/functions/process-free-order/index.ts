@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { validateCart } from "../_shared/validation.ts";
+import { addContactToBrevo, determineLocationFromVenue } from "../_shared/brevo-contacts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,6 +146,14 @@ serve(async (req: Request) => {
         .select("id, confirmation_code, name, email");
       if (error) throw error;
       insertedAttendees = ins || [];
+      
+      // Add attendees to Brevo contact list (non-blocking)
+      const location = determineLocationFromVenue(venue);
+      await Promise.allSettled(
+        insertedAttendees.map(attendee => 
+          addContactToBrevo(attendee.email || '', attendee.name || 'Guest', location)
+        )
+      );
     }
 
     // 6) Send confirmation emails

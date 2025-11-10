@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { addContactToBrevo, determineLocationFromVenue } from "../_shared/brevo-contacts.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -148,6 +149,15 @@ serve(async (req) => {
 
       console.log('Attendee created:', attendee.id);
       createdAttendees.push(attendee);
+
+      // Add attendee to Brevo contact list (non-blocking)
+      const location = determineLocationFromVenue(event.venues);
+      try {
+        await addContactToBrevo(email, name, location);
+      } catch (error) {
+        console.error(`[Brevo] Failed to add comped attendee to Brevo:`, error);
+        // Continue with email sending even if Brevo fails
+      }
 
       // Prepare email data for this attendee
       const attendeesForEmail = [{

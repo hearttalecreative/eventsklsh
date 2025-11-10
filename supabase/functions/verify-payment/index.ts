@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 // Using Brevo API via HTTP
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { addContactToBrevo, determineLocationFromVenue } from "../_shared/brevo-contacts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -287,6 +288,14 @@ serve(async (req) => {
       .insert(attendees)
       .select('id, confirmation_code, qr_code, name, email, phone');
     if (attendeesErr) throw attendeesErr;
+
+    // Add attendees to Brevo contact list (non-blocking)
+    const location = determineLocationFromVenue(venue);
+    await Promise.allSettled(
+      insertedAttendees.map(attendee => 
+        addContactToBrevo(attendee.email || '', attendee.name || 'Guest', location)
+      )
+    );
 
     // Record coupon redemption if applicable
     if (meta.coupon_id) {
