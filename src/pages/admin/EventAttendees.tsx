@@ -197,22 +197,42 @@ const EventAttendeesPage = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!attendeeToDelete) return;
+    if (!attendeeToDelete || !selectedEventId) return;
 
     try {
-      const { error } = await supabase
-        .from('attendees')
-        .delete()
-        .eq('id', attendeeToDelete.id);
+      const { data, error } = await supabase.functions.invoke('delete-attendee', {
+        body: { attendeeId: attendeeToDelete.id }
+      });
       
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       
-      // Update local state to remove the deleted attendee
-      setAttendees(prev => prev.filter(a => a.id !== attendeeToDelete.id));
       setDeleteDialogOpen(false);
       setAttendeeToDelete(null);
+      
+      // Reload attendees to reflect updated counts
+      setLoading(true);
+      const { data: attendeesData, error: reloadError } = await supabase.functions.invoke("admin-list-attendees", {
+        body: { eventId: selectedEventId },
+      });
+      
+      if (reloadError) throw reloadError;
+      
+      const attendeesList = (attendeesData?.attendees || []) as any[];
+      const sortedAttendees = attendeesList.sort((a, b) => {
+        const nameA = (a.name || "").toLowerCase();
+        const nameB = (b.name || "").toLowerCase();
+        if (!nameA && !nameB) return 0;
+        if (!nameA) return 1;
+        if (!nameB) return -1;
+        return nameA.localeCompare(nameB);
+      });
+      
+      setAttendees(sortedAttendees as any);
+      setLoading(false);
     } catch (error: any) {
       alert(`Failed to delete attendee: ${error.message}`);
+      setLoading(false);
     }
   };
 
