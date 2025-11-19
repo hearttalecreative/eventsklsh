@@ -34,25 +34,34 @@ serve(async (req) => {
     if (ticketErr) throw ticketErr;
     if (!ticket) throw new Error("Ticket not found");
 
-    // Calculate tickets sold using the same logic as get_ticket_sales_for_event_admin
-    const { data: paidOrders } = await supabase
+    // Count actual attendees from paid orders instead of using order_item quantities
+    // This ensures accurate counting when individual attendees are deleted
+    const { data: paidOrderItems } = await supabase
       .from("order_items")
-      .select("quantity, orders!inner(status)")
+      .select("id, orders!inner(status)")
       .eq("ticket_id", ticketId)
       .eq("orders.status", "paid");
 
-    const soldFromOrders = (paidOrders || []).reduce((sum: number, item: any) => {
-      return sum + (item.quantity * (ticket.participants_per_ticket || 1));
-    }, 0);
+    const orderItemIds = (paidOrderItems || []).map(item => item.id);
+    
+    let paidAttendeesCount = 0;
+    if (orderItemIds.length > 0) {
+      const { count } = await supabase
+        .from("attendees")
+        .select("id", { count: "exact", head: true })
+        .in("order_item_id", orderItemIds);
+      
+      paidAttendeesCount = count || 0;
+    }
 
-    // Count comped attendees
+    // Count comped attendees for this specific ticket
     const { count: compedCount } = await supabase
       .from("attendees")
       .select("id", { count: "exact", head: true })
       .eq("comped_ticket_id", ticketId)
       .eq("is_comped", true);
 
-    const totalSold = soldFromOrders + (compedCount || 0);
+    const totalSold = paidAttendeesCount + (compedCount || 0);
     const available = ticket.capacity_total - totalSold;
     const requestedTotal = requestedQty * (ticket.participants_per_ticket || 1);
 
