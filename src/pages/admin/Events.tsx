@@ -624,8 +624,19 @@ const updateTicketField = async (
     if (!previousTicket) return; // Already at top
     
     const tempOrder = previousTicket.display_order || 0;
-    await updateTicketField(previousTicket.id, { display_order: currentOrder });
-    await updateTicketField(ticketId, { display_order: tempOrder });
+    
+    // Update both tickets in the database
+    await supabase.from('tickets').update({ display_order: currentOrder }).eq('id', previousTicket.id);
+    await supabase.from('tickets').update({ display_order: tempOrder }).eq('id', ticketId);
+    
+    // Update local state with both changes at once
+    setTickets(arr => arr.map(t => {
+      if (t.id === previousTicket.id) return { ...t, display_order: currentOrder };
+      if (t.id === ticketId) return { ...t, display_order: tempOrder };
+      return t;
+    }).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
+    
+    await logAdmin('ticket_reordered', 'ticket', ticketId, { moved: 'up' });
   };
 
   const moveTicketDown = async (ticketId: string) => {
@@ -640,8 +651,19 @@ const updateTicketField = async (
     if (!nextTicket) return; // Already at bottom
     
     const tempOrder = nextTicket.display_order || 0;
-    await updateTicketField(nextTicket.id, { display_order: currentOrder });
-    await updateTicketField(ticketId, { display_order: tempOrder });
+    
+    // Update both tickets in the database
+    await supabase.from('tickets').update({ display_order: currentOrder }).eq('id', nextTicket.id);
+    await supabase.from('tickets').update({ display_order: tempOrder }).eq('id', ticketId);
+    
+    // Update local state with both changes at once
+    setTickets(arr => arr.map(t => {
+      if (t.id === nextTicket.id) return { ...t, display_order: currentOrder };
+      if (t.id === ticketId) return { ...t, display_order: tempOrder };
+      return t;
+    }).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
+    
+    await logAdmin('ticket_reordered', 'ticket', ticketId, { moved: 'down' });
   };
 
 const deleteTicket = async (id: string) => {
