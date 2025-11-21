@@ -248,7 +248,10 @@ const proceed = async () => {
 
     // Check ticket availability before proceeding
     if (ticketAvailability && !ticketAvailability.available) {
-      toast.error(`Only ${ticketAvailability.remaining} spots remaining for this ticket`);
+      const message = ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0
+        ? 'Almost sold out! Not enough tickets available for your selection.'
+        : 'Not enough tickets available for your selection.';
+      toast.error(message);
       return;
     }
 
@@ -435,11 +438,14 @@ const proceed = async () => {
                       <div>
                         <div className="font-medium">{t.name}{t.zone ? ` — ${t.zone}` : ''}</div>
                         {t.description && (<div className="text-xs text-muted-foreground mt-1">{t.description}</div>)}
-                        {isSelected && ticketAvailability && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {ticketAvailability.remaining > 0 
-                              ? `${ticketAvailability.remaining} spots remaining`
-                              : '⚠️ Sold out'}
+                        {isSelected && ticketAvailability && ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0 && (
+                          <div className="text-xs text-amber-600 font-medium mt-1">
+                            🔥 Almost Sold Out!
+                          </div>
+                        )}
+                        {isSelected && ticketAvailability && ticketAvailability.remaining === 0 && (
+                          <div className="text-xs text-destructive mt-1">
+                            ⚠️ Sold out
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
@@ -491,7 +497,9 @@ const proceed = async () => {
               <div className="text-sm text-muted-foreground">Participants: <span className="font-medium text-foreground">{participantsCount}</span></div>
               {ticketAvailability && !ticketAvailability.available && (
                 <div className="w-full text-sm text-destructive">
-                  ⚠️ Not enough tickets available. Only {ticketAvailability.remaining} spots remaining.
+                  {ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0 
+                    ? '⚠️ Almost sold out! Not enough tickets available for your selection.'
+                    : '⚠️ Not enough tickets available for your selection.'}
                 </div>
               )}
             </div>
