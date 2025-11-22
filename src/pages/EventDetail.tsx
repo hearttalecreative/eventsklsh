@@ -332,36 +332,37 @@ const proceed = async () => {
           <article className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="icon" aria-label="Share" onClick={() => {
+              const shareUrl = `https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`;
               if (navigator.share) {
-                navigator.share({ title: event.title, text: event.shortDescription, url: typeof window !== 'undefined' ? window.location.href : '' });
+                navigator.share({ title: event.title, text: event.shortDescription, url: shareUrl });
               } else {
-                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`,'_blank');
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,'_blank');
               }
             }}>
               <Share2 className="w-4 h-4" />
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="Facebook">
-              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} target="_blank" rel="noopener noreferrer">
+              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`)}`} target="_blank" rel="noopener noreferrer">
                 <Facebook className="w-4 h-4" />
               </a>
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="Email">
-              <a href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent((event.shortDescription||'') + '\n' + (typeof window !== 'undefined' ? window.location.href : ''))}`}>
+              <a href={`mailto:?subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent((event.shortDescription||'') + '\n' + `https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`)}`}>
                 <Mail className="w-4 h-4" />
               </a>
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="SMS">
-              <a href={`sms:?&body=${encodeURIComponent(event.title + ' - ' + (typeof window !== 'undefined' ? window.location.href : ''))}`}>
+              <a href={`sms:?&body=${encodeURIComponent(event.title + ' - ' + `https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`)}`}>
                 <MessageSquare className="w-4 h-4" />
               </a>
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="WhatsApp">
-              <a href={`https://wa.me/?text=${encodeURIComponent(event.title + ' - ' + (typeof window !== 'undefined' ? window.location.href : ''))}`} target="_blank" rel="noopener noreferrer">
+              <a href={`https://wa.me/?text=${encodeURIComponent(event.title + ' - ' + `https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`)}`} target="_blank" rel="noopener noreferrer">
                 <img src={whatsappIcon} alt="WhatsApp" className="w-4 h-4" />
               </a>
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="Telegram">
-              <a href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer">
+              <a href={`https://t.me/share/url?url=${encodeURIComponent(`https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`)}&text=${encodeURIComponent(event.title)}`} target="_blank" rel="noopener noreferrer">
                 <Send className="w-4 h-4" />
               </a>
             </Button>
