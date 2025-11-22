@@ -34,8 +34,6 @@ const App = () => (
     <HelmetProvider>
       <Helmet>
         <meta property="og:site_name" content="Kyle Lam Sound Healing" />
-        <meta property="og:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
-        <meta name="twitter:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
       </Helmet>
       <TooltipProvider>
         <Toaster />
