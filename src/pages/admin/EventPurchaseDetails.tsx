@@ -22,6 +22,7 @@ interface PurchaseDetail {
   purchase_date: string;
   ticket_name: string;
   ticket_quantity: number;
+  participants_per_ticket: number;
   addons: Array<{
     name: string;
     quantity: number;
@@ -75,7 +76,7 @@ const EventPurchaseDetails = () => {
 
           // If only comped attendees
           if (orderItemIds.length === 0 && comped.length > 0) {
-            return comped.map((a: any) => ({
+              return comped.map((a: any) => ({
               attendee_id: a.id,
               attendee_name: a.name,
               attendee_email: a.email,
@@ -84,6 +85,7 @@ const EventPurchaseDetails = () => {
               purchase_date: '',
               ticket_name: a.ticket_label || 'Comped',
               ticket_quantity: 1,
+              participants_per_ticket: 1,
               addons: [],
               total_amount_cents: 0,
               ticket_amount_cents: 0,
@@ -164,6 +166,7 @@ const EventPurchaseDetails = () => {
               purchase_date: order.created_at || '',
               ticket_name: (ticket && ticket.name) || 'Unknown',
               ticket_quantity: oi.quantity || 1,
+              participants_per_ticket: (ticket && ticket.participants_per_ticket) || 1,
               addons: orderAddons.map((a: any) => ({ name: a.name, quantity: a.quantity, unit_amount_cents: a.unit_amount_cents })),
               total_amount_cents: orderTotal,
               ticket_amount_cents: ticketTotal,
@@ -182,6 +185,7 @@ const EventPurchaseDetails = () => {
             purchase_date: '',
             ticket_name: a.ticket_label || 'Comped',
             ticket_quantity: 1,
+            participants_per_ticket: 1,
             addons: [],
             total_amount_cents: 0,
             ticket_amount_cents: 0,
@@ -273,6 +277,7 @@ const EventPurchaseDetails = () => {
         purchase_date: '',
         ticket_name: attendee.ticket_label || 'Comped',
         ticket_quantity: 1,
+        participants_per_ticket: 1,
         addons: [],
         total_amount_cents: 0,
         ticket_amount_cents: 0,
@@ -364,6 +369,7 @@ const EventPurchaseDetails = () => {
             purchase_date: orderData?.created_at || '',
             ticket_name: ticketData?.name || 'Unknown',
             ticket_quantity: orderItemData.quantity,
+            participants_per_ticket: ticketData?.participants_per_ticket || 1,
             addons,
             total_amount_cents: orderTotal,
             ticket_amount_cents: ticketTotal,
@@ -429,20 +435,17 @@ const EventPurchaseDetails = () => {
   // Calculate ticket breakdown - group by order_id to avoid duplicates
   const ticketBreakdown = useMemo(() => {
     // Use order_id + ticket_name as unique key to prevent counting same order multiple times
-    const orderTicketMap = new Map<string, { name: string; attendeeCount: number }>();
+    const orderTicketMap = new Map<string, { name: string; ticketsSold: number; attendeeCount: number }>();
     
     purchases.forEach(purchase => {
       const key = `${purchase.order_id}-${purchase.ticket_name}`;
       
-      if (orderTicketMap.has(key)) {
-        // Same order, same ticket - just count attendee
-        const current = orderTicketMap.get(key)!;
-        current.attendeeCount++;
-      } else {
-        // New order or new ticket type
+      if (!orderTicketMap.has(key)) {
+        // New order or new ticket type - use ticket_quantity and participants_per_ticket
         orderTicketMap.set(key, {
           name: purchase.ticket_name,
-          attendeeCount: 1
+          ticketsSold: purchase.ticket_quantity,
+          attendeeCount: purchase.ticket_quantity * purchase.participants_per_ticket
         });
       }
     });
@@ -452,7 +455,7 @@ const EventPurchaseDetails = () => {
     
     orderTicketMap.forEach((value) => {
       const current = breakdown.get(value.name) || { ticketsSold: 0, attendeeCount: 0 };
-      current.ticketsSold += 1; // Each unique order-ticket combination is one ticket sold
+      current.ticketsSold += value.ticketsSold;
       current.attendeeCount += value.attendeeCount;
       breakdown.set(value.name, current);
     });
