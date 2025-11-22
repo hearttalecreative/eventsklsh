@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Facebook, Mail, MessageSquare, Send, Share2 } from 'lucide-react';
+import { Facebook, Mail, MessageSquare, Send, Share2, Copy } from 'lucide-react';
 import whatsappIcon from '@/assets/whatsapp.svg';
 import GoogleMapDisplay from '@/components/GoogleMapDisplay';
 
@@ -342,6 +342,16 @@ const proceed = async () => {
               }
             }}>
               <Share2 className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" aria-label="Copy link" onClick={() => {
+              const shareUrl = `https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`;
+              navigator.clipboard.writeText(shareUrl).then(() => {
+                toast.success('Link copied to clipboard!');
+              }).catch(() => {
+                toast.error('Failed to copy link');
+              });
+            }}>
+              <Copy className="w-4 h-4" />
             </Button>
             <Button asChild variant="outline" size="icon" aria-label="Facebook">
               <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`)}`} target="_blank" rel="noopener noreferrer">
