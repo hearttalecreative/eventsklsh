@@ -33,45 +33,53 @@ function generateEventHTML(event: any, venue: any): string {
   const eventUrl = `${APP_URL}/event/${event.slug}`;
   // Usar image_url del evento, con fallback a imagen genérica
   const imageUrl = event.image_url || 'https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg';
+  const title = event.title || 'Kyle Lam Sound Healing';
   const description = event.short_description || event.description?.substring(0, 160) || 'Buy tickets and discover Kyle Lam Sound Healing events.';
   
+  console.log(`[share-event] Generating HTML for: ${title}`);
   console.log(`[share-event] Event image URL: ${imageUrl}`);
+  console.log(`[share-event] Event description: ${description}`);
   
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${event.title} | Kyle Lam Sound Healing</title>
+  <title>${title} | Kyle Lam Sound Healing</title>
   <meta name="description" content="${description}">
   
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="event">
+  <!-- Open Graph / Facebook - CRITICAL: Order matters for FB scraper -->
+  <meta property="og:type" content="website">
   <meta property="og:url" content="${eventUrl}">
-  <meta property="og:title" content="${event.title}">
+  <meta property="og:title" content="${title}">
   <meta property="og:description" content="${description}">
   <meta property="og:image" content="${imageUrl}">
+  <meta property="og:image:secure_url" content="${imageUrl}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="Kyle Lam Sound Healing">
+  <meta property="og:locale" content="en_US">
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="${eventUrl}">
-  <meta name="twitter:title" content="${event.title}">
+  <meta name="twitter:title" content="${title}">
   <meta name="twitter:description" content="${description}">
   <meta name="twitter:image" content="${imageUrl}">
-  
-  <!-- Auto-redirect for browsers (in case bot gets through) -->
-  <meta http-equiv="refresh" content="0;url=${eventUrl}">
   
   <link rel="canonical" href="${eventUrl}">
 </head>
 <body>
-  <h1>${event.title}</h1>
+  <h1>${title}</h1>
   <p>${description}</p>
   ${venue ? `<p>Location: ${venue.name}</p>` : ''}
-  <p>Redirecting to <a href="${eventUrl}">${eventUrl}</a>...</p>
+  <p>Redirecting to event page...</p>
   <script>
-    window.location.href = '${eventUrl}';
+    // Redirect after 1 second to allow bots to scrape
+    setTimeout(function() {
+      window.location.href = '${eventUrl}';
+    }, 1000);
   </script>
 </body>
 </html>`;
