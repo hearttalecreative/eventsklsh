@@ -1,5 +1,8 @@
 project_id = "iorxmepjaqagfxnyptvb"
 
+[functions.share-event]
+verify_jwt = false
+
 [functions.send-confirmation]
 verify_jwt = false
 
