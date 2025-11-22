@@ -31,8 +31,11 @@ function isSocialBot(userAgent: string): boolean {
 // Genera HTML con meta tags del evento
 function generateEventHTML(event: any, venue: any): string {
   const eventUrl = `${APP_URL}/event/${event.slug}`;
+  // Usar image_url del evento, con fallback a imagen genérica
   const imageUrl = event.image_url || 'https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg';
   const description = event.short_description || event.description?.substring(0, 160) || 'Buy tickets and discover Kyle Lam Sound Healing events.';
+  
+  console.log(`[share-event] Event image URL: ${imageUrl}`);
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -128,6 +131,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[share-event] Event found: ${event.title}`);
+    console.log(`[share-event] Event image_url: ${event.image_url || 'NULL'}`);
 
     // Obtener User-Agent
     const userAgent = req.headers.get('user-agent') || '';
@@ -137,6 +141,13 @@ Deno.serve(async (req) => {
     if (isSocialBot(userAgent)) {
       console.log('[share-event] Bot detected, returning HTML with meta tags');
       const html = generateEventHTML(event, event.venues);
+      
+      // Log para verificar que la imagen correcta está en el HTML
+      const imageMatch = html.match(/og:image" content="([^"]+)"/);
+      if (imageMatch) {
+        console.log(`[share-event] OG Image being sent: ${imageMatch[1]}`);
+      }
+      
       return new Response(html, {
         headers: {
           ...corsHeaders,
