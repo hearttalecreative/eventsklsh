@@ -314,11 +314,11 @@ const proceed = async () => {
         <meta property="og:title" content={event.title} />
         <meta property="og:description" content={event.shortDescription} />
         <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
-        <meta property="og:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
+        <meta property="og:image" content={event.imageUrl} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={event.title} />
         <meta name="twitter:description" content={event.shortDescription} />
-        <meta name="twitter:image" content="https://kylelamsoundhealing.com/wp-content/uploads/2025/02/Mesa-de-trabajo-34-100.jpg" />
+        <meta name="twitter:image" content={event.imageUrl} />
         <script type="application/ld+json">{JSON.stringify(eventJsonLd)}</script>
       </Helmet>
 
