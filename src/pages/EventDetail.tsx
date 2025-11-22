@@ -333,6 +333,8 @@ const proceed = async () => {
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="icon" aria-label="Share" onClick={() => {
               const shareUrl = `https://iorxmepjaqagfxnyptvb.supabase.co/functions/v1/share-event/${event.slug}`;
+              console.log('[EventDetail] Share URL:', shareUrl);
+              console.log('[EventDetail] Event slug:', event.slug);
               if (navigator.share) {
                 navigator.share({ title: event.title, text: event.shortDescription, url: shareUrl });
               } else {
