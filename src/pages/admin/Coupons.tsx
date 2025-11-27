@@ -143,15 +143,25 @@ const CouponsPage = () => {
         <section className="p-4 border rounded-lg bg-card space-y-3">
           <h2 className="font-medium">Lista</h2>
           <div className="space-y-2">
-            {coupons.map(c => (
-              <div key={c.id} className="flex items-center justify-between p-3 border rounded-md">
-                <div className="text-sm">
-                  <div className="font-medium">{c.code} {c.event_id ? <span className="text-muted-foreground">(evento)</span> : <span className="text-muted-foreground">(global)</span>}</div>
-                  <div className="text-muted-foreground text-xs">{c.discount_percent != null ? `${c.discount_percent}%` : `${c.discount_amount_cents}¢`} · {c.apply_to}</div>
+            {coupons.map(c => {
+              const eventName = c.event_id ? events.find(e => e.id === c.event_id)?.title : null;
+              return (
+                <div key={c.id} className="flex items-center justify-between p-3 border rounded-md">
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {c.code} 
+                      {c.event_id ? (
+                        <span className="text-muted-foreground"> ({eventName || 'Evento específico'})</span>
+                      ) : (
+                        <span className="text-muted-foreground"> (Todos los eventos)</span>
+                      )}
+                    </div>
+                    <div className="text-muted-foreground text-xs">{c.discount_percent != null ? `${c.discount_percent}%` : `${c.discount_amount_cents}¢`} · {c.apply_to}</div>
+                  </div>
+                  <Button variant="destructive" onClick={()=>remove(c.id)}>Eliminar</Button>
                 </div>
-                <Button variant="destructive" onClick={()=>remove(c.id)}>Eliminar</Button>
-              </div>
-            ))}
+              );
+            })}
             {!coupons.length && <p className="text-sm text-muted-foreground">No hay cupones.</p>}
           </div>
         </section>
