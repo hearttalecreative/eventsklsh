@@ -613,57 +613,61 @@ const updateTicketField = async (
   };
 
   const moveTicketUp = async (ticketId: string) => {
-    const currentTicket = tickets.find(t => t.id === ticketId);
-    if (!currentTicket) return;
+    const currentIndex = tickets.findIndex(t => t.id === ticketId);
+    if (currentIndex <= 0) return; // Already at top
     
-    const currentOrder = currentTicket.display_order || 0;
-    const previousTicket = tickets
-      .filter(t => (t.display_order || 0) < currentOrder)
-      .sort((a, b) => (b.display_order || 0) - (a.display_order || 0))[0];
+    // Normalize display_order values to ensure sequential ordering
+    const normalizedTickets = tickets.map((t, idx) => ({
+      ...t,
+      display_order: idx
+    }));
     
-    if (!previousTicket) return; // Already at top
+    // Swap with previous ticket
+    const temp = normalizedTickets[currentIndex - 1].display_order;
+    normalizedTickets[currentIndex - 1].display_order = normalizedTickets[currentIndex].display_order;
+    normalizedTickets[currentIndex].display_order = temp;
     
-    const tempOrder = previousTicket.display_order || 0;
+    // Update database for all tickets to ensure consistency
+    await Promise.all(
+      normalizedTickets.map(t => 
+        supabase.from('tickets').update({ display_order: t.display_order }).eq('id', t.id)
+      )
+    );
     
-    // Update both tickets in the database
-    await supabase.from('tickets').update({ display_order: currentOrder }).eq('id', previousTicket.id);
-    await supabase.from('tickets').update({ display_order: tempOrder }).eq('id', ticketId);
-    
-    // Update local state with both changes at once
-    setTickets(arr => arr.map(t => {
-      if (t.id === previousTicket.id) return { ...t, display_order: currentOrder };
-      if (t.id === ticketId) return { ...t, display_order: tempOrder };
-      return t;
-    }).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
+    // Update local state
+    setTickets(normalizedTickets.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
     
     await logAdmin('ticket_reordered', 'ticket', ticketId, { moved: 'up' });
+    toast.success('Ticket moved up');
   };
 
   const moveTicketDown = async (ticketId: string) => {
-    const currentTicket = tickets.find(t => t.id === ticketId);
-    if (!currentTicket) return;
+    const currentIndex = tickets.findIndex(t => t.id === ticketId);
+    if (currentIndex === -1 || currentIndex >= tickets.length - 1) return; // Already at bottom
     
-    const currentOrder = currentTicket.display_order || 0;
-    const nextTicket = tickets
-      .filter(t => (t.display_order || 0) > currentOrder)
-      .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))[0];
+    // Normalize display_order values to ensure sequential ordering
+    const normalizedTickets = tickets.map((t, idx) => ({
+      ...t,
+      display_order: idx
+    }));
     
-    if (!nextTicket) return; // Already at bottom
+    // Swap with next ticket
+    const temp = normalizedTickets[currentIndex + 1].display_order;
+    normalizedTickets[currentIndex + 1].display_order = normalizedTickets[currentIndex].display_order;
+    normalizedTickets[currentIndex].display_order = temp;
     
-    const tempOrder = nextTicket.display_order || 0;
+    // Update database for all tickets to ensure consistency
+    await Promise.all(
+      normalizedTickets.map(t => 
+        supabase.from('tickets').update({ display_order: t.display_order }).eq('id', t.id)
+      )
+    );
     
-    // Update both tickets in the database
-    await supabase.from('tickets').update({ display_order: currentOrder }).eq('id', nextTicket.id);
-    await supabase.from('tickets').update({ display_order: tempOrder }).eq('id', ticketId);
-    
-    // Update local state with both changes at once
-    setTickets(arr => arr.map(t => {
-      if (t.id === nextTicket.id) return { ...t, display_order: currentOrder };
-      if (t.id === ticketId) return { ...t, display_order: tempOrder };
-      return t;
-    }).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
+    // Update local state
+    setTickets(normalizedTickets.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
     
     await logAdmin('ticket_reordered', 'ticket', ticketId, { moved: 'down' });
+    toast.success('Ticket moved down');
   };
 
 const deleteTicket = async (id: string) => {
