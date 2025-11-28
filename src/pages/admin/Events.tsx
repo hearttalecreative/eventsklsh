@@ -979,7 +979,7 @@ const deleteTicket = async (id: string) => {
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-muted-foreground">#{t.display_order || 0}</span>
-                            <span className="text-xs text-muted-foreground">Orden de visualización</span>
+                            <span className="text-xs text-muted-foreground">Display order</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Button 
@@ -987,7 +987,7 @@ const deleteTicket = async (id: string) => {
                               variant="outline" 
                               onClick={() => moveTicketUp(t.id)}
                               disabled={isFirst}
-                              title="Mover arriba"
+                              title="Move up"
                             >
                               <ChevronUp className="w-4 h-4" />
                             </Button>
@@ -996,7 +996,7 @@ const deleteTicket = async (id: string) => {
                               variant="outline" 
                               onClick={() => moveTicketDown(t.id)}
                               disabled={isLast}
-                              title="Mover abajo"
+                              title="Move down"
                             >
                               <ChevronDown className="w-4 h-4" />
                             </Button>
