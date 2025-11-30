@@ -25,6 +25,7 @@ import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp,
 import { toast } from "sonner";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface Venue { id: string; name: string; address?: string | null; }
 
@@ -86,6 +87,10 @@ const AdminEvents = () => {
   const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | '1'..'12'
   const [filterYear, setFilterYear] = useState<string>('all');   // 'all' | '2025' etc
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
 
   // Edit event dialog state
@@ -828,6 +833,21 @@ const deleteTicket = async (id: string) => {
 
     return [...future, ...past];
   }, [events, activeTab, searchQuery, filterMonth, filterYear]);
+
+  // Paginated events
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return displayedEvents.slice(startIndex, endIndex);
+  }, [displayedEvents, currentPage, pageSize]);
+
+  // Total pages
+  const totalPages = Math.ceil(displayedEvents.length / pageSize);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery, filterMonth, filterYear]);
   return (
     <AdminRoute>
       <AdminHeader />
@@ -1250,12 +1270,18 @@ const deleteTicket = async (id: string) => {
                 <tr className="text-left text-muted-foreground border-b">
                   <th className="py-3 pr-4 w-12">
                     <Checkbox
-                      checked={displayedEvents.length>0 && selectedIds.length === displayedEvents.length}
+                      checked={paginatedEvents.length>0 && paginatedEvents.every(e => selectedIds.includes(e.id))}
                       onCheckedChange={(v)=>{
                         const checked = Boolean(v);
-                        setSelectedIds(checked ? displayedEvents.map(e=>e.id) : []);
+                        setSelectedIds(prev => {
+                          if (checked) {
+                            return Array.from(new Set([...prev, ...paginatedEvents.map(e => e.id)]));
+                          } else {
+                            return prev.filter(id => !paginatedEvents.some(e => e.id === id));
+                          }
+                        });
                       }}
-                      aria-label="Select all"
+                      aria-label="Select all on page"
                     />
                   </th>
                   <th className="py-3 pr-4 min-w-48">Title</th>
@@ -1267,7 +1293,7 @@ const deleteTicket = async (id: string) => {
                 </tr>
               </thead>
               <tbody>
-                {displayedEvents.map(ev => {
+                {paginatedEvents.map(ev => {
                   // Format date with timezone consideration
                   const eventDate = new Date(ev.starts_at);
                   const formattedDate = eventDate.toLocaleString('en-US', {
@@ -1390,6 +1416,60 @@ const deleteTicket = async (id: string) => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    const showPage = page === 1 || 
+                                    page === totalPages || 
+                                    (page >= currentPage - 1 && page <= currentPage + 1);
+                    
+                    if (!showPage) {
+                      // Show ellipsis only once between ranges
+                      if (page === currentPage - 2 || page === currentPage + 2) {
+                        return (
+                          <PaginationItem key={page}>
+                            <span className="px-4">...</span>
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    }
+
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
             </TabsContent>
           </Tabs>
         </section>
