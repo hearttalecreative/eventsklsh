@@ -42,6 +42,7 @@ const AdminEvents = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [eventStats, setEventStats] = useState<Record<string, { ticketsSold: number; totalCapacity: number }>>({});
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Add-ons editor state
   const [addonsOpen, setAddonsOpen] = useState(false);
@@ -128,49 +129,106 @@ const AdminEvents = () => {
     logAdmin('venue_created','venue', venue.id, { name: venue.name });
   };
 
+  // Load events with server-side pagination
+  const loadEvents = async (page: number, filters: { tab: string; search: string; month: string; year: string }) => {
+    setLoading(true);
+    
+    // Build query
+    let query = supabase
+      .from("events")
+      .select("*, venues:venue_id(name)", { count: 'exact' });
+    
+    // Apply status filter
+    if (filters.tab === 'archived') {
+      query = query.eq('status', 'archived');
+    } else {
+      query = query.neq('status', 'archived');
+    }
+    
+    // Apply search filter
+    if (filters.search.trim()) {
+      const searchTerm = filters.search.toLowerCase();
+      query = query.or(`title.ilike.%${searchTerm}%`);
+    }
+    
+    // Apply month/year filters
+    if (filters.month !== 'all') {
+      const monthNum = parseInt(filters.month);
+      query = query.gte('starts_at', `${filters.year !== 'all' ? filters.year : new Date().getFullYear()}-${String(monthNum).padStart(2, '0')}-01`)
+                   .lt('starts_at', `${filters.year !== 'all' ? filters.year : new Date().getFullYear()}-${String(monthNum + 1).padStart(2, '0')}-01`);
+    } else if (filters.year !== 'all') {
+      query = query.gte('starts_at', `${filters.year}-01-01`)
+                   .lt('starts_at', `${parseInt(filters.year) + 1}-01-01`);
+    }
+    
+    // Order by starts_at descending
+    query = query.order('starts_at', { ascending: false });
+    
+    // Apply pagination
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+    
+    const { data: ev, error, count } = await query;
+    
+    if (error) {
+      console.error('Error loading events:', error);
+      setLoading(false);
+      return;
+    }
+    
+    setEvents(ev || []);
+    setTotalCount(count || 0);
+    setManageEventId(ev && ev.length ? ev[0].id : undefined);
+    
+    // Load tickets sold stats for the current page
+    if (ev && ev.length > 0) {
+      const eventIds = ev.map(e => e.id);
+      
+      const { data: attendeeCounts } = await supabase
+        .from("attendees")
+        .select("event_id")
+        .in("event_id", eventIds);
+      
+      const { data: ticketCapacities } = await supabase
+        .from("tickets")
+        .select("event_id, capacity_total")
+        .in("event_id", eventIds);
+      
+      const stats: Record<string, { ticketsSold: number; totalCapacity: number }> = {};
+      eventIds.forEach(eventId => {
+        const ticketsSold = attendeeCounts?.filter(a => a.event_id === eventId).length || 0;
+        const totalCapacity = ticketCapacities
+          ?.filter(t => t.event_id === eventId)
+          .reduce((sum, t) => sum + (t.capacity_total || 0), 0) || 0;
+        
+        stats[eventId] = { ticketsSold, totalCapacity };
+      });
+      
+      setEventStats(stats);
+    }
+    
+    setLoading(false);
+  };
+
+  // Load venues on mount
   useEffect(() => {
     const load = async () => {
       const { data: v } = await supabase.from("venues").select("id,name,address").order("name");
       setVenues(v || []);
-      // Order by starts_at descending (most recent/upcoming first)
-      const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("starts_at", { ascending: false });
-      setEvents(ev || []);
-      setManageEventId(ev && ev.length ? ev[0].id : undefined);
-      
-      // Load tickets sold stats for each event
-      if (ev && ev.length > 0) {
-        const eventIds = ev.map(e => e.id);
-        
-        // Get tickets sold (attendees count) for each event
-        const { data: attendeeCounts } = await supabase
-          .from("attendees")
-          .select("event_id")
-          .in("event_id", eventIds);
-        
-        // Get total capacity for each event (sum of all ticket types)
-        const { data: ticketCapacities } = await supabase
-          .from("tickets")
-          .select("event_id, capacity_total")
-          .in("event_id", eventIds);
-        
-        // Calculate stats for each event
-        const stats: Record<string, { ticketsSold: number; totalCapacity: number }> = {};
-        eventIds.forEach(eventId => {
-          const ticketsSold = attendeeCounts?.filter(a => a.event_id === eventId).length || 0;
-          const totalCapacity = ticketCapacities
-            ?.filter(t => t.event_id === eventId)
-            .reduce((sum, t) => sum + (t.capacity_total || 0), 0) || 0;
-          
-          stats[eventId] = { ticketsSold, totalCapacity };
-        });
-        
-        setEventStats(stats);
-      }
-      
-      setLoading(false);
     };
     load();
   }, []);
+
+  // Load events when page or filters change
+  useEffect(() => {
+    loadEvents(currentPage, {
+      tab: activeTab,
+      search: searchQuery,
+      month: filterMonth,
+      year: filterYear
+    });
+  }, [currentPage, activeTab, searchQuery, filterMonth, filterYear]);
 
   // Auto-open edit dialog when coming from dashboard with ?edit=<id> (only once)
   useEffect(() => {
@@ -202,8 +260,12 @@ const AdminEvents = () => {
       toast.success(data.message || 'Past events archived successfully');
       
       // Reload events
-      const { data: ev } = await supabase.from("events").select("*, venues:venue_id(name)").order("starts_at", { ascending: false });
-      setEvents(ev || []);
+      await loadEvents(currentPage, {
+        tab: activeTab,
+        search: searchQuery,
+        month: filterMonth,
+        year: filterYear
+      });
     } catch (err: any) {
       toast.error(err.message || 'Failed to archive past events');
     }
@@ -292,11 +354,18 @@ const saveVenueEdit = async () => {
       };
       const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
       if (error) throw error;
-      setEvents((arr) => [data!, ...arr]);
       await logAdmin('event_created','event', data!.id, { title });
 
       // Reset form
       setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setTimezone('America/Los_Angeles'); setImageUrl("");
+      
+      // Reload events
+      await loadEvents(currentPage, {
+        tab: activeTab,
+        search: searchQuery,
+        month: filterMonth,
+        year: filterYear
+      });
     } catch (error: any) {
       alert(error.message || 'Failed to create event(s)');
     }
@@ -339,10 +408,17 @@ const saveVenueEdit = async () => {
     };
 const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
     if (error) return alert(error.message);
-    setEvents(arr => arr.map(e => e.id === editingEvent.id ? { ...e, ...data } : e));
     await logAdmin('event_updated','event', editingEvent.id, payload);
     setEditOpen(false);
     setEditingEvent(null);
+    
+    // Reload events
+    await loadEvents(currentPage, {
+      tab: activeTab,
+      search: searchQuery,
+      month: filterMonth,
+      year: filterYear
+    });
   };
 
   const openDuplicate = (event: any) => {
@@ -444,8 +520,13 @@ const { data, error } = await supabase.from('events').update(payload).eq('id', e
         if (addonsError) throw addonsError;
       }
 
-      // Add to events list
-      setEvents(arr => [newEvent, ...arr]);
+      // Refresh events list
+      await loadEvents(currentPage, {
+        tab: activeTab,
+        search: searchQuery,
+        month: filterMonth,
+        year: filterYear
+      });
       await logAdmin('event_duplicated', 'event', newEvent.id, { 
         original_event_id: duplicatingEvent.id, 
         original_title: duplicatingEvent.title,
@@ -730,9 +811,16 @@ const deleteTicket = async (id: string) => {
       const { error } = await supabase.from('events').delete().eq('id', eventToDelete.id);
       if (error) throw error;
       
-      setEvents(arr => arr.filter(e => e.id !== eventToDelete.id));
       await logAdmin('event_deleted','event', eventToDelete.id);
       toast.success('Event deleted successfully');
+      
+      // Reload events
+      await loadEvents(currentPage, {
+        tab: activeTab,
+        search: searchQuery,
+        month: filterMonth,
+        year: filterYear
+      });
     } catch (error: any) {
       alert(error.message || 'Failed to delete event');
     } finally {
@@ -746,9 +834,16 @@ const deleteTicket = async (id: string) => {
     if (selectedIds.length === 0) return;
     const { error } = await supabase.from('events').update({ status: next }).in('id', selectedIds as any);
     if (error) return alert(error.message);
-    setEvents(arr => arr.map(e => selectedIds.includes(e.id) ? { ...e, status: next } : e));
-    setSelectedIds([]);
     await logAdmin('events_bulk_status','event', null as any, { next, count: selectedIds.length });
+    setSelectedIds([]);
+    
+    // Reload events
+    await loadEvents(currentPage, {
+      tab: activeTab,
+      search: searchQuery,
+      month: filterMonth,
+      year: filterYear
+    });
   };
 
   const bulkDelete = async () => {
@@ -758,9 +853,16 @@ const deleteTicket = async (id: string) => {
     await supabase.from('addons').delete().in('event_id', selectedIds as any);
     const { error } = await supabase.from('events').delete().in('id', selectedIds as any);
     if (error) return alert(error.message);
-    setEvents(arr => arr.filter(e => !selectedIds.includes(e.id)));
     await logAdmin('events_bulk_deleted','event', null as any, { count: selectedIds.length });
     setSelectedIds([]);
+    
+    // Reload events
+    await loadEvents(currentPage, {
+      tab: activeTab,
+      search: searchQuery,
+      month: filterMonth,
+      year: filterYear
+    });
   };
 
   // CSV export functionality moved to EventAttendees page
@@ -788,61 +890,8 @@ const deleteTicket = async (id: string) => {
     setEImageUrl(data.publicUrl);
     alert('Image uploaded');
   };
-  // Events filtering and sorting
-  const displayedEvents = useMemo(() => {
-    const now = Date.now();
-    
-    // Filter by tab (active vs archived)
-    let filtered = events.filter((ev) => {
-      if (activeTab === 'archived') {
-        return ev.status === 'archived';
-      } else {
-        return ev.status !== 'archived';
-      }
-    });
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter((ev) => 
-        ev.title?.toLowerCase().includes(q) || 
-        ev.venues?.name?.toLowerCase().includes(q)
-      );
-    }
-
-    // Filter by month and year
-    const monthNum = filterMonth === 'all' ? null : parseInt(filterMonth, 10);
-    const yearNum = filterYear === 'all' ? null : parseInt(filterYear, 10);
-    filtered = filtered.filter((ev) => {
-      const d = new Date(ev.starts_at);
-      const m = d.getMonth() + 1;
-      const y = d.getFullYear();
-      const okM = monthNum ? m === monthNum : true;
-      const okY = yearNum ? y === yearNum : true;
-      return okM && okY;
-    });
-
-    // Sort by date: upcoming events first (chronological), then past events (reverse chronological)
-    const future = filtered
-      .filter((ev) => new Date(ev.starts_at).getTime() >= now)
-      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-    
-    const past = filtered
-      .filter((ev) => new Date(ev.starts_at).getTime() < now)
-      .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
-
-    return [...future, ...past];
-  }, [events, activeTab, searchQuery, filterMonth, filterYear]);
-
-  // Paginated events
-  const paginatedEvents = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return displayedEvents.slice(startIndex, endIndex);
-  }, [displayedEvents, currentPage, pageSize]);
-
-  // Total pages
-  const totalPages = Math.ceil(displayedEvents.length / pageSize);
+  // Total pages from server count
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -1270,14 +1319,14 @@ const deleteTicket = async (id: string) => {
                 <tr className="text-left text-muted-foreground border-b">
                   <th className="py-3 pr-4 w-12">
                     <Checkbox
-                      checked={paginatedEvents.length>0 && paginatedEvents.every(e => selectedIds.includes(e.id))}
+                      checked={events.length>0 && events.every(e => selectedIds.includes(e.id))}
                       onCheckedChange={(v)=>{
                         const checked = Boolean(v);
                         setSelectedIds(prev => {
                           if (checked) {
-                            return Array.from(new Set([...prev, ...paginatedEvents.map(e => e.id)]));
+                            return Array.from(new Set([...prev, ...events.map(e => e.id)]));
                           } else {
-                            return prev.filter(id => !paginatedEvents.some(e => e.id === id));
+                            return prev.filter(id => !events.some(e => e.id === id));
                           }
                         });
                       }}
@@ -1293,7 +1342,7 @@ const deleteTicket = async (id: string) => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedEvents.map(ev => {
+                {events.map(ev => {
                   // Format date with timezone consideration
                   const eventDate = new Date(ev.starts_at);
                   const formattedDate = eventDate.toLocaleString('en-US', {
@@ -1351,40 +1400,65 @@ const deleteTicket = async (id: string) => {
                                 const next = 'published';
                                 const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                 if (!error) {
-                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                                   await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                  await loadEvents(currentPage, {
+                                    tab: activeTab,
+                                    search: searchQuery,
+                                    month: filterMonth,
+                                    year: filterYear
+                                  });
                                 }
                               }}>Published</DropdownMenuItem>
                               <DropdownMenuItem onClick={async ()=>{
                                 const next = 'sold_out';
                                 const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                 if (!error) {
-                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                                   await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                  await loadEvents(currentPage, {
+                                    tab: activeTab,
+                                    search: searchQuery,
+                                    month: filterMonth,
+                                    year: filterYear
+                                  });
                                 }
                               }}>Sold Out</DropdownMenuItem>
                               <DropdownMenuItem onClick={async ()=>{
                                 const next = 'paused';
                                 const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                 if (!error) {
-                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                                   await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                  await loadEvents(currentPage, {
+                                    tab: activeTab,
+                                    search: searchQuery,
+                                    month: filterMonth,
+                                    year: filterYear
+                                  });
                                 }
                               }}>Paused</DropdownMenuItem>
                               <DropdownMenuItem onClick={async ()=>{
                                 const next = 'draft';
                                 const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                 if (!error) {
-                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                                   await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                  await loadEvents(currentPage, {
+                                    tab: activeTab,
+                                    search: searchQuery,
+                                    month: filterMonth,
+                                    year: filterYear
+                                  });
                                 }
                               }}>Draft</DropdownMenuItem>
                               <DropdownMenuItem onClick={async ()=>{
                                 const next = 'archived';
                                 const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                 if (!error) {
-                                  setEvents(arr => arr.map(e => e.id===ev.id? { ...e, status: next}: e));
                                   await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
+                                  await loadEvents(currentPage, {
+                                    tab: activeTab,
+                                    search: searchQuery,
+                                    month: filterMonth,
+                                    year: filterYear
+                                  });
                                 }
                               }}>Archived</DropdownMenuItem>
                             </DropdownMenuContent>
