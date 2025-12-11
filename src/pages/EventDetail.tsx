@@ -42,12 +42,24 @@ function formatEventSchedule(startsAt: string, endsAt?: string, timezone?: strin
   const tz = timezone || 'America/Los_Angeles';
   const start = new Date(startsAt);
   const end = endsAt ? new Date(endsAt) : undefined;
-  const datePart = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).format(start);
+  
+  const dateFmt = (d: Date) => new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).format(d);
+  const timeFmt = (d: Date) => new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true }).format(d).toLowerCase().replace(':00','');
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' }).formatToParts(start);
   const tzName = parts.find(p=>p.type==='timeZoneName')?.value || '';
-  const timeFmt = (d: Date) => new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true }).format(d).toLowerCase().replace(':00','');
+  
+  // Check if event spans multiple days (compare dates in the target timezone)
+  const startDate = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(start);
+  const endDate = end ? new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(end) : startDate;
+  
+  if (end && startDate !== endDate) {
+    // Multi-day event: "Sat, Dec 6, 2pm – Sun, Dec 7, 5pm PST"
+    return `${dateFmt(start)}, ${timeFmt(start)} – ${dateFmt(end)}, ${timeFmt(end)} ${tzName}`;
+  }
+  
+  // Single-day event: "Sat, Dec 6, 2pm – 5pm PST"
   const range = end ? `${timeFmt(start)} – ${timeFmt(end)}` : timeFmt(start);
-  return `${datePart}, ${range} ${tzName}`;
+  return `${dateFmt(start)}, ${range} ${tzName}`;
 }
 const EventDetail = () => {
   const { slugOrId } = useParams();
