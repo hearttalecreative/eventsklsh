@@ -789,7 +789,7 @@ export type Database = {
           is_bundle: boolean
           name: string
           price_cents: number
-          stripe_fee_cents: number
+          processing_fee_percent: number
           updated_at: string
         }
         Insert: {
@@ -801,7 +801,7 @@ export type Database = {
           is_bundle?: boolean
           name: string
           price_cents: number
-          stripe_fee_cents?: number
+          processing_fee_percent?: number
           updated_at?: string
         }
         Update: {
@@ -813,7 +813,7 @@ export type Database = {
           is_bundle?: boolean
           name?: string
           price_cents?: number
-          stripe_fee_cents?: number
+          processing_fee_percent?: number
           updated_at?: string
         }
         Relationships: []

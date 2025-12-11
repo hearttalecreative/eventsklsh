@@ -53,7 +53,9 @@ serve(async (req) => {
       );
     }
 
-    const totalAmountCents = program.price_cents + program.stripe_fee_cents;
+    // Calculate the processing fee dynamically
+    const processingFeeCents = Math.round(program.price_cents * (program.processing_fee_percent / 100));
+    const totalAmountCents = program.price_cents + processingFeeCents;
 
     // Create a purchase record
     const { data: purchase, error: purchaseError } = await supabase
@@ -112,8 +114,9 @@ serve(async (req) => {
             currency: "usd",
             product_data: {
               name: "Processing Fee",
+              description: `${program.processing_fee_percent}% processing fee`,
             },
-            unit_amount: program.stripe_fee_cents,
+            unit_amount: processingFeeCents,
           },
           quantity: 1,
         },
