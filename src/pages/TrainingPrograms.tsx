@@ -15,10 +15,14 @@ interface TrainingProgram {
   name: string;
   description: string | null;
   price_cents: number;
-  stripe_fee_cents: number;
+  processing_fee_percent: number;
   is_bundle: boolean;
   display_order: number;
 }
+
+const calculateFee = (priceCents: number, feePercent: number) => {
+  return Math.round(priceCents * (feePercent / 100));
+};
 
 const formatPrice = (cents: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -313,7 +317,7 @@ export default function TrainingPrograms() {
                         Processing...
                       </>
                     ) : selectedProgram ? (
-                      `Proceed to Payment - ${formatPrice(selectedProgram.price_cents + selectedProgram.stripe_fee_cents)}`
+                      `Proceed to Payment - ${formatPrice(selectedProgram.price_cents + calculateFee(selectedProgram.price_cents, selectedProgram.processing_fee_percent))}`
                     ) : (
                       'Select a Program to Continue'
                     )}

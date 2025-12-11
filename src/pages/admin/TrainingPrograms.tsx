@@ -18,12 +18,16 @@ interface TrainingProgram {
   name: string;
   description: string | null;
   price_cents: number;
-  stripe_fee_cents: number;
+  processing_fee_percent: number;
   is_bundle: boolean;
   display_order: number;
   active: boolean;
   created_at: string;
 }
+
+const calculateFee = (priceCents: number, feePercent: number) => {
+  return Math.round(priceCents * (feePercent / 100));
+};
 
 const formatPrice = (cents: number) => {
   return (cents / 100).toFixed(2);
@@ -38,7 +42,7 @@ export default function AdminTrainingPrograms() {
     name: '',
     description: '',
     price_cents: '',
-    stripe_fee_cents: '',
+    processing_fee_percent: '3.5',
     is_bundle: false,
     display_order: '0',
     active: true,
@@ -65,7 +69,7 @@ export default function AdminTrainingPrograms() {
         name: data.name,
         description: data.description || null,
         price_cents: Math.round(parseFloat(data.price_cents) * 100),
-        stripe_fee_cents: Math.round(parseFloat(data.stripe_fee_cents) * 100),
+        processing_fee_percent: parseFloat(data.processing_fee_percent) || 3.5,
         is_bundle: data.is_bundle,
         display_order: parseInt(data.display_order) || 0,
         active: data.active,
@@ -118,7 +122,7 @@ export default function AdminTrainingPrograms() {
         name: program.name,
         description: program.description || '',
         price_cents: formatPrice(program.price_cents),
-        stripe_fee_cents: formatPrice(program.stripe_fee_cents),
+        processing_fee_percent: program.processing_fee_percent.toString(),
         is_bundle: program.is_bundle,
         display_order: program.display_order.toString(),
         active: program.active,
@@ -129,7 +133,7 @@ export default function AdminTrainingPrograms() {
         name: '',
         description: '',
         price_cents: '',
-        stripe_fee_cents: '',
+        processing_fee_percent: '3.5',
         is_bundle: false,
         display_order: '0',
         active: true,
@@ -213,15 +217,15 @@ export default function AdminTrainingPrograms() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="fee">Stripe Fee ($) *</Label>
+                      <Label htmlFor="fee">Processing Fee (%)</Label>
                       <Input
                         id="fee"
                         type="number"
-                        step="0.01"
+                        step="0.1"
                         min="0"
-                        value={formData.stripe_fee_cents}
-                        onChange={(e) => setFormData({ ...formData, stripe_fee_cents: e.target.value })}
-                        required
+                        max="100"
+                        value={formData.processing_fee_percent}
+                        onChange={(e) => setFormData({ ...formData, processing_fee_percent: e.target.value })}
                       />
                     </div>
                   </div>
@@ -310,7 +314,7 @@ export default function AdminTrainingPrograms() {
                       <TableRow key={program.id}>
                         <TableCell className="font-medium">{program.name}</TableCell>
                         <TableCell>${formatPrice(program.price_cents)}</TableCell>
-                        <TableCell>${formatPrice(program.stripe_fee_cents)}</TableCell>
+                        <TableCell>{program.processing_fee_percent}%</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs ${
                             program.is_bundle 
