@@ -161,8 +161,8 @@ const AdminEvents = () => {
                    .lt('starts_at', `${parseInt(filters.year) + 1}-01-01`);
     }
     
-    // Order by starts_at descending
-    query = query.order('starts_at', { ascending: false });
+    // Order by starts_at ascending (upcoming events first)
+    query = query.order('starts_at', { ascending: true });
     
     // Apply pagination
     const from = (page - 1) * pageSize;
