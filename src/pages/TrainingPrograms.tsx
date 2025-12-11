@@ -121,12 +121,12 @@ export default function TrainingPrograms() {
       <div className="min-h-screen bg-background flex flex-col">
         {/* Minimal Header */}
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 max-w-screen-2xl items-center justify-center">
+          <div className="container flex h-16 max-w-screen-2xl items-center justify-center">
             <Link to="/">
               <img 
                 src="https://kylelamsoundhealing.com/wp-content/uploads/2023/11/cropped-LOGO-NEW-170x77.png" 
                 alt="Kyle Lam Sound Healing" 
-                className="h-10"
+                className="h-12"
               />
             </Link>
           </div>
@@ -135,12 +135,11 @@ export default function TrainingPrograms() {
         {/* Main Content */}
         <main className="flex-1 container max-w-6xl mx-auto px-4 py-12">
           {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-light tracking-wide mb-6 text-foreground">
-              <span className="font-serif italic">Private Sound</span>{' '}
-              <span className="font-semibold">Training Programs</span>
+          <div className="text-center mb-14">
+            <h1 className="font-playfair text-3xl md:text-4xl font-normal tracking-wide mb-6 text-foreground">
+              Private Sound Training Programs
             </h1>
-            <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-sm md:text-base text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Three structured training levels designed for students who want a direct and practical learning format. 
               Each program builds technique, confidence, and a clear understanding of how to create effective sound bath experiences. 
               You can book a single level or choose a multi level package at a reduced rate.
@@ -149,25 +148,24 @@ export default function TrainingPrograms() {
 
           {/* Individual Programs */}
           <section className="mb-16">
-            <h2 className="text-2xl font-light tracking-wide mb-8 flex items-center gap-3">
-              <GraduationCap className="h-6 w-6 text-primary" />
-              <span className="font-serif italic">Training</span>{' '}
-              <span className="font-semibold">Levels</span>
+            <h2 className="font-playfair text-xl font-normal tracking-wide mb-8 flex items-center gap-3 text-foreground">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Training Levels
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
               {individualPrograms.map((program) => (
                 <Card 
                   key={program.id}
-                  className={`transition-all duration-200 hover:shadow-lg ${
+                  className={`transition-all duration-200 hover:shadow-md ${
                     selectedProgram?.id === program.id 
-                      ? 'ring-2 ring-primary shadow-lg' 
+                      ? 'ring-2 ring-primary shadow-md' 
                       : 'hover:border-primary/50'
                   }`}
                 >
-                  <CardHeader>
-                    <CardTitle className="text-xl font-serif leading-tight">{program.name}</CardTitle>
-                    <div className="pt-2">
-                      <span className="text-2xl font-bold">{formatPrice(program.price_cents)}</span>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="font-playfair text-lg font-normal leading-tight text-foreground">{program.name}</CardTitle>
+                    <div className="pt-1">
+                      <span className="text-base font-medium text-muted-foreground">{formatPrice(program.price_cents)}</span>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -177,6 +175,7 @@ export default function TrainingPrograms() {
                     <Button 
                       variant={selectedProgram?.id === program.id ? "default" : "outline"}
                       className="w-full"
+                      size="sm"
                       onClick={() => setSelectedProgram(program)}
                     >
                       {selectedProgram?.id === program.id ? (
@@ -196,25 +195,24 @@ export default function TrainingPrograms() {
 
           {/* Bundle Programs */}
           <section className="mb-16">
-            <h2 className="text-2xl font-light tracking-wide mb-8 flex items-center gap-3">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="font-serif italic">Bundle</span>{' '}
-              <span className="font-semibold">Packages</span>
+            <h2 className="font-playfair text-xl font-normal tracking-wide mb-8 flex items-center gap-3 text-foreground">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Bundle Packages
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
               {bundles.map((program) => (
                 <Card 
                   key={program.id}
-                  className={`transition-all duration-200 hover:shadow-lg border-primary/20 bg-primary/5 ${
+                  className={`transition-all duration-200 hover:shadow-md border-primary/20 bg-primary/5 ${
                     selectedProgram?.id === program.id 
-                      ? 'ring-2 ring-primary shadow-lg' 
+                      ? 'ring-2 ring-primary shadow-md' 
                       : 'hover:border-primary/50'
                   }`}
                 >
-                  <CardHeader>
-                    <CardTitle className="text-xl font-serif leading-tight">{program.name}</CardTitle>
-                    <div className="pt-2">
-                      <span className="text-lg font-semibold">{formatPrice(program.price_cents)}</span>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="font-playfair text-lg font-normal leading-tight text-foreground">{program.name}</CardTitle>
+                    <div className="pt-1">
+                      <span className="text-base font-medium text-muted-foreground">{formatPrice(program.price_cents)}</span>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -224,6 +222,7 @@ export default function TrainingPrograms() {
                     <Button 
                       variant={selectedProgram?.id === program.id ? "default" : "outline"}
                       className="w-full"
+                      size="sm"
                       onClick={() => setSelectedProgram(program)}
                     >
                       {selectedProgram?.id === program.id ? (
@@ -245,7 +244,7 @@ export default function TrainingPrograms() {
           <section className="max-w-xl mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle>Complete Your Registration</CardTitle>
+                <CardTitle className="font-playfair text-lg font-normal">Complete Your Registration</CardTitle>
                 <CardDescription>
                   {selectedProgram 
                     ? `Selected: ${selectedProgram.name} - ${formatPrice(selectedProgram.price_cents)}`
