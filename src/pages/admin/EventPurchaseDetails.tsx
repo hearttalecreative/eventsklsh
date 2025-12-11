@@ -432,21 +432,35 @@ const EventPurchaseDetails = () => {
     });
   };
 
-  // Calculate ticket breakdown - group by order_id to avoid duplicates
+  // Calculate ticket breakdown - group by order_id to avoid duplicates for paid, count individually for comped
   const ticketBreakdown = useMemo(() => {
-    // Use order_id + ticket_name as unique key to prevent counting same order multiple times
+    // For paid tickets: use order_id + ticket_name as unique key to prevent counting same order multiple times
+    // For comped tickets: use attendee_id as key since each comped attendee is a separate "ticket"
     const orderTicketMap = new Map<string, { name: string; ticketsSold: number; attendeeCount: number }>();
     
     purchases.forEach(purchase => {
-      const key = `${purchase.order_id}-${purchase.ticket_name}`;
+      // For comped attendees, use attendee_id to count each one individually
+      // For paid attendees, use order_id to group by order
+      const key = purchase.is_comped 
+        ? `comped-${purchase.attendee_id}-${purchase.ticket_name}`
+        : `${purchase.order_id}-${purchase.ticket_name}`;
       
       if (!orderTicketMap.has(key)) {
-        // New order or new ticket type - use ticket_quantity and participants_per_ticket
-        orderTicketMap.set(key, {
-          name: purchase.ticket_name,
-          ticketsSold: purchase.ticket_quantity,
-          attendeeCount: purchase.ticket_quantity * purchase.participants_per_ticket
-        });
+        if (purchase.is_comped) {
+          // Comped tickets: each attendee is 1 ticket sold with participants_per_ticket attendees
+          orderTicketMap.set(key, {
+            name: purchase.ticket_name,
+            ticketsSold: 1,
+            attendeeCount: purchase.participants_per_ticket
+          });
+        } else {
+          // Paid tickets: use ticket_quantity and participants_per_ticket
+          orderTicketMap.set(key, {
+            name: purchase.ticket_name,
+            ticketsSold: purchase.ticket_quantity,
+            attendeeCount: purchase.ticket_quantity * purchase.participants_per_ticket
+          });
+        }
       }
     });
 
