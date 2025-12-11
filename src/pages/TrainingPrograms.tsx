@@ -157,43 +157,52 @@ export default function TrainingPrograms() {
               Training Levels
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
-              {individualPrograms.map((program) => (
-                <Card 
-                  key={program.id}
-                  className={`transition-all duration-200 hover:shadow-md ${
-                    selectedProgram?.id === program.id 
-                      ? 'ring-2 ring-primary shadow-md' 
-                      : 'hover:border-primary/50'
-                  }`}
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle className="font-playfair text-xl font-normal leading-tight text-foreground">{program.name}</CardTitle>
-                    <div className="pt-1">
-                      <span className="text-base font-medium text-muted-foreground">{formatPrice(program.price_cents)}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <CardDescription className="text-sm leading-relaxed">
-                      {program.description}
-                    </CardDescription>
-                    <Button 
-                      variant={selectedProgram?.id === program.id ? "default" : "outline"}
-                      className="w-full"
-                      size="sm"
-                      onClick={() => setSelectedProgram(program)}
-                    >
-                      {selectedProgram?.id === program.id ? (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Selected
-                        </>
-                      ) : (
-                        'Select This Program'
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {individualPrograms.map((program) => {
+                const isSelected = selectedProgram?.id === program.id;
+                const totalCents = program.price_cents + calculateFee(program.price_cents, program.processing_fee_percent);
+                return (
+                  <Card 
+                    key={program.id}
+                    className={`relative overflow-hidden transition-all duration-300 cursor-pointer group ${
+                      isSelected 
+                        ? 'ring-2 ring-primary shadow-lg scale-[1.02]' 
+                        : 'hover:shadow-lg hover:scale-[1.01] hover:border-primary/40'
+                    }`}
+                    onClick={() => setSelectedProgram(program)}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-3 right-3">
+                        <div className="bg-primary text-primary-foreground rounded-full p-1">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      </div>
+                    )}
+                    <CardHeader className="pb-4">
+                      <CardTitle className="font-playfair text-2xl font-normal leading-tight text-foreground pr-8">
+                        {program.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <CardDescription className="text-sm leading-relaxed min-h-[60px]">
+                        {program.description}
+                      </CardDescription>
+                      <div className="pt-2 border-t border-border/50">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-2xl font-semibold text-foreground">{formatPrice(totalCents)}</span>
+                          <span className="text-xs text-muted-foreground">incl. processing</span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant={isSelected ? "default" : "secondary"}
+                        className={`w-full transition-all ${isSelected ? '' : 'group-hover:bg-primary group-hover:text-primary-foreground'}`}
+                        size="default"
+                      >
+                        {isSelected ? 'Selected' : 'Select Program'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </section>
 
@@ -204,43 +213,57 @@ export default function TrainingPrograms() {
               Bundle Packages
             </h2>
             <div className="grid md:grid-cols-3 gap-6">
-              {bundles.map((program) => (
-                <Card 
-                  key={program.id}
-                  className={`transition-all duration-200 hover:shadow-md border-primary/20 bg-primary/5 ${
-                    selectedProgram?.id === program.id 
-                      ? 'ring-2 ring-primary shadow-md' 
-                      : 'hover:border-primary/50'
-                  }`}
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle className="font-playfair text-xl font-normal leading-tight text-foreground">{program.name}</CardTitle>
-                    <div className="pt-1">
-                      <span className="text-base font-medium text-muted-foreground">{formatPrice(program.price_cents)}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <CardDescription className="text-sm leading-relaxed">
-                      {program.description}
-                    </CardDescription>
-                    <Button 
-                      variant={selectedProgram?.id === program.id ? "default" : "outline"}
-                      className="w-full"
-                      size="sm"
-                      onClick={() => setSelectedProgram(program)}
-                    >
-                      {selectedProgram?.id === program.id ? (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Selected
-                        </>
-                      ) : (
-                        'Select This Package'
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {bundles.map((program) => {
+                const isSelected = selectedProgram?.id === program.id;
+                const totalCents = program.price_cents + calculateFee(program.price_cents, program.processing_fee_percent);
+                return (
+                  <Card 
+                    key={program.id}
+                    className={`relative overflow-hidden transition-all duration-300 cursor-pointer group border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 ${
+                      isSelected 
+                        ? 'ring-2 ring-primary shadow-lg scale-[1.02]' 
+                        : 'hover:shadow-lg hover:scale-[1.01] hover:border-primary/50'
+                    }`}
+                    onClick={() => setSelectedProgram(program)}
+                  >
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+                    {isSelected && (
+                      <div className="absolute top-4 right-3">
+                        <div className="bg-primary text-primary-foreground rounded-full p-1">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      </div>
+                    )}
+                    <CardHeader className="pb-4 pt-5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-medium text-primary uppercase tracking-wider">Bundle & Save</span>
+                      </div>
+                      <CardTitle className="font-playfair text-2xl font-normal leading-tight text-foreground pr-8">
+                        {program.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <CardDescription className="text-sm leading-relaxed min-h-[60px]">
+                        {program.description}
+                      </CardDescription>
+                      <div className="pt-2 border-t border-primary/20">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-2xl font-semibold text-foreground">{formatPrice(totalCents)}</span>
+                          <span className="text-xs text-muted-foreground">incl. processing</span>
+                        </div>
+                      </div>
+                      <Button 
+                        variant={isSelected ? "default" : "secondary"}
+                        className={`w-full transition-all ${isSelected ? '' : 'group-hover:bg-primary group-hover:text-primary-foreground'}`}
+                        size="default"
+                      >
+                        {isSelected ? 'Selected' : 'Select Package'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </section>
 
