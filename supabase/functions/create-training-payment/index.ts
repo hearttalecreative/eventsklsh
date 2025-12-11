@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,56 @@ interface RequestPayload {
   phone: string;
   preferredDates: string;
 }
+
+const formatPrice = (cents: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+};
+
+const sendNotificationEmail = async (
+  resend: Resend,
+  program: { name: string; price_cents: number; processing_fee_percent: number },
+  customer: { fullName: string; email: string; phone: string; preferredDates: string },
+  totalAmountCents: number
+) => {
+  const processingFeeCents = Math.round(program.price_cents * (program.processing_fee_percent / 100));
+  
+  try {
+    await resend.emails.send({
+      from: "Kyle Lam Sound Healing <onboarding@resend.dev>",
+      to: ["info@kylelamsoundhealing.com"],
+      subject: `New Training Purchase: ${program.name}`,
+      html: `
+        <h1>New Training Program Purchase</h1>
+        
+        <h2>Program Details</h2>
+        <ul>
+          <li><strong>Program:</strong> ${program.name}</li>
+          <li><strong>Program Price:</strong> ${formatPrice(program.price_cents)}</li>
+          <li><strong>Processing Fee (${program.processing_fee_percent}%):</strong> ${formatPrice(processingFeeCents)}</li>
+          <li><strong>Total Amount:</strong> ${formatPrice(totalAmountCents)}</li>
+        </ul>
+        
+        <h2>Customer Information</h2>
+        <ul>
+          <li><strong>Name:</strong> ${customer.fullName}</li>
+          <li><strong>Email:</strong> ${customer.email}</li>
+          <li><strong>Phone:</strong> ${customer.phone}</li>
+          <li><strong>Preferred Dates:</strong> ${customer.preferredDates}</li>
+        </ul>
+        
+        <p>Please follow up with the customer to confirm training dates.</p>
+      `,
+    });
+    console.log("Notification email sent to info@kylelamsoundhealing.com");
+  } catch (emailError) {
+    console.error("Failed to send notification email:", emailError);
+  }
+};
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -36,6 +87,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Initialize Resend
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
     // Fetch the training program
     const { data: program, error: programError } = await supabase
@@ -140,6 +195,16 @@ serve(async (req) => {
       .from("training_purchases")
       .update({ stripe_session_id: session.id })
       .eq("id", purchase.id);
+
+    // Send notification email
+    if (resend) {
+      await sendNotificationEmail(
+        resend,
+        program,
+        { fullName, email, phone, preferredDates },
+        totalAmountCents
+      );
+    }
 
     console.log(`Created Stripe session ${session.id} for purchase ${purchase.id}`);
 

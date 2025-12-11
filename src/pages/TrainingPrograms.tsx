@@ -130,7 +130,7 @@ export default function TrainingPrograms() {
               <img 
                 src="https://kylelamsoundhealing.com/wp-content/uploads/2023/11/cropped-LOGO-NEW-170x77.png" 
                 alt="Kyle Lam Sound Healing" 
-                className="h-12"
+                className="h-10"
               />
             </Link>
           </div>
@@ -167,7 +167,7 @@ export default function TrainingPrograms() {
                   }`}
                 >
                   <CardHeader className="pb-3">
-                    <CardTitle className="font-playfair text-lg font-normal leading-tight text-foreground">{program.name}</CardTitle>
+                    <CardTitle className="font-playfair text-xl font-normal leading-tight text-foreground">{program.name}</CardTitle>
                     <div className="pt-1">
                       <span className="text-base font-medium text-muted-foreground">{formatPrice(program.price_cents)}</span>
                     </div>
@@ -214,7 +214,7 @@ export default function TrainingPrograms() {
                   }`}
                 >
                   <CardHeader className="pb-3">
-                    <CardTitle className="font-playfair text-lg font-normal leading-tight text-foreground">{program.name}</CardTitle>
+                    <CardTitle className="font-playfair text-xl font-normal leading-tight text-foreground">{program.name}</CardTitle>
                     <div className="pt-1">
                       <span className="text-base font-medium text-muted-foreground">{formatPrice(program.price_cents)}</span>
                     </div>
@@ -326,12 +326,6 @@ export default function TrainingPrograms() {
               </CardContent>
             </Card>
 
-            {/* Footer Note */}
-            <p className="text-sm text-muted-foreground text-center mt-8 px-4">
-              All Private Trainings are offered in person. Once you complete your purchase, 
-              you will be redirected to a form to provide your contact details and preferred dates. 
-              You will receive a confirmation email with next steps and scheduling coordination.
-            </p>
           </section>
         </main>
 
