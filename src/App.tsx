@@ -42,15 +42,18 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container mx-auto h-16 flex items-center justify-center">
-              <Link to="/" className="flex items-center gap-3" aria-label="Home">
-                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Logo" className="h-8 w-auto dark:hidden" loading="lazy" />
-                <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Logo (dark)" className="h-8 w-auto hidden dark:block" loading="lazy" />
-                <span className="sr-only">Home</span>
-              </Link>
-            </div>
-          </header>
+          {/* Hide global header for /trainings and /training-success since they have their own */}
+          {!(typeof window !== 'undefined' && (window.location.pathname === '/trainings' || window.location.pathname === '/training-success')) && (
+            <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="container mx-auto h-16 flex items-center justify-center">
+                <Link to="/" className="flex items-center gap-3" aria-label="Home">
+                  <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Logo" className="h-8 w-auto dark:hidden" loading="lazy" />
+                  <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Logo (dark)" className="h-8 w-auto hidden dark:block" loading="lazy" />
+                  <span className="sr-only">Home</span>
+                </Link>
+              </div>
+            </header>
+          )}
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/event/:slugOrId" element={<EventDetail />} />
