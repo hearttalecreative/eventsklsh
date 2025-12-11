@@ -26,6 +26,9 @@ import CleanupDuplicates from "./pages/admin/CleanupDuplicates";
 import SystemLogs from "./pages/admin/SystemLogs";
 import CaliforniaEvents from "./pages/CaliforniaEvents";
 import FloridaEvents from "./pages/FloridaEvents";
+import TrainingPrograms from "./pages/TrainingPrograms";
+import TrainingSuccess from "./pages/TrainingSuccess";
+import AdminTrainingPrograms from "./pages/admin/TrainingPrograms";
 
 const queryClient = new QueryClient();
 
@@ -53,7 +56,10 @@ const App = () => (
             <Route path="/event/:slugOrId" element={<EventDetail />} />
             <Route path="/events/california" element={<CaliforniaEvents />} />
             <Route path="/events/florida" element={<FloridaEvents />} />
+            <Route path="/trainings" element={<TrainingPrograms />} />
+            <Route path="/training-success" element={<TrainingSuccess />} />
             <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
+            <Route path="/admin/training-programs" element={<AdminRoute><AdminTrainingPrograms /></AdminRoute>} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
             <Route path="/admin/coupons" element={<AdminRoute><CouponsPage /></AdminRoute>} />

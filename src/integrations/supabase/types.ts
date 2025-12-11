@@ -779,6 +779,95 @@ export type Database = {
           },
         ]
       }
+      training_programs: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_bundle: boolean
+          name: string
+          price_cents: number
+          stripe_fee_cents: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_bundle?: boolean
+          name: string
+          price_cents: number
+          stripe_fee_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_bundle?: boolean
+          name?: string
+          price_cents?: number
+          stripe_fee_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      training_purchases: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string
+          preferred_dates: string
+          program_id: string
+          status: string
+          stripe_session_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          phone: string
+          preferred_dates: string
+          program_id: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          preferred_dates?: string
+          program_id?: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_purchases_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "training_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

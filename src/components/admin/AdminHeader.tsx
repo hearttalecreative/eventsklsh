@@ -13,7 +13,8 @@ import {
   Shield,
   AlertTriangle,
   Home,
-  FileWarning
+  FileWarning,
+  GraduationCap
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -92,6 +93,12 @@ const AdminHeader = () => {
       path: "/admin/cleanup-duplicates",
       label: "Cleanup",
       icon: AlertTriangle,
+      iconOnly: true,
+    },
+    {
+      path: "/admin/training-programs",
+      label: "Trainings",
+      icon: GraduationCap,
       iconOnly: false,
     },
     {
