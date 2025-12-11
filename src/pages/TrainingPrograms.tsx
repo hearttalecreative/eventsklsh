@@ -128,9 +128,9 @@ export default function TrainingPrograms() {
           <div className="container flex h-16 max-w-screen-2xl items-center justify-center">
             <Link to="/">
               <img 
-                src="https://kylelamsoundhealing.com/wp-content/uploads/2023/11/cropped-LOGO-NEW-170x77.png" 
+                src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" 
                 alt="Kyle Lam Sound Healing" 
-                className="h-10"
+                className="h-8 w-auto"
               />
             </Link>
           </div>
