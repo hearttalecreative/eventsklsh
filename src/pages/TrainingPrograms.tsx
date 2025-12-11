@@ -159,7 +159,6 @@ export default function TrainingPrograms() {
             <div className="grid md:grid-cols-3 gap-6">
               {individualPrograms.map((program) => {
                 const isSelected = selectedProgram?.id === program.id;
-                const totalCents = program.price_cents + calculateFee(program.price_cents, program.processing_fee_percent);
                 return (
                   <Card 
                     key={program.id}
@@ -187,10 +186,7 @@ export default function TrainingPrograms() {
                         {program.description}
                       </CardDescription>
                       <div className="pt-2 border-t border-border/50">
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-2xl font-semibold text-foreground">{formatPrice(totalCents)}</span>
-                          <span className="text-xs text-muted-foreground">incl. processing</span>
-                        </div>
+                        <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
                       </div>
                       <Button 
                         variant={isSelected ? "default" : "secondary"}
@@ -215,7 +211,6 @@ export default function TrainingPrograms() {
             <div className="grid md:grid-cols-3 gap-6">
               {bundles.map((program) => {
                 const isSelected = selectedProgram?.id === program.id;
-                const totalCents = program.price_cents + calculateFee(program.price_cents, program.processing_fee_percent);
                 return (
                   <Card 
                     key={program.id}
@@ -248,10 +243,7 @@ export default function TrainingPrograms() {
                         {program.description}
                       </CardDescription>
                       <div className="pt-2 border-t border-primary/20">
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-2xl font-semibold text-foreground">{formatPrice(totalCents)}</span>
-                          <span className="text-xs text-muted-foreground">incl. processing</span>
-                        </div>
+                        <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
                       </div>
                       <Button 
                         variant={isSelected ? "default" : "secondary"}
