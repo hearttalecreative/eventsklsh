@@ -1,0 +1,369 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import AdminHeader from '@/components/admin/AdminHeader';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from 'sonner';
+import { Loader2, Plus, Pencil, Trash2, ExternalLink, Copy, Check } from 'lucide-react';
+
+interface TrainingProgram {
+  id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  stripe_fee_cents: number;
+  is_bundle: boolean;
+  display_order: number;
+  active: boolean;
+  created_at: string;
+}
+
+const formatPrice = (cents: number) => {
+  return (cents / 100).toFixed(2);
+};
+
+export default function AdminTrainingPrograms() {
+  const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price_cents: '',
+    stripe_fee_cents: '',
+    is_bundle: false,
+    display_order: '0',
+    active: true,
+  });
+
+  const publicUrl = `${window.location.origin}/trainings`;
+
+  const { data: programs, isLoading } = useQuery({
+    queryKey: ['admin-training-programs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('training_programs')
+        .select('*')
+        .order('display_order', { ascending: true });
+      
+      if (error) throw error;
+      return data as TrainingProgram[];
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof formData & { id?: string }) => {
+      const payload = {
+        name: data.name,
+        description: data.description || null,
+        price_cents: Math.round(parseFloat(data.price_cents) * 100),
+        stripe_fee_cents: Math.round(parseFloat(data.stripe_fee_cents) * 100),
+        is_bundle: data.is_bundle,
+        display_order: parseInt(data.display_order) || 0,
+        active: data.active,
+      };
+
+      if (data.id) {
+        const { error } = await supabase
+          .from('training_programs')
+          .update(payload)
+          .eq('id', data.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('training_programs')
+          .insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-training-programs'] });
+      toast.success(editingProgram ? 'Program updated' : 'Program created');
+      handleCloseDialog();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to save program');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('training_programs')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-training-programs'] });
+      toast.success('Program deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete program');
+    },
+  });
+
+  const handleOpenDialog = (program?: TrainingProgram) => {
+    if (program) {
+      setEditingProgram(program);
+      setFormData({
+        name: program.name,
+        description: program.description || '',
+        price_cents: formatPrice(program.price_cents),
+        stripe_fee_cents: formatPrice(program.stripe_fee_cents),
+        is_bundle: program.is_bundle,
+        display_order: program.display_order.toString(),
+        active: program.active,
+      });
+    } else {
+      setEditingProgram(null);
+      setFormData({
+        name: '',
+        description: '',
+        price_cents: '',
+        stripe_fee_cents: '',
+        is_bundle: false,
+        display_order: '0',
+        active: true,
+      });
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingProgram(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate({ ...formData, id: editingProgram?.id });
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    toast.success('Link copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <AdminHeader />
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex flex-col gap-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Training Programs</h1>
+              <p className="text-muted-foreground">Manage your private training offerings</p>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleOpenDialog()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Program
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{editingProgram ? 'Edit Program' : 'New Program'}</DialogTitle>
+                  <DialogDescription>
+                    {editingProgram ? 'Update the training program details' : 'Create a new training program'}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={4}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price ($) *</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.price_cents}
+                        onChange={(e) => setFormData({ ...formData, price_cents: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fee">Stripe Fee ($) *</Label>
+                      <Input
+                        id="fee"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.stripe_fee_cents}
+                        onChange={(e) => setFormData({ ...formData, stripe_fee_cents: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="order">Display Order</Label>
+                    <Input
+                      id="order"
+                      type="number"
+                      min="0"
+                      value={formData.display_order}
+                      onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="is_bundle">Is Bundle?</Label>
+                    <Switch
+                      id="is_bundle"
+                      checked={formData.is_bundle}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_bundle: checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="active">Active</Label>
+                    <Switch
+                      id="active"
+                      checked={formData.active}
+                      onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={saveMutation.isPending}>
+                      {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {editingProgram ? 'Update' : 'Create'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Public Link Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Public Sales Page</CardTitle>
+              <CardDescription>Share this link with potential students</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Input value={publicUrl} readOnly className="flex-1" />
+                <Button variant="outline" size="icon" onClick={handleCopyLink}>
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                <Button variant="outline" size="icon" asChild>
+                  <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Programs Table */}
+          <Card>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : programs && programs.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Fee</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {programs.map((program) => (
+                      <TableRow key={program.id}>
+                        <TableCell className="font-medium">{program.name}</TableCell>
+                        <TableCell>${formatPrice(program.price_cents)}</TableCell>
+                        <TableCell>${formatPrice(program.stripe_fee_cents)}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            program.is_bundle 
+                              ? 'bg-primary/10 text-primary' 
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {program.is_bundle ? 'Bundle' : 'Individual'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            program.active 
+                              ? 'bg-green-500/10 text-green-600' 
+                              : 'bg-red-500/10 text-red-600'
+                          }`}>
+                            {program.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenDialog(program)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this program?')) {
+                                  deleteMutation.mutate(program.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  No training programs yet. Create your first one!
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+}

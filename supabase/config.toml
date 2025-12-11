@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.check-order-by-session]
 verify_jwt = false
+
+[functions.create-training-payment]
+verify_jwt = false
