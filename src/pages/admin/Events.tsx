@@ -108,6 +108,7 @@ const AdminEvents = () => {
   const [eImageUrl, setEImageUrl] = useState('');
   const [eImageFile, setEImageFile] = useState<File | null>(null);
   const [eTimezone, setETimezone] = useState('America/Los_Angeles');
+  const [eHidden, setEHidden] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [eImagePreview, setEImagePreview] = useState<string | null>(null);
 
@@ -299,6 +300,7 @@ const AdminEvents = () => {
     setEImagePreview(null); // Reset image preview
     setEImageFile(null); // Reset file input
     setETimezone((ev as any).timezone || 'America/Los_Angeles');
+    setEHidden(ev.hidden ?? false);
     setEditOpen(true);
   };
   const createVenue = async () => {
@@ -405,6 +407,7 @@ const saveVenueEdit = async () => {
       status: eStatus as any,
       image_url: eImageUrl || editingEvent.image_url,
       timezone: eTimezone,
+      hidden: eHidden,
     };
 const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
     if (error) return alert(error.message);
@@ -1337,6 +1340,7 @@ const deleteTicket = async (id: string) => {
                   <th className="py-3 pr-4 min-w-40">Start</th>
                   <th className="py-3 pr-4 min-w-36">Venue</th>
                   <th className="py-3 pr-4 min-w-24">Status</th>
+                  <th className="py-3 pr-4 min-w-20">Visible</th>
                   <th className="py-3 pr-4 min-w-32">Tickets Sold</th>
                   <th className="py-3 pr-4 min-w-72">Actions</th>
                 </tr>
@@ -1379,6 +1383,24 @@ const deleteTicket = async (id: string) => {
                         }`}>
                           {ev.status === 'sold_out' ? 'Sold Out' : ev.status === 'paused' ? 'Paused' : ev.status}
                         </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Switch
+                          checked={!ev.hidden}
+                          onCheckedChange={async (checked) => {
+                            const { error } = await supabase.from('events').update({ hidden: !checked }).eq('id', ev.id);
+                            if (!error) {
+                              await logAdmin('event_visibility_changed', 'event', ev.id, { hidden: !checked });
+                              await loadEvents(currentPage, {
+                                tab: activeTab,
+                                search: searchQuery,
+                                month: filterMonth,
+                                year: filterYear
+                              });
+                            }
+                          }}
+                          aria-label={ev.hidden ? 'Show event' : 'Hide event'}
+                        />
                       </td>
                       <td className="py-3 pr-4 text-sm font-medium">
                         {(() => {
@@ -1770,6 +1792,13 @@ const deleteTicket = async (id: string) => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                  <div>
+                    <Label>Visible on frontend</Label>
+                    <p className="text-xs text-muted-foreground">When off, event is hidden from public listings</p>
+                  </div>
+                  <Switch checked={!eHidden} onCheckedChange={(checked) => setEHidden(!checked)} />
+                </div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 gap-3 items-start">
                     <Input type="file" accept="image/*" onChange={(e)=>{
@@ -1856,6 +1885,13 @@ const deleteTicket = async (id: string) => {
                       <SelectItem value="America/New_York">America/New_York</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+                  <div>
+                    <Label>Visible on frontend</Label>
+                    <p className="text-xs text-muted-foreground">When off, event is hidden from public listings</p>
+                  </div>
+                  <Switch checked={!eHidden} onCheckedChange={(checked) => setEHidden(!checked)} />
                 </div>
                 <div className="space-y-3">
                   <div className="grid sm:grid-cols-3 gap-3 items-center">
