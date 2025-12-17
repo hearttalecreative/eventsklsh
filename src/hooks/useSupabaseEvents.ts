@@ -44,12 +44,12 @@ export function useSupabaseEventsList() {
     async function load() {
       setLoading(true);
       setError(null);
-      // 1) events (published or sold_out, not hidden, not ended)
+      // 1) events (published, sold_out, or paused - not hidden, not ended)
       const now = new Date().toISOString();
       const { data: evs, error: eErr } = await supabase
         .from('events')
         .select('id,slug,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku,timezone,hidden')
-        .in('status', ['published', 'sold_out'])
+        .in('status', ['published', 'sold_out', 'paused'])
         .eq('hidden', false)
         .gte('ends_at', now) // Only show events that haven't ended yet
         .order('starts_at', { ascending: true });
