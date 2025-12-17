@@ -179,6 +179,8 @@ const EventDetail = () => {
   const endOrStart = new Date(event.endsAt || event.startsAt);
   const hasTickets = Array.isArray(event.tickets) && event.tickets.length > 0;
   const isPast = endOrStart < new Date();
+  const isPaused = event.status === 'paused';
+  const isSoldOut = event.status === 'sold_out';
   
   // Block ticket purchasing for events that are sold out, paused, past, or not published
   const canPurchaseTickets = hasTickets && !isPast && event.status === 'published';
