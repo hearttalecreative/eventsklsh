@@ -398,6 +398,18 @@ serve(async (req) => {
       },
     ];
 
+    // Store cart server-side (Stripe metadata values have a 500-char limit)
+    const { data: pending, error: pendingErr } = await supabase
+      .from('pending_checkouts')
+      .insert({
+        cart,
+        buyer_email: buyer.email,
+        event_id: cart.eventId,
+      })
+      .select('id')
+      .single();
+    if (pendingErr) throw pendingErr;
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer_email: buyer.email,
       line_items,
@@ -412,8 +424,7 @@ serve(async (req) => {
           coupon_apply_to: chosen.apply_to,
           coupon_discount_cents: String(discount),
         } : {}),
-        // Include cart data so webhook can process the order
-        cart_data: JSON.stringify(cart),
+        checkout_id: pending.id,
       },
       // Disable automatic emails from Stripe since we handle them ourselves
       automatic_tax: { enabled: false },
@@ -483,6 +494,16 @@ serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
+
+    // Best-effort: attach the Stripe session id to our pending checkout record
+    try {
+      await supabase
+        .from('pending_checkouts')
+        .update({ stripe_session_id: session.id })
+        .eq('id', (sessionParams.metadata as any)?.checkout_id);
+    } catch (e) {
+      console.error('[create-payment] Failed to update pending_checkout with session id', e);
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,

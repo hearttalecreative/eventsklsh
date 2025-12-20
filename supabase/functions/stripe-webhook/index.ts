@@ -41,13 +41,36 @@ serve(async (req) => {
     );
 
     try {
-      // Extract cart data from session metadata
+      // Load cart payload. New flow stores it in DB (Stripe metadata values have a 500-char limit).
       const metadata = session.metadata || {};
-      
-      if (!metadata.cart_data) {
-        console.error(`[stripe-webhook] No cart_data in session metadata for ${session.id}`);
-        
-        // Log the error
+
+      let cart: any | null = null;
+      if (metadata.cart_data) {
+        // Backward-compat for older sessions
+        cart = JSON.parse(metadata.cart_data);
+      } else if (metadata.checkout_id) {
+        const { data: pending, error: pendingErr } = await supabase
+          .from('pending_checkouts')
+          .select('cart')
+          .eq('id', metadata.checkout_id)
+          .maybeSingle();
+
+        if (pendingErr) {
+          console.error('[stripe-webhook] Failed to load pending checkout cart:', pendingErr);
+          return new Response(JSON.stringify({ received: true, reason: 'pending_checkout_load_failed' }), { status: 200 });
+        }
+
+        if (!pending?.cart) {
+          console.error(`[stripe-webhook] No pending checkout cart found for checkout_id=${metadata.checkout_id} session=${session.id}`);
+          return new Response(JSON.stringify({ received: true, reason: 'missing_pending_checkout' }), { status: 200 });
+        }
+
+        cart = pending.cart;
+      }
+
+      if (!cart) {
+        console.error(`[stripe-webhook] Missing cart payload for ${session.id}`);
+
         await supabase.from('stripe_logs').insert({
           event_type: event.type,
           stripe_session_id: session.id,
@@ -57,15 +80,13 @@ serve(async (req) => {
           amount_cents: session.amount_total || 0,
           currency: session.currency || 'usd',
           status: 'error',
-          error_message: 'Missing cart_data in session metadata',
-          processing_time_ms: Date.now() - startTime
+          error_message: 'Missing cart payload (checkout_id/cart_data)',
+          processing_time_ms: Date.now() - startTime,
         });
 
-        // Acknowledge to prevent Stripe retries; the frontend fallback will handle verification
-        return new Response(JSON.stringify({ received: true, reason: "missing_cart_data" }), { status: 200 });
+        return new Response(JSON.stringify({ received: true, reason: 'missing_cart_payload' }), { status: 200 });
       }
 
-      const cart = JSON.parse(metadata.cart_data);
       console.log(`[stripe-webhook] Cart data:`, cart);
 
       // Fast path: prevent duplicates by Stripe session id
