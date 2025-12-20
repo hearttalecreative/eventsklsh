@@ -604,6 +604,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_checkouts: {
+        Row: {
+          buyer_email: string | null
+          cart: Json
+          created_at: string
+          event_id: string | null
+          expires_at: string
+          id: string
+          stripe_session_id: string | null
+        }
+        Insert: {
+          buyer_email?: string | null
+          cart: Json
+          created_at?: string
+          event_id?: string | null
+          expires_at?: string
+          id?: string
+          stripe_session_id?: string | null
+        }
+        Update: {
+          buyer_email?: string | null
+          cart?: Json
+          created_at?: string
+          event_id?: string | null
+          expires_at?: string
+          id?: string
+          stripe_session_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
