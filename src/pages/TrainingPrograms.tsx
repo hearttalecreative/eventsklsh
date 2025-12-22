@@ -184,7 +184,7 @@ export default function TrainingPrograms() {
                         <h3 className="font-playfair text-xl font-normal leading-tight text-foreground mb-3 pr-8">
                           {program.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed flex-1 line-clamp-4">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           {program.description}
                         </p>
                         <div className="mt-auto pt-6 space-y-4">
@@ -246,7 +246,7 @@ export default function TrainingPrograms() {
                         scrollToForm();
                       }}
                     >
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+                      
                       {isSelected && (
                         <div className="absolute top-4 right-3 z-10">
                           <div className="bg-primary text-primary-foreground rounded-full p-1">
@@ -262,7 +262,7 @@ export default function TrainingPrograms() {
                         <h3 className="font-playfair text-xl font-normal leading-tight text-foreground mb-3 pr-8">
                           {program.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed flex-1 line-clamp-3">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           {program.description}
                         </p>
                         <div className="mt-auto pt-6 space-y-4">
@@ -393,15 +393,6 @@ export default function TrainingPrograms() {
           </section>
         </main>
 
-        {/* Footer */}
-        <footer className="border-t border-border/40 py-6 bg-background">
-          <div className="container text-center text-sm text-muted-foreground">
-            © Copyright {new Date().getFullYear()} Kyle Lam Sound Healing. All Rights Reserved. | Developed with ♥ by{' '}
-            <a href="https://hearttalecreative.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              Hearttale Creative
-            </a>.
-          </div>
-        </footer>
       </div>
     </>
   );
