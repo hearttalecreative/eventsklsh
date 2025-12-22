@@ -149,9 +149,9 @@ export default function TrainingPrograms() {
           {/* Step 1: Training Levels */}
           <section className="py-12 md:py-16 bg-background">
             <div className="container max-w-6xl mx-auto px-4">
-              <div className="flex items-center gap-3 mb-8">
+              <div className="flex items-center justify-center gap-3 mb-8">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-medium">1</div>
-                <h2 className="font-playfair text-xl font-normal tracking-wide flex items-center gap-2 text-foreground">
+                <h2 className="font-playfair text-2xl font-normal tracking-wide flex items-center gap-2 text-foreground">
                   <GraduationCap className="h-5 w-5 text-primary" />
                   Choose Your Training Level
                 </h2>
@@ -181,7 +181,7 @@ export default function TrainingPrograms() {
                         </div>
                       )}
                       <CardContent className="flex flex-col flex-1 p-6">
-                        <h3 className="font-playfair text-xl font-normal leading-tight text-foreground mb-3 pr-8">
+                        <h3 className="font-playfair text-[1.35rem] font-normal leading-tight text-foreground mb-3 pr-8">
                           {program.name}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -192,8 +192,8 @@ export default function TrainingPrograms() {
                             <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
                           </div>
                           <Button 
-                            variant={isSelected ? "default" : "secondary"}
-                            className={`w-full transition-all ${isSelected ? '' : 'group-hover:bg-primary group-hover:text-primary-foreground'}`}
+                            variant="default"
+                            className={`w-full transition-all ${isSelected ? 'bg-primary' : 'bg-primary/80 hover:bg-primary'}`}
                             size="default"
                           >
                             {isSelected ? 'Selected' : 'Select Program'}
@@ -222,9 +222,9 @@ export default function TrainingPrograms() {
           {/* Step 2: Bundle Packages */}
           <section className="py-12 md:py-16 bg-gradient-to-b from-primary/5 to-background">
             <div className="container max-w-6xl mx-auto px-4">
-              <div className="flex items-center gap-3 mb-8">
+              <div className="flex items-center justify-center gap-3 mb-8">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-medium">2</div>
-                <h2 className="font-playfair text-xl font-normal tracking-wide flex items-center gap-2 text-foreground">
+                <h2 className="font-playfair text-2xl font-normal tracking-wide flex items-center gap-2 text-foreground">
                   <Sparkles className="h-5 w-5 text-primary" />
                   Bundle Packages
                 </h2>
@@ -259,7 +259,7 @@ export default function TrainingPrograms() {
                           <Sparkles className="h-3.5 w-3.5 text-primary" />
                           <span className="text-xs font-medium text-primary uppercase tracking-wider">Bundle & Save</span>
                         </div>
-                        <h3 className="font-playfair text-xl font-normal leading-tight text-foreground mb-3 pr-8">
+                        <h3 className="font-playfair text-[1.35rem] font-normal leading-tight text-foreground mb-3 pr-8">
                           {program.name}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -270,8 +270,8 @@ export default function TrainingPrograms() {
                             <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
                           </div>
                           <Button 
-                            variant={isSelected ? "default" : "secondary"}
-                            className={`w-full transition-all ${isSelected ? '' : 'group-hover:bg-primary group-hover:text-primary-foreground'}`}
+                            variant="default"
+                            className={`w-full transition-all ${isSelected ? 'bg-primary' : 'bg-primary/80 hover:bg-primary'}`}
                             size="default"
                           >
                             {isSelected ? 'Selected' : 'Select Package'}
