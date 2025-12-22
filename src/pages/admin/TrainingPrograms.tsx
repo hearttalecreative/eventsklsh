@@ -11,7 +11,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, ExternalLink, Copy, Check } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, ExternalLink, Copy, Check, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TrainingProgram {
   id: string;
@@ -33,6 +50,87 @@ const formatPrice = (cents: number) => {
   return (cents / 100).toFixed(2);
 };
 
+interface SortableRowProps {
+  program: TrainingProgram;
+  onEdit: (program: TrainingProgram) => void;
+  onDelete: (id: string) => void;
+}
+
+function SortableRow({ program, onEdit, onDelete }: SortableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: program.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className={isDragging ? 'bg-muted/50' : ''}>
+      <TableCell className="w-10">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </TableCell>
+      <TableCell className="font-medium">{program.name}</TableCell>
+      <TableCell>${formatPrice(program.price_cents)}</TableCell>
+      <TableCell>{program.processing_fee_percent}%</TableCell>
+      <TableCell>
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          program.is_bundle 
+            ? 'bg-primary/10 text-primary' 
+            : 'bg-muted text-muted-foreground'
+        }`}>
+          {program.is_bundle ? 'Bundle' : 'Individual'}
+        </span>
+      </TableCell>
+      <TableCell>
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          program.active 
+            ? 'bg-green-500/10 text-green-600' 
+            : 'bg-red-500/10 text-red-600'
+        }`}>
+          {program.active ? 'Active' : 'Inactive'}
+        </span>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onEdit(program)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (confirm('Are you sure you want to delete this program?')) {
+                onDelete(program.id);
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export default function AdminTrainingPrograms() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,11 +142,21 @@ export default function AdminTrainingPrograms() {
     price_cents: '',
     processing_fee_percent: '3.5',
     is_bundle: false,
-    display_order: '0',
     active: true,
   });
 
   const publicUrl = `${window.location.origin}/trainings`;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data: programs, isLoading } = useQuery({
     queryKey: ['admin-training-programs'],
@@ -65,14 +173,16 @@ export default function AdminTrainingPrograms() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData & { id?: string }) => {
+      const maxOrder = programs?.length ? Math.max(...programs.map(p => p.display_order)) : -1;
+      
       const payload = {
         name: data.name,
         description: data.description || null,
         price_cents: Math.round(parseFloat(data.price_cents) * 100),
         processing_fee_percent: parseFloat(data.processing_fee_percent) || 3.5,
         is_bundle: data.is_bundle,
-        display_order: parseInt(data.display_order) || 0,
         active: data.active,
+        ...(data.id ? {} : { display_order: maxOrder + 1 }),
       };
 
       if (data.id) {
@@ -98,6 +208,31 @@ export default function AdminTrainingPrograms() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedPrograms: { id: string; display_order: number }[]) => {
+      const updates = orderedPrograms.map(({ id, display_order }) =>
+        supabase
+          .from('training_programs')
+          .update({ display_order })
+          .eq('id', id)
+      );
+      
+      const results = await Promise.all(updates);
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) {
+        throw new Error('Failed to update order');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-training-programs'] });
+      toast.success('Order updated');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update order');
+      queryClient.invalidateQueries({ queryKey: ['admin-training-programs'] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -115,6 +250,28 @@ export default function AdminTrainingPrograms() {
     },
   });
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id || !programs) return;
+
+    const oldIndex = programs.findIndex(p => p.id === active.id);
+    const newIndex = programs.findIndex(p => p.id === over.id);
+
+    const reorderedPrograms = arrayMove(programs, oldIndex, newIndex);
+    
+    // Optimistically update the cache
+    queryClient.setQueryData(['admin-training-programs'], reorderedPrograms);
+
+    // Prepare the updates
+    const updates = reorderedPrograms.map((program, index) => ({
+      id: program.id,
+      display_order: index,
+    }));
+
+    reorderMutation.mutate(updates);
+  };
+
   const handleOpenDialog = (program?: TrainingProgram) => {
     if (program) {
       setEditingProgram(program);
@@ -124,7 +281,6 @@ export default function AdminTrainingPrograms() {
         price_cents: formatPrice(program.price_cents),
         processing_fee_percent: program.processing_fee_percent.toString(),
         is_bundle: program.is_bundle,
-        display_order: program.display_order.toString(),
         active: program.active,
       });
     } else {
@@ -135,7 +291,6 @@ export default function AdminTrainingPrograms() {
         price_cents: '',
         processing_fee_percent: '3.5',
         is_bundle: false,
-        display_order: '0',
         active: true,
       });
     }
@@ -229,16 +384,6 @@ export default function AdminTrainingPrograms() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="order">Display Order</Label>
-                    <Input
-                      id="order"
-                      type="number"
-                      min="0"
-                      value={formData.display_order}
-                      onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
-                    />
-                  </div>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="is_bundle">Is Bundle?</Label>
                     <Switch
@@ -292,73 +437,52 @@ export default function AdminTrainingPrograms() {
 
           {/* Programs Table */}
           <Card>
+            <CardHeader className="pb-3">
+              <CardDescription className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4" />
+                Drag rows to reorder programs
+              </CardDescription>
+            </CardHeader>
             <CardContent className="p-0">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : programs && programs.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Fee</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {programs.map((program) => (
-                      <TableRow key={program.id}>
-                        <TableCell className="font-medium">{program.name}</TableCell>
-                        <TableCell>${formatPrice(program.price_cents)}</TableCell>
-                        <TableCell>{program.processing_fee_percent}%</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            program.is_bundle 
-                              ? 'bg-primary/10 text-primary' 
-                              : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {program.is_bundle ? 'Bundle' : 'Individual'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            program.active 
-                              ? 'bg-green-500/10 text-green-600' 
-                              : 'bg-red-500/10 text-red-600'
-                          }`}>
-                            {program.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog(program)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                if (confirm('Are you sure you want to delete this program?')) {
-                                  deleteMutation.mutate(program.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10"></TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Fee</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      <SortableContext
+                        items={programs.map(p => p.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {programs.map((program) => (
+                          <SortableRow
+                            key={program.id}
+                            program={program}
+                            onEdit={handleOpenDialog}
+                            onDelete={(id) => deleteMutation.mutate(id)}
+                          />
+                        ))}
+                      </SortableContext>
+                    </TableBody>
+                  </Table>
+                </DndContext>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   No training programs yet. Create your first one!
