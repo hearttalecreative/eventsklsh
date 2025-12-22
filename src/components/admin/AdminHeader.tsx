@@ -11,7 +11,6 @@ import {
   Users,
   UserPlus,
   Shield,
-  AlertTriangle,
   Home,
   FileWarning,
   GraduationCap
@@ -88,12 +87,6 @@ const AdminHeader = () => {
       label: "Logs",
       icon: FileWarning,
       iconOnly: false,
-    },
-    {
-      path: "/admin/cleanup-duplicates",
-      label: "Cleanup",
-      icon: AlertTriangle,
-      iconOnly: true,
     },
     {
       path: "/admin/training-programs",
