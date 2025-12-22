@@ -54,9 +54,11 @@ interface SortableRowProps {
   program: TrainingProgram;
   onEdit: (program: TrainingProgram) => void;
   onDelete: (id: string) => void;
+  onCopyLink: (program: TrainingProgram) => void;
+  copiedId: string | null;
 }
 
-function SortableRow({ program, onEdit, onDelete }: SortableRowProps) {
+function SortableRow({ program, onEdit, onDelete, onCopyLink, copiedId }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -71,6 +73,8 @@ function SortableRow({ program, onEdit, onDelete }: SortableRowProps) {
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const isCopied = copiedId === program.id;
 
   return (
     <TableRow ref={setNodeRef} style={style} className={isDragging ? 'bg-muted/50' : ''}>
@@ -106,7 +110,15 @@ function SortableRow({ program, onEdit, onDelete }: SortableRowProps) {
         </span>
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onCopyLink(program)}
+            title="Copy direct link"
+          >
+            {isCopied ? <Check className="h-4 w-4 text-green-600" /> : <ExternalLink className="h-4 w-4" />}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -136,6 +148,7 @@ export default function AdminTrainingPrograms() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedProgramId, setCopiedProgramId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -314,6 +327,14 @@ export default function AdminTrainingPrograms() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyProgramLink = (program: TrainingProgram) => {
+    const directUrl = `${window.location.origin}/trainings?program=${program.id}`;
+    navigator.clipboard.writeText(directUrl);
+    setCopiedProgramId(program.id);
+    toast.success(`Direct link for "${program.name}" copied`);
+    setTimeout(() => setCopiedProgramId(null), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AdminHeader />
@@ -477,6 +498,8 @@ export default function AdminTrainingPrograms() {
                             program={program}
                             onEdit={handleOpenDialog}
                             onDelete={(id) => deleteMutation.mutate(id)}
+                            onCopyLink={handleCopyProgramLink}
+                            copiedId={copiedProgramId}
                           />
                         ))}
                       </SortableContext>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2, Check, GraduationCap, Sparkles, ChevronDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 interface TrainingProgram {
   id: string;
@@ -34,6 +34,10 @@ const formatPrice = (cents: number) => {
 };
 
 export default function TrainingPrograms() {
+  const [searchParams] = useSearchParams();
+  const programIdFromUrl = searchParams.get('program');
+  const isDirectLink = !!programIdFromUrl;
+
   const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -44,8 +48,22 @@ export default function TrainingPrograms() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: programs, isLoading } = useQuery({
-    queryKey: ['training-programs'],
+    queryKey: ['training-programs', programIdFromUrl],
     queryFn: async () => {
+      // If direct link, fetch only that program
+      if (programIdFromUrl) {
+        const { data, error } = await supabase
+          .from('training_programs')
+          .select('*')
+          .eq('id', programIdFromUrl)
+          .eq('active', true)
+          .single();
+        
+        if (error) throw error;
+        return data ? [data as TrainingProgram] : [];
+      }
+      
+      // Otherwise fetch all active programs
       const { data, error } = await supabase
         .from('training_programs')
         .select('*')
@@ -56,6 +74,13 @@ export default function TrainingPrograms() {
       return data as TrainingProgram[];
     },
   });
+
+  // Auto-select program when accessed via direct link
+  useEffect(() => {
+    if (isDirectLink && programs?.length === 1) {
+      setSelectedProgram(programs[0]);
+    }
+  }, [isDirectLink, programs]);
 
   const individualPrograms = programs?.filter(p => !p.is_bundle) || [];
   const bundles = programs?.filter(p => p.is_bundle) || [];
@@ -107,6 +132,132 @@ export default function TrainingPrograms() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  // Direct link mode: show only the selected program and form
+  if (isDirectLink && selectedProgram) {
+    return (
+      <>
+        <Helmet>
+          <title>{selectedProgram.name} | Kyle Lam Sound Healing</title>
+          <meta name="description" content={selectedProgram.description || 'Book your private sound healing training.'} />
+        </Helmet>
+
+        <div className="min-h-screen bg-background flex flex-col">
+          {/* Header */}
+          <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-16 max-w-screen-2xl items-center justify-center">
+              <Link to="/">
+                <img 
+                  src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" 
+                  alt="Kyle Lam Sound Healing" 
+                  className="h-8 w-auto"
+                />
+              </Link>
+            </div>
+          </header>
+
+          <main className="flex-1">
+            {/* Hero Section */}
+            <section className="bg-gradient-to-b from-primary/5 to-background py-12 md:py-16">
+              <div className="container max-w-4xl mx-auto px-4 text-center">
+                <h1 className="font-playfair text-3xl md:text-4xl font-normal tracking-wide mb-4 text-foreground">
+                  {selectedProgram.name}
+                </h1>
+                {selectedProgram.description && (
+                  <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                    {selectedProgram.description}
+                  </p>
+                )}
+                <div className="mt-6">
+                  <span className="text-3xl font-semibold text-foreground">{formatPrice(selectedProgram.price_cents)}</span>
+                  <span className="text-sm text-muted-foreground ml-2">+ 3.5% processing fee</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Registration Form */}
+            <section id="registration-form" className="py-12 md:py-16 bg-muted/30">
+              <div className="container max-w-xl mx-auto px-4">
+                <h2 className="font-playfair text-xl font-normal tracking-wide text-foreground text-center mb-8">
+                  Complete Your Registration
+                </h2>
+                
+                <Card className="shadow-lg border-border/50">
+                  <CardContent className="p-6 md:p-8">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Full Name *</Label>
+                        <Input
+                          id="fullName"
+                          placeholder="Enter your full name"
+                          value={formData.fullName}
+                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your@email.com"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number *</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
+                        <Input
+                          id="preferredDates"
+                          placeholder="e.g., January 15-17, 2025 or flexible weekends"
+                          value={formData.preferredDates}
+                          onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <Button 
+                        type="submit" 
+                        className="w-full mt-6" 
+                        size="lg"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          `Proceed to Payment - ${formatPrice(selectedProgram.price_cents + calculateFee(selectedProgram.price_cents, selectedProgram.processing_fee_percent))}`
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                <p className="text-center text-sm text-muted-foreground mt-6">
+                  <Link to="/training-programs" className="text-primary hover:underline">
+                    View all training programs
+                  </Link>
+                </p>
+              </div>
+            </section>
+          </main>
+        </div>
+      </>
     );
   }
 
