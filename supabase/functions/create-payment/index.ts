@@ -140,31 +140,33 @@ serve(async (req) => {
     if (!ticket) throw new Error("Ticket not found");
     if (ticket.event_id !== cart.eventId) throw new Error("Ticket does not belong to event");
 
-    // Check ticket availability
+    // Check ticket availability - capacity_total is in UNITS (purchasable tickets), not attendees
     const { data: paidOrders } = await supabase
       .from("order_items")
       .select("quantity, orders!inner(status)")
       .eq("ticket_id", cart.ticketId)
       .eq("orders.status", "paid");
 
-    const soldFromOrders = (paidOrders || []).reduce((sum: number, item: any) => {
-      return sum + (item.quantity * (ticket.participants_per_ticket || 1));
+    // Count sold UNITS (not attendees)
+    const soldUnitsFromOrders = (paidOrders || []).reduce((sum: number, item: any) => {
+      return sum + item.quantity;
     }, 0);
 
+    // Count comped attendees and convert to units
     const { count: compedCount } = await supabase
       .from("attendees")
       .select("id", { count: "exact", head: true })
       .eq("comped_ticket_id", cart.ticketId)
       .eq("is_comped", true);
 
-    const totalSold = soldFromOrders + (compedCount || 0);
-    const requestedTotal = cart.ticketQty * (ticket.participants_per_ticket || 1);
-    const available = ticket.capacity_total - totalSold;
+    const compedUnits = Math.ceil((compedCount || 0) / (ticket.participants_per_ticket || 1));
+    const totalSoldUnits = soldUnitsFromOrders + compedUnits;
+    const availableUnits = ticket.capacity_total - totalSoldUnits;
 
-    console.log(`[create-payment] Ticket availability check: capacity=${ticket.capacity_total}, sold=${totalSold}, requested=${requestedTotal}, available=${available}`);
+    console.log(`[create-payment] Ticket availability check: capacity=${ticket.capacity_total} units, sold=${totalSoldUnits} units, requested=${cart.ticketQty} units, available=${availableUnits} units`);
 
-    if (available < requestedTotal) {
-      throw new Error(`Only ${Math.floor(available / (ticket.participants_per_ticket || 1))} tickets available. This ticket is sold out or has limited capacity.`);
+    if (availableUnits < cart.ticketQty) {
+      throw new Error(`Only ${availableUnits} tickets available. This ticket is sold out or has limited capacity.`);
     }
 
     const { data: event, error: eventErr } = await supabase

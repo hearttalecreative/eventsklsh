@@ -34,44 +34,35 @@ serve(async (req) => {
     if (ticketErr) throw ticketErr;
     if (!ticket) throw new Error("Ticket not found");
 
-    // Count actual attendees from paid orders instead of using order_item quantities
-    // This ensures accurate counting when individual attendees are deleted
-    const { data: paidOrderItems } = await supabase
+    // Count sold UNITS from paid orders (capacity_total is in units, not attendees)
+    const { data: paidOrders } = await supabase
       .from("order_items")
-      .select("id, orders!inner(status)")
+      .select("quantity, orders!inner(status)")
       .eq("ticket_id", ticketId)
       .eq("orders.status", "paid");
 
-    const orderItemIds = (paidOrderItems || []).map(item => item.id);
-    
-    let paidAttendeesCount = 0;
-    if (orderItemIds.length > 0) {
-      const { count } = await supabase
-        .from("attendees")
-        .select("id", { count: "exact", head: true })
-        .in("order_item_id", orderItemIds);
-      
-      paidAttendeesCount = count || 0;
-    }
+    const soldUnitsFromOrders = (paidOrders || []).reduce((sum: number, item: any) => {
+      return sum + item.quantity;
+    }, 0);
 
-    // Count comped attendees for this specific ticket
+    // Count comped attendees and convert to units
     const { count: compedCount } = await supabase
       .from("attendees")
       .select("id", { count: "exact", head: true })
       .eq("comped_ticket_id", ticketId)
       .eq("is_comped", true);
 
-    const totalSold = paidAttendeesCount + (compedCount || 0);
-    const available = ticket.capacity_total - totalSold;
-    const requestedTotal = requestedQty * (ticket.participants_per_ticket || 1);
+    const compedUnits = Math.ceil((compedCount || 0) / (ticket.participants_per_ticket || 1));
+    const totalSoldUnits = soldUnitsFromOrders + compedUnits;
+    const availableUnits = ticket.capacity_total - totalSoldUnits;
 
-    console.log(`[check-ticket-availability] Ticket ${ticketId}: capacity=${ticket.capacity_total}, sold=${totalSold}, available=${available}, requested=${requestedTotal}`);
+    console.log(`[check-ticket-availability] Ticket ${ticketId}: capacity=${ticket.capacity_total} units, sold=${totalSoldUnits} units, available=${availableUnits} units, requested=${requestedQty} units`);
 
     return new Response(JSON.stringify({
-      available: available >= requestedTotal,
+      available: availableUnits >= requestedQty,
       capacityTotal: ticket.capacity_total,
-      sold: totalSold,
-      remaining: Math.max(0, available),
+      sold: totalSoldUnits,
+      remaining: Math.max(0, availableUnits),
       requestedQty,
       participantsPerTicket: ticket.participants_per_ticket || 1
     }), {
