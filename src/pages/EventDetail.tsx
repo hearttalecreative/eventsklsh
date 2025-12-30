@@ -499,12 +499,11 @@ const proceed = async () => {
                 <Input
                   type="number"
                   min={1}
-                  max={ticketAvailability ? Math.floor(ticketAvailability.remaining / (selectedTicket.participantsPerTicket || 1)) : selectedTicket.capacityTotal}
+                  max={ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal}
                   value={quantityTickets}
                   onChange={(e) => {
-                    const maxTickets = ticketAvailability 
-                      ? Math.floor(ticketAvailability.remaining / (selectedTicket.participantsPerTicket || 1))
-                      : selectedTicket.capacityTotal;
+                    // remaining is already in UNITS (purchasable tickets), not attendees
+                    const maxTickets = ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal;
                     setQuantityTickets(clamp(parseInt(e.target.value || '1', 10), 1, maxTickets));
                   }}
                   className="w-20 text-center"
@@ -512,9 +511,8 @@ const proceed = async () => {
                 />
                 <Button type="button" variant="outline" size="icon" aria-label="Increase tickets"
                   onClick={() => {
-                    const maxTickets = ticketAvailability 
-                      ? Math.floor(ticketAvailability.remaining / (selectedTicket.participantsPerTicket || 1))
-                      : selectedTicket.capacityTotal;
+                    // remaining is already in UNITS (purchasable tickets), not attendees
+                    const maxTickets = ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal;
                     setQuantityTickets((v) => clamp(v + 1, 1, maxTickets));
                   }}
                   disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}>
