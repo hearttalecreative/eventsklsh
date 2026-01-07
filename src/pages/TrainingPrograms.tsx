@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2, Check, GraduationCap, Sparkles, ChevronDown } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -39,6 +40,7 @@ export default function TrainingPrograms() {
   const isDirectLink = !!programIdFromUrl;
 
   const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -94,6 +96,11 @@ export default function TrainingPrograms() {
 
     if (!formData.fullName || !formData.email || !formData.phone || !formData.preferredDates) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      toast.error('Please accept the terms and conditions');
       return;
     }
 
@@ -229,11 +236,35 @@ export default function TrainingPrograms() {
                           required
                         />
                       </div>
+                      <div className="flex items-start space-x-3 pt-2">
+                        <Checkbox
+                          id="terms-direct"
+                          checked={acceptedTerms}
+                          onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                          required
+                        />
+                        <label
+                          htmlFor="terms-direct"
+                          className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                        >
+                          I have read and agree to the{' '}
+                          <a
+                            href="https://kylelamsoundhealing.com/private-training-terms-conditions/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Terms and Conditions
+                          </a>
+                          {' '}*
+                        </label>
+                      </div>
                       <Button 
                         type="submit" 
                         className="w-full mt-6" 
                         size="lg"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !acceptedTerms}
                       >
                         {isSubmitting ? (
                           <>
@@ -520,11 +551,36 @@ export default function TrainingPrograms() {
                         disabled={!selectedProgram}
                       />
                     </div>
+                    <div className="flex items-start space-x-3 pt-2">
+                      <Checkbox
+                        id="terms"
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                        disabled={!selectedProgram}
+                        required
+                      />
+                      <label
+                        htmlFor="terms"
+                        className={`text-sm leading-relaxed cursor-pointer ${!selectedProgram ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}
+                      >
+                        I have read and agree to the{' '}
+                        <a
+                          href="https://kylelamsoundhealing.com/private-training-terms-conditions/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Terms and Conditions
+                        </a>
+                        {' '}*
+                      </label>
+                    </div>
                     <Button 
                       type="submit" 
                       className="w-full mt-6" 
                       size="lg"
-                      disabled={!selectedProgram || isSubmitting}
+                      disabled={!selectedProgram || isSubmitting || !acceptedTerms}
                     >
                       {isSubmitting ? (
                         <>
