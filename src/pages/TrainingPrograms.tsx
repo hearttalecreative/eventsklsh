@@ -34,6 +34,65 @@ const formatPrice = (cents: number) => {
   }).format(cents / 100);
 };
 
+// Component for displaying bundle packages in direct link mode
+function BundlesSection({ currentProgramId }: { currentProgramId: string }) {
+  const { data: bundles, isLoading } = useQuery({
+    queryKey: ['training-bundles-for-direct-link'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('training_programs')
+        .select('*')
+        .eq('active', true)
+        .eq('is_bundle', true)
+        .order('display_order', { ascending: true });
+      
+      if (error) throw error;
+      return data as TrainingProgram[];
+    },
+  });
+
+  if (isLoading || !bundles || bundles.length === 0) return null;
+
+  return (
+    <section className="py-12 bg-gradient-to-b from-primary/5 to-background">
+      <div className="container max-w-4xl mx-auto px-4 text-center">
+        <h3 className="font-playfair text-lg md:text-xl font-normal tracking-wide text-foreground mb-2">
+          Looking to save even more and bundle additional levels?
+        </h3>
+        <p className="text-muted-foreground mb-8">
+          View all our training packages below:
+        </p>
+        
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {bundles.map((bundle) => (
+            <Link
+              key={bundle.id}
+              to={`/trainings?program=${bundle.id}`}
+              className="block"
+            >
+              <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 border-primary/30 bg-gradient-to-br from-background to-primary/5">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-medium text-primary uppercase tracking-wider">Bundle & Save</span>
+                  </div>
+                  <h4 className="font-playfair text-base font-normal text-foreground mb-2 text-left">
+                    {bundle.name}
+                  </h4>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-lg font-semibold text-foreground">{formatPrice(bundle.price_cents)}</span>
+                    <span className="text-xs text-primary font-medium">View Details →</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function TrainingPrograms() {
   const [searchParams] = useSearchParams();
   const programIdFromUrl = searchParams.get('program');
@@ -181,6 +240,9 @@ export default function TrainingPrograms() {
                   <span className="text-3xl font-semibold text-foreground">{formatPrice(selectedProgram.price_cents)}</span>
                   <span className="text-sm text-muted-foreground ml-2">+ 3.5% processing fee</span>
                 </div>
+                <p className="mt-4 text-sm text-muted-foreground italic">
+                  Upon completion of registration, our team will reach out regarding date confirmation.
+                </p>
               </div>
             </section>
 
@@ -280,12 +342,15 @@ export default function TrainingPrograms() {
                 </Card>
 
                 <p className="text-center text-sm text-muted-foreground mt-6">
-                  <Link to="/training-programs" className="text-primary hover:underline">
+                  <Link to="/trainings" className="text-primary hover:underline">
                     View all training programs
                   </Link>
                 </p>
               </div>
             </section>
+
+            {/* Bundle Packages Section */}
+            <BundlesSection currentProgramId={selectedProgram.id} />
           </main>
         </div>
       </>
