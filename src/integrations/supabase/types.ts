@@ -308,6 +308,7 @@ export type Database = {
           id: string
           max_redemptions: number | null
           one_per_customer: boolean
+          one_per_customer_per_event: boolean
           starts_at: string | null
           updated_at: string
         }
@@ -324,6 +325,7 @@ export type Database = {
           id?: string
           max_redemptions?: number | null
           one_per_customer?: boolean
+          one_per_customer_per_event?: boolean
           starts_at?: string | null
           updated_at?: string
         }
@@ -340,6 +342,7 @@ export type Database = {
           id?: string
           max_redemptions?: number | null
           one_per_customer?: boolean
+          one_per_customer_per_event?: boolean
           starts_at?: string | null
           updated_at?: string
         }

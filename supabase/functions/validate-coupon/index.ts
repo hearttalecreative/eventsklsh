@@ -34,7 +34,7 @@ serve(async (req: Request) => {
     // Prefer event-specific coupon over global; only admins can read coupons via service role
     const { data: coupons, error } = await supabaseService
       .from('coupons')
-      .select('id, code, discount_percent, discount_amount_cents, apply_to, event_id, starts_at, ends_at, max_redemptions, active, one_per_customer')
+      .select('id, code, discount_percent, discount_amount_cents, apply_to, event_id, starts_at, ends_at, max_redemptions, active, one_per_customer, one_per_customer_per_event')
       .or(`event_id.eq.${eventId},event_id.is.null`)
       .ilike('code', code)
       .eq('active', true)
@@ -78,7 +78,7 @@ serve(async (req: Request) => {
       }
     }
 
-    // One per customer check
+    // One per customer check (global - across all events)
     if (chosen.one_per_customer) {
       if (!buyerEmail) {
         // Cannot validate without email - require email for one_per_customer coupons
@@ -105,6 +105,41 @@ serve(async (req: Request) => {
           valid: false, 
           reason: 'already_used_by_email',
           message: 'You have already used this coupon'
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
+    // One per customer per event check (allows same person to use once per different event)
+    if (chosen.one_per_customer_per_event) {
+      if (!buyerEmail) {
+        return new Response(JSON.stringify({ 
+          valid: false, 
+          reason: 'email_required',
+          message: 'Please enter participant email before applying this coupon'
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      
+      // Check if this email already used this coupon for THIS specific event
+      const { count: emailEventCount, error: emailEventErr } = await supabaseService
+        .from('coupon_redemptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('coupon_id', chosen.id)
+        .eq('event_id', eventId)
+        .ilike('email', buyerEmail);
+      
+      if (emailEventErr) throw emailEventErr;
+      
+      if ((emailEventCount ?? 0) > 0) {
+        return new Response(JSON.stringify({ 
+          valid: false, 
+          reason: 'already_used_for_event',
+          message: 'You have already used this coupon for this event'
         }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
