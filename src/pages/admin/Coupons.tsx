@@ -21,6 +21,7 @@ interface Coupon {
   ends_at?: string | null;
   max_redemptions?: number | null;
   one_per_customer?: boolean;
+  one_per_customer_per_event?: boolean;
   active: boolean;
 }
 
@@ -137,15 +138,37 @@ const CouponsPage = () => {
               <Input type="number" min={0} value={form.max_redemptions ?? ''} onChange={(e)=>setForm(f=>({...f, max_redemptions: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="Unlimited" />
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Checkbox 
-              id="one_per_customer" 
-              checked={form.one_per_customer ?? false} 
-              onCheckedChange={(v) => setForm(f => ({ ...f, one_per_customer: Boolean(v) }))} 
-            />
-            <label htmlFor="one_per_customer" className="text-sm cursor-pointer">
-              Limit to one use per customer (email)
-            </label>
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="one_per_customer" 
+                checked={form.one_per_customer ?? false} 
+                onCheckedChange={(v) => setForm(f => ({ 
+                  ...f, 
+                  one_per_customer: Boolean(v),
+                  // Disable the other option if this is selected
+                  one_per_customer_per_event: Boolean(v) ? false : f.one_per_customer_per_event
+                }))} 
+              />
+              <label htmlFor="one_per_customer" className="text-sm cursor-pointer">
+                Limit to one use per customer (email) - globally
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="one_per_customer_per_event" 
+                checked={form.one_per_customer_per_event ?? false} 
+                onCheckedChange={(v) => setForm(f => ({ 
+                  ...f, 
+                  one_per_customer_per_event: Boolean(v),
+                  // Disable the other option if this is selected
+                  one_per_customer: Boolean(v) ? false : f.one_per_customer
+                }))} 
+              />
+              <label htmlFor="one_per_customer_per_event" className="text-sm cursor-pointer">
+                Limit to one use per customer per event (can use once on each different event)
+              </label>
+            </div>
           </div>
           <div className="mt-4">
             <Button onClick={create}>Create coupon</Button>
@@ -170,7 +193,8 @@ const CouponsPage = () => {
                     </div>
                     <div className="text-muted-foreground text-xs">
                       {c.discount_percent != null ? `${c.discount_percent}%` : `${c.discount_amount_cents}¢`} · {c.apply_to}
-                      {c.one_per_customer && <span className="ml-2 text-primary">• 1 per customer</span>}
+                      {c.one_per_customer && <span className="ml-2 text-primary">• 1 per customer (global)</span>}
+                      {c.one_per_customer_per_event && <span className="ml-2 text-primary">• 1 per customer per event</span>}
                     </div>
                   </div>
                   <Button variant="destructive" onClick={()=>remove(c.id)}>Eliminar</Button>
