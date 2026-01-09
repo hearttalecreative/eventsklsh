@@ -17,6 +17,7 @@ serve(async (req: Request) => {
     
     // Validate and sanitize input
     const { eventId, code } = validateCouponInput(payload.eventId, payload.code);
+    const buyerEmail = payload.email ? String(payload.email).toLowerCase().trim() : null;
 
     const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -33,7 +34,7 @@ serve(async (req: Request) => {
     // Prefer event-specific coupon over global; only admins can read coupons via service role
     const { data: coupons, error } = await supabaseService
       .from('coupons')
-      .select('id, code, discount_percent, discount_amount_cents, apply_to, event_id, starts_at, ends_at, max_redemptions, active')
+      .select('id, code, discount_percent, discount_amount_cents, apply_to, event_id, starts_at, ends_at, max_redemptions, active, one_per_customer')
       .or(`event_id.eq.${eventId},event_id.is.null`)
       .ilike('code', code)
       .eq('active', true)
@@ -70,7 +71,41 @@ serve(async (req: Request) => {
         .eq('coupon_id', chosen.id);
       if (cntErr) throw cntErr;
       if ((count ?? 0) >= chosen.max_redemptions) {
-        return new Response(JSON.stringify({ valid: false }), {
+        return new Response(JSON.stringify({ valid: false, reason: 'max_redemptions_reached' }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
+    // One per customer check
+    if (chosen.one_per_customer) {
+      if (!buyerEmail) {
+        // Cannot validate without email - require email for one_per_customer coupons
+        return new Response(JSON.stringify({ 
+          valid: false, 
+          reason: 'email_required',
+          message: 'Please enter participant email before applying this coupon'
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      
+      const { count: emailCount, error: emailErr } = await supabaseService
+        .from('coupon_redemptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('coupon_id', chosen.id)
+        .ilike('email', buyerEmail);
+      
+      if (emailErr) throw emailErr;
+      
+      if ((emailCount ?? 0) > 0) {
+        return new Response(JSON.stringify({ 
+          valid: false, 
+          reason: 'already_used_by_email',
+          message: 'You have already used this coupon'
+        }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });

@@ -656,9 +656,11 @@ const proceed = async () => {
               <Input placeholder="Coupon code" value={coupon} onChange={(e) => { setCoupon(e.target.value); setCouponValid(false); }} className="max-w-xs" />
               <Button type="button" variant="outline" onClick={async () => {
                 if (!coupon) { toast.error('Enter a coupon'); return; }
+                // Get primary participant email for one_per_customer validation
+                const primaryEmail = participants[0]?.email?.toLowerCase().trim() || null;
                 try {
                   const { data, error } = await supabase.functions.invoke('validate-coupon', {
-                    body: { eventId: event.id, code: coupon }
+                    body: { eventId: event.id, code: coupon, email: primaryEmail }
                   });
                   if (error) throw error as any;
                   if (data?.valid) {
@@ -667,7 +669,9 @@ const proceed = async () => {
                     toast.success('Coupon applied');
                   } else {
                     setCouponValid(false);
-                    toast.error('Invalid coupon');
+                    // Show specific message if provided
+                    const errorMsg = data?.message || 'Invalid coupon';
+                    toast.error(errorMsg);
                   }
                 } catch (err: any) {
                   toast.error(err?.message || 'Failed to validate coupon');

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import AdminRoute from "@/routes/AdminRoute";
 import { toast } from "sonner";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -19,6 +20,7 @@ interface Coupon {
   starts_at?: string | null;
   ends_at?: string | null;
   max_redemptions?: number | null;
+  one_per_customer?: boolean;
   active: boolean;
 }
 
@@ -135,7 +137,17 @@ const CouponsPage = () => {
               <Input type="number" min={0} value={form.max_redemptions ?? ''} onChange={(e)=>setForm(f=>({...f, max_redemptions: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="Unlimited" />
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-2 mt-2">
+            <Checkbox 
+              id="one_per_customer" 
+              checked={form.one_per_customer ?? false} 
+              onCheckedChange={(v) => setForm(f => ({ ...f, one_per_customer: Boolean(v) }))} 
+            />
+            <label htmlFor="one_per_customer" className="text-sm cursor-pointer">
+              Limit to one use per customer (email)
+            </label>
+          </div>
+          <div className="mt-4">
             <Button onClick={create}>Create coupon</Button>
           </div>
         </section>
@@ -156,7 +168,10 @@ const CouponsPage = () => {
                         <span className="text-muted-foreground"> (Todos los eventos)</span>
                       )}
                     </div>
-                    <div className="text-muted-foreground text-xs">{c.discount_percent != null ? `${c.discount_percent}%` : `${c.discount_amount_cents}¢`} · {c.apply_to}</div>
+                    <div className="text-muted-foreground text-xs">
+                      {c.discount_percent != null ? `${c.discount_percent}%` : `${c.discount_amount_cents}¢`} · {c.apply_to}
+                      {c.one_per_customer && <span className="ml-2 text-primary">• 1 per customer</span>}
+                    </div>
                   </div>
                   <Button variant="destructive" onClick={()=>remove(c.id)}>Eliminar</Button>
                 </div>
