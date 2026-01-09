@@ -307,6 +307,7 @@ export type Database = {
           event_id: string | null
           id: string
           max_redemptions: number | null
+          one_per_customer: boolean
           starts_at: string | null
           updated_at: string
         }
@@ -322,6 +323,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           max_redemptions?: number | null
+          one_per_customer?: boolean
           starts_at?: string | null
           updated_at?: string
         }
@@ -337,6 +339,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           max_redemptions?: number | null
+          one_per_customer?: boolean
           starts_at?: string | null
           updated_at?: string
         }
