@@ -41,7 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -324,7 +324,7 @@ const Dashboard = () => {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd MMM yyyy", { locale: es }) : "Fecha inicio"}
+                    {startDate ? format(startDate, "MMM dd, yyyy") : "Start date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -343,7 +343,7 @@ const Dashboard = () => {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "dd MMM yyyy", { locale: es }) : "Fecha fin"}
+                    {endDate ? format(endDate, "MMM dd, yyyy") : "End date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -359,7 +359,7 @@ const Dashboard = () => {
               
               {(startDate || endDate) && (
                 <Button variant="ghost" size="sm" onClick={clearDateRange}>
-                  Limpiar
+                  Clear
                 </Button>
               )}
             </div>
@@ -367,10 +367,10 @@ const Dashboard = () => {
             {(startDate || endDate) && (
               <p className="text-sm text-muted-foreground">
                 {startDate && endDate 
-                  ? `Mostrando eventos del ${format(startDate, "dd MMM yyyy", { locale: es })} al ${format(endDate, "dd MMM yyyy", { locale: es })}`
+                  ? `Showing events from ${format(startDate, "MMM dd, yyyy")} to ${format(endDate, "MMM dd, yyyy")}`
                   : startDate 
-                    ? `Mostrando eventos desde ${format(startDate, "dd MMM yyyy", { locale: es })}`
-                    : `Mostrando eventos hasta ${format(endDate!, "dd MMM yyyy", { locale: es })}`
+                    ? `Showing events from ${format(startDate, "MMM dd, yyyy")}`
+                    : `Showing events until ${format(endDate!, "MMM dd, yyyy")}`
                 }
               </p>
             )}
@@ -381,65 +381,65 @@ const Dashboard = () => {
         <section className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tickets Vendidos</CardTitle>
+              <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
               <Ticket className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">{totalTicketsSold}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {filteredAnalytics.length} evento{filteredAnalytics.length !== 1 ? 's' : ''}
+                {filteredAnalytics.length} event{filteredAnalytics.length !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Asistentes (Check-in)</CardTitle>
+              <CardTitle className="text-sm font-medium">Checked In</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">{totalCheckedIn}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalAttendees > 0 ? Math.round((totalCheckedIn / totalAttendees) * 100) : 0}% de {totalAttendees} registrados
+                {totalAttendees > 0 ? Math.round((totalCheckedIn / totalAttendees) * 100) : 0}% of {totalAttendees} registered
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ingresos Tickets</CardTitle>
+              <CardTitle className="text-sm font-medium">Ticket Revenue</CardTitle>
               <Ticket className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalTicketRevenue)}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalRevenue > 0 ? Math.round((totalTicketRevenue / totalRevenue) * 100) : 0}% del total
+                {totalRevenue > 0 ? Math.round((totalTicketRevenue / totalRevenue) * 100) : 0}% of total
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ingresos Add-ons</CardTitle>
+              <CardTitle className="text-sm font-medium">Add-on Revenue</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalAddonRevenue)}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalRevenue > 0 ? Math.round((totalAddonRevenue / totalRevenue) * 100) : 0}% del total
+                {totalRevenue > 0 ? Math.round((totalAddonRevenue / totalRevenue) * 100) : 0}% of total
               </p>
             </CardContent>
           </Card>
 
           <Card className="col-span-2 lg:col-span-1 xl:col-span-2 bg-primary/5 border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
               <Banknote className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl md:text-3xl font-bold text-primary">{formatCurrency(totalRevenue)}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                De {filteredAnalytics.length} evento{filteredAnalytics.length !== 1 ? 's' : ''}
+                From {filteredAnalytics.length} event{filteredAnalytics.length !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
@@ -734,7 +734,7 @@ const Dashboard = () => {
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Desglose de Ingresos</CardTitle>
+                  <CardTitle>Revenue Breakdown</CardTitle>
                   <CardDescription>Tickets vs Add-ons</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
@@ -760,7 +760,7 @@ const Dashboard = () => {
                     </ResponsiveContainer>
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
-                      No hay datos de ingresos
+                      No revenue data available
                     </div>
                   )}
                 </CardContent>
