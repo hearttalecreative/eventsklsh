@@ -1026,6 +1026,22 @@ export type Database = {
           venue_name: string
         }[]
       }
+      get_dashboard_analytics_detailed: {
+        Args: { p_end_date?: string; p_start_date?: string }
+        Returns: {
+          addon_revenue_cents: number
+          attendees_count: number
+          capacity_total: number
+          checked_in_count: number
+          event_id: string
+          event_starts_at: string
+          event_title: string
+          seats_sold: number
+          ticket_revenue_cents: number
+          total_revenue_cents: number
+          venue_name: string
+        }[]
+      }
       get_event_sales_summary_admin: {
         Args: never
         Returns: {

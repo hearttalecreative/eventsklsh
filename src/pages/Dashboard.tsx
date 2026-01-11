@@ -17,7 +17,9 @@ import {
   Ticket, 
   DollarSign,
   CheckCircle2,
-  Calendar
+  Calendar as CalendarIcon,
+  Package,
+  Banknote
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -35,6 +37,11 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import AdminRoute from "@/routes/AdminRoute";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -51,6 +58,8 @@ interface EventAnalytics {
   attendees: number;
   checkedIn: number;
   revenue: number;
+  ticketRevenue: number;
+  addonRevenue: number;
 }
 
 interface MonthlyRevenue {
@@ -62,81 +71,94 @@ const Dashboard = () => {
   const { data: events } = useSupabaseEventsList();
   
   const [venueFilter, setVenueFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<string>("past"); // Default to past events
   const [compareVenue, setCompareVenue] = useState<string>("all");
   const [analytics, setAnalytics] = useState<EventAnalytics[]>([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Date range state
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  useEffect(() => {
-    async function loadAnalytics() {
-      if (!events || events.length === 0) {
+  const fetchAnalytics = async (start?: Date, end?: Date) => {
+    setLoading(true);
+    try {
+      // Use the new detailed analytics function with date filters
+      const { data: analyticsFromDb, error: analyticsError } = await supabase
+        .rpc('get_dashboard_analytics_detailed', {
+          p_start_date: start ? start.toISOString() : null,
+          p_end_date: end ? new Date(end.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString() : null // End of day
+        });
+
+      if (analyticsError) {
+        console.error('Error fetching dashboard analytics:', analyticsError);
         setLoading(false);
         return;
       }
 
-      try {
-        // Use the optimized admin function to get all analytics data
-        const { data: analyticsFromDb, error: analyticsError } = await supabase
-          .rpc('get_dashboard_analytics_admin');
+      // Transform the data to match our EventAnalytics interface
+      const analyticsData: EventAnalytics[] = (analyticsFromDb || []).map((row: any) => ({
+        eventId: row.event_id,
+        eventTitle: row.event_title,
+        venueId: row.venue_name,
+        venueName: row.venue_name,
+        startsAt: row.event_starts_at,
+        capacity: row.capacity_total,
+        ticketsSold: Number(row.seats_sold),
+        attendees: Number(row.attendees_count),
+        checkedIn: Number(row.checked_in_count),
+        revenue: Number(row.total_revenue_cents),
+        ticketRevenue: Number(row.ticket_revenue_cents),
+        addonRevenue: Number(row.addon_revenue_cents),
+      }));
 
-        if (analyticsError) {
-          console.error('Error fetching dashboard analytics:', analyticsError);
-          setLoading(false);
-          return;
-        }
+      setAnalytics(analyticsData);
 
-        // Transform the data to match our EventAnalytics interface
-        const analyticsData: EventAnalytics[] = (analyticsFromDb || []).map((row: any) => ({
-          eventId: row.event_id,
-          eventTitle: row.event_title,
-          venueId: row.venue_name,
-          venueName: row.venue_name,
-          startsAt: row.event_starts_at,
-          capacity: row.capacity_total,
-          ticketsSold: Number(row.seats_sold),
-          attendees: Number(row.attendees_count),
-          checkedIn: Number(row.checked_in_count),
-          revenue: Number(row.total_revenue_cents),
-        }));
+      // Calculate monthly revenue with date filters
+      let ordersQuery = supabase
+        .from('orders')
+        .select('created_at, total_amount_cents')
+        .eq('status', 'paid');
+      
+      if (start) {
+        ordersQuery = ordersQuery.gte('created_at', start.toISOString());
+      }
+      if (end) {
+        ordersQuery = ordersQuery.lte('created_at', new Date(end.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString());
+      }
 
-        setAnalytics(analyticsData);
+      const { data: orders } = await ordersQuery;
 
-        // Calculate monthly revenue
-        const { data: orders } = await supabase
-          .from('orders')
-          .select('created_at, total_amount_cents')
-          .eq('status', 'paid');
+      const revenueByMonth: Record<string, number> = {};
+      (orders || []).forEach((o: any) => {
+        const month = new Date(o.created_at).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+        });
+        revenueByMonth[month] = (revenueByMonth[month] || 0) + o.total_amount_cents;
+      });
 
-        const revenueByMonth: Record<string, number> = {};
-        (orders || []).forEach((o: any) => {
-          const month = new Date(o.created_at).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-          });
-          revenueByMonth[month] = (revenueByMonth[month] || 0) + o.total_amount_cents;
+      const monthlyData = Object.entries(revenueByMonth)
+        .map(([month, revenue]) => ({ month, revenue }))
+        .sort((a, b) => {
+          const dateA = new Date(a.month);
+          const dateB = new Date(b.month);
+          return dateA.getTime() - dateB.getTime();
         });
 
-        const monthlyData = Object.entries(revenueByMonth)
-          .map(([month, revenue]) => ({ month, revenue }))
-          .sort((a, b) => {
-            const dateA = new Date(a.month);
-            const dateB = new Date(b.month);
-            return dateA.getTime() - dateB.getTime();
-          });
-
-        setMonthlyRevenue(monthlyData);
-      } catch (error) {
-        console.error('Error loading analytics:', error);
-      } finally {
-        setLoading(false);
-      }
+      setMonthlyRevenue(monthlyData);
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    loadAnalytics();
-  }, [events]);
+  useEffect(() => {
+    fetchAnalytics(startDate, endDate);
+  }, [startDate, endDate]);
 
-  // Filtered analytics based on venue and date
+  // Filtered analytics based on venue only (dates are filtered by the DB function)
   const filteredAnalytics = useMemo(() => {
     let filtered = analytics;
 
@@ -144,14 +166,8 @@ const Dashboard = () => {
       filtered = filtered.filter((a) => a.venueName === venueFilter);
     }
 
-    if (dateFilter === "upcoming") {
-      filtered = filtered.filter((a) => new Date(a.startsAt) >= new Date());
-    } else if (dateFilter === "past") {
-      filtered = filtered.filter((a) => new Date(a.startsAt) < new Date());
-    }
-
     return filtered;
-  }, [analytics, venueFilter, dateFilter]);
+  }, [analytics, venueFilter]);
 
   // Venues for filter
   const venues = useMemo(() => {
@@ -166,6 +182,8 @@ const Dashboard = () => {
 
   // Calculate KPIs
   const totalRevenue = filteredAnalytics.reduce((sum, a) => sum + a.revenue, 0);
+  const totalTicketRevenue = filteredAnalytics.reduce((sum, a) => sum + a.ticketRevenue, 0);
+  const totalAddonRevenue = filteredAnalytics.reduce((sum, a) => sum + a.addonRevenue, 0);
   const totalTicketsSold = filteredAnalytics.reduce((sum, a) => sum + a.ticketsSold, 0);
   const totalAttendees = filteredAnalytics.reduce((sum, a) => sum + a.attendees, 0);
   const totalCheckedIn = filteredAnalytics.reduce((sum, a) => sum + a.checkedIn, 0);
@@ -210,6 +228,12 @@ const Dashboard = () => {
     value: a.revenue,
   }));
 
+  // Revenue breakdown pie chart
+  const revenueBreakdownData = [
+    { name: 'Tickets', value: totalTicketRevenue },
+    { name: 'Add-ons', value: totalAddonRevenue },
+  ].filter(d => d.value > 0);
+
   // Historical comparison: Compare each event with previous events at the same venue
   const historicalComparison = useMemo(() => {
     const pastEvents = analytics.filter((a) => new Date(a.startsAt) < new Date());
@@ -251,6 +275,11 @@ const Dashboard = () => {
     });
   }, [filteredAnalytics, analytics]);
 
+  const clearDateRange = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
+
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
@@ -271,83 +300,146 @@ const Dashboard = () => {
         </div>
 
         {/* Filters */}
-        <section className="flex flex-col sm:flex-row gap-3">
-          <Select value={venueFilter} onValueChange={setVenueFilter}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="All Venues" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Venues</SelectItem>
-              {venues.map((venue) => (
-                <SelectItem key={venue} value={venue}>
-                  {venue}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="All Events" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Events</SelectItem>
-              <SelectItem value="past">Completed Events</SelectItem>
-              <SelectItem value="upcoming">Upcoming Events</SelectItem>
-            </SelectContent>
-          </Select>
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Select value={venueFilter} onValueChange={setVenueFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All Venues" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Venues</SelectItem>
+                {venues.map((venue) => (
+                  <SelectItem key={venue} value={venue}>
+                    {venue}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Date Range Picker */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "dd MMM yyyy", { locale: es }) : "Fecha inicio"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <span className="text-muted-foreground">—</span>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "dd MMM yyyy", { locale: es }) : "Fecha fin"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    disabled={(date) => startDate ? date < startDate : false}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              {(startDate || endDate) && (
+                <Button variant="ghost" size="sm" onClick={clearDateRange}>
+                  Limpiar
+                </Button>
+              )}
+            </div>
+            
+            {(startDate || endDate) && (
+              <p className="text-sm text-muted-foreground">
+                {startDate && endDate 
+                  ? `Mostrando eventos del ${format(startDate, "dd MMM yyyy", { locale: es })} al ${format(endDate, "dd MMM yyyy", { locale: es })}`
+                  : startDate 
+                    ? `Mostrando eventos desde ${format(startDate, "dd MMM yyyy", { locale: es })}`
+                    : `Mostrando eventos hasta ${format(endDate!, "dd MMM yyyy", { locale: es })}`
+                }
+              </p>
+            )}
+          </div>
         </section>
 
-        {/* KPI Cards */}
-        <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {/* KPI Cards - 6 cards now */}
+        <section className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                From {filteredAnalytics.length} events
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
+              <CardTitle className="text-sm font-medium">Tickets Vendidos</CardTitle>
               <Ticket className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">{totalTicketsSold}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {filteredAnalytics.length} event{filteredAnalytics.length !== 1 ? 's' : ''}
+                {filteredAnalytics.length} evento{filteredAnalytics.length !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Attendees</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold">{totalAttendees}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {totalTicketsSold > 0 ? Math.round((totalAttendees / totalTicketsSold) * 100) : 0}% of tickets sold
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Checked In</CardTitle>
+              <CardTitle className="text-sm font-medium">Asistentes (Check-in)</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl md:text-2xl font-bold">{totalCheckedIn}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {totalAttendees > 0 ? Math.round((totalCheckedIn / totalAttendees) * 100) : 0}% of attendees
+                {totalAttendees > 0 ? Math.round((totalCheckedIn / totalAttendees) * 100) : 0}% de {totalAttendees} registrados
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ingresos Tickets</CardTitle>
+              <Ticket className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalTicketRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalRevenue > 0 ? Math.round((totalTicketRevenue / totalRevenue) * 100) : 0}% del total
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ingresos Add-ons</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl md:text-2xl font-bold">{formatCurrency(totalAddonRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalRevenue > 0 ? Math.round((totalAddonRevenue / totalRevenue) * 100) : 0}% del total
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-2 lg:col-span-1 xl:col-span-2 bg-primary/5 border-primary/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+              <Banknote className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl md:text-3xl font-bold text-primary">{formatCurrency(totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                De {filteredAnalytics.length} evento{filteredAnalytics.length !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
@@ -456,7 +548,7 @@ const Dashboard = () => {
 
                   {historicalComparison.length === 0 && (
                     <div className="text-center text-muted-foreground py-8">
-                      No completed events to display. Change filter to see data.
+                      No events to display. Try adjusting the date range.
                     </div>
                   )}
                 </div>
@@ -642,6 +734,40 @@ const Dashboard = () => {
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>
+                  <CardTitle>Desglose de Ingresos</CardTitle>
+                  <CardDescription>Tickets vs Add-ons</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  {revenueBreakdownData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={revenueBreakdownData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {revenueBreakdownData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      No hay datos de ingresos
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
                   <CardTitle>Revenue by Event</CardTitle>
                   <CardDescription>Top 5 revenue-generating events</CardDescription>
                 </CardHeader>
@@ -667,33 +793,33 @@ const Dashboard = () => {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Monthly Revenue</CardTitle>
-                  <CardDescription>
-                    {venueFilter === "all" ? "All venues" : venueFilter}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={monthlyRevenue}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" angle={-45} textAnchor="end" height={80} />
-                      <YAxis />
-                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                      <Line 
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stroke={COLORS[0]} 
-                        strokeWidth={2}
-                        name="Revenue"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Revenue</CardTitle>
+                <CardDescription>
+                  {venueFilter === "all" ? "All venues" : venueFilter}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" angle={-45} textAnchor="end" height={80} />
+                    <YAxis />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke={COLORS[0]} 
+                      strokeWidth={2}
+                      name="Revenue"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
@@ -717,10 +843,14 @@ const Dashboard = () => {
                             })} • {event.venueName}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-end gap-1">
                           <span className="text-sm font-bold">
                             {formatCurrency(event.revenue)}
                           </span>
+                          <div className="flex gap-2 text-xs text-muted-foreground">
+                            <span>Tickets: {formatCurrency(event.ticketRevenue)}</span>
+                            <span>Add-ons: {formatCurrency(event.addonRevenue)}</span>
+                          </div>
                         </div>
                       </div>
                     ))}
