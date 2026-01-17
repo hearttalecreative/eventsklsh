@@ -11,7 +11,7 @@ const Index = () => {
   };
 
   return (
-    <main>
+    <main className="overflow-x-hidden">
       <Helmet>
         <title>Events | Kyle Lam Sound Healing</title>
         <meta name="description" content="Buy tickets and discover Kyle Lam Sound Healing events." />
@@ -28,11 +28,11 @@ const Index = () => {
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
-      <header className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-4xl font-bold">Upcoming events</h1>
+      <header className="container mx-auto px-4 py-6 sm:py-8 text-center">
+        <h1 className="text-2xl sm:text-4xl font-bold">Upcoming events</h1>
       </header>
 
-      <section className="py-6">
+      <section className="py-4 sm:py-6">
         <EventList />
       </section>
 

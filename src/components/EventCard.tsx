@@ -84,24 +84,24 @@ export const EventCard = ({ event }: Props) => {
           <p className="text-sm text-muted-foreground mt-1">{truncateWords(event.shortDescription, 50)}</p>
         </div>
       </CardHeader>
-      <CardContent className="px-4 pb-4 mt-auto">
+      <CardContent className="px-4 pb-4 mt-auto overflow-hidden">
         <div className="space-y-1 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">When</span>
-            <time className="font-medium" dateTime={event.startsAt}>{formatEventSchedule(event.startsAt, event.endsAt, event.timezone)}</time>
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">When</span>
+            <time className="font-medium text-right break-words" dateTime={event.startsAt}>{formatEventSchedule(event.startsAt, event.endsAt, event.timezone)}</time>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Venue</span>
-            <span className="font-medium truncate max-w-[60%]" title={`${event.venue.name} — ${event.venue.address}`}>{event.venue.name}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Venue</span>
+            <span className="font-medium truncate text-right" title={`${event.venue.name} — ${event.venue.address}`}>{event.venue.name}</span>
           </div>
           {hasTickets ? (
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">From</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground shrink-0">From</span>
               <span className="font-medium">{formatCurrency(minPrice as number, currency)}</span>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Tickets</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground shrink-0">Tickets</span>
               <span className="font-medium">Not available</span>
             </div>
           )}
