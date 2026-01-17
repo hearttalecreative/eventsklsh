@@ -70,9 +70,9 @@ const EventList = () => {
         </div>
       </div>
       {loading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="p-6 border rounded-lg animate-pulse">
+            <div key={i} className="p-6 border rounded-lg animate-pulse min-w-0">
               <div className="bg-muted h-48 rounded mb-4"></div>
               <div className="bg-muted h-4 rounded mb-2 w-3/4"></div>
               <div className="bg-muted h-3 rounded mb-2 w-1/2"></div>
@@ -83,7 +83,7 @@ const EventList = () => {
       ) : sorted.length === 0 ? (
         <p className="text-sm text-muted-foreground">No events found.</p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {sorted.map((ev) => (
             <EventCard key={ev.id} event={ev} />
           ))}

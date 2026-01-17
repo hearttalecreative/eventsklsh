@@ -57,8 +57,8 @@ export const EventCard = ({ event }: Props) => {
   const isPaused = event.status === 'paused';
   
   return (
-    <Card className="h-full flex flex-col border bg-card">
-      <CardHeader className="p-0">
+    <Card className="h-full flex flex-col border bg-card min-w-0 overflow-hidden">
+      <CardHeader className="p-0 min-w-0">
         <Link to={`/event/${slugPath}`} className="block relative w-full overflow-hidden rounded-t-lg">
           <AspectRatio ratio={1230/693}>
             <img
@@ -77,11 +77,11 @@ export const EventCard = ({ event }: Props) => {
             </div>
           )}
         </Link>
-        <div className="p-4">
-          <CardTitle className="text-xl">
+        <div className="p-4 min-w-0">
+          <CardTitle className="text-xl break-words">
             <Link to={`/event/${slugPath}`} className="hover:underline">{event.title}</Link>
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">{truncateWords(event.shortDescription, 50)}</p>
+          <p className="text-sm text-muted-foreground mt-1 break-words">{truncateWords(event.shortDescription, 50)}</p>
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4 mt-auto overflow-hidden">
