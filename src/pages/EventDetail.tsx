@@ -461,10 +461,10 @@ const proceed = async () => {
                     onClick={() => setSelectedTicketId(t.id)}
                     className={`w-full text-left p-4 rounded-lg border transition-colors ${isSelected ? 'border-primary bg-secondary' : 'hover:bg-muted'}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                      <div className="flex-1 min-w-0">
                         <div className="font-medium">{t.name}{t.zone ? ` — ${t.zone}` : ''}</div>
-                        {t.description && (<div className="text-xs text-muted-foreground mt-1">{t.description}</div>)}
+                        {t.description && (<div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">{t.description}</div>)}
                         {isSelected && ticketAvailability && ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0 && (
                           <div className="text-xs text-amber-600 font-medium mt-1">
                             🔥 Almost Sold Out!
@@ -475,9 +475,9 @@ const proceed = async () => {
                             ⚠️ Sold out
                           </div>
                         )}
-                        <div className="text-xs text-muted-foreground">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
+                        <div className="text-xs text-muted-foreground mt-1">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right shrink-0">
                         <div className="font-semibold">{formatCurrency(unit, 'USD')}</div>
                         {t.earlyBirdAmountCents && t.earlyBirdEnd && new Date() <= new Date(t.earlyBirdEnd) && (
                           <div className="text-xs text-accent-foreground bg-accent/20 inline-block px-2 py-0.5 rounded">Early bird</div>
@@ -535,11 +535,11 @@ const proceed = async () => {
               <h2 className="text-xl font-semibold mb-4">2. Add-ons</h2>
               <div className="space-y-4">
                 {event.addons.map((a: Addon) => (
-                  <div key={a.id} className="flex items-start justify-between gap-3">
-                     <div className="min-w-0">
+                  <div key={a.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                     <div className="min-w-0 flex-1">
                        <div className="font-medium">{a.name}</div>
                        {a.description && (
-                         <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
+                         <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">{a.description}</p>
                        )}
                        <div className="text-sm text-muted-foreground mt-1">
                          {formatCurrency(a.unitAmountCents, currency)}
@@ -550,7 +550,7 @@ const proceed = async () => {
                          )}
                        </div>
                      </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Button
                         type="button"
                         variant="outline"
