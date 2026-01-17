@@ -43,12 +43,12 @@ const EventList = () => {
       : new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
   }, [filtered, order]);
   return (
-    <section className="container mx-auto px-4">
-      <div className="mb-4 rounded-lg border bg-card p-4">
-        <div className="grid gap-3 md:grid-cols-3 items-center">
-          <Input placeholder="Search events by name" value={query} onChange={(e)=>setQuery(e.target.value)} aria-label="Search events" />
+    <section className="container mx-auto px-4 overflow-hidden">
+      <div className="mb-4 rounded-lg border bg-card p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-3 sm:items-center">
+          <Input placeholder="Search events by name" value={query} onChange={(e)=>setQuery(e.target.value)} aria-label="Search events" className="w-full" />
           <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger><SelectValue placeholder="All months" /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue placeholder="All months" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All months</SelectItem>
               {monthOptions.map((m)=> {
@@ -61,7 +61,7 @@ const EventList = () => {
             </SelectContent>
           </Select>
           <Select value={order} onValueChange={(v)=>setOrder(v as any)}>
-            <SelectTrigger><SelectValue placeholder="Order" /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Order" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="date-asc">Date: ascending</SelectItem>
               <SelectItem value="date-desc">Date: descending</SelectItem>
