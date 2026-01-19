@@ -821,36 +821,45 @@ export type Database = {
       training_programs: {
         Row: {
           active: boolean
+          available_from: string | null
+          available_to: string | null
           created_at: string
           description: string | null
           display_order: number
           id: string
           is_bundle: boolean
           name: string
+          original_price_cents: number | null
           price_cents: number
           processing_fee_percent: number
           updated_at: string
         }
         Insert: {
           active?: boolean
+          available_from?: string | null
+          available_to?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
           id?: string
           is_bundle?: boolean
           name: string
+          original_price_cents?: number | null
           price_cents: number
           processing_fee_percent?: number
           updated_at?: string
         }
         Update: {
           active?: boolean
+          available_from?: string | null
+          available_to?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
           id?: string
           is_bundle?: boolean
           name?: string
+          original_price_cents?: number | null
           price_cents?: number
           processing_fee_percent?: number
           updated_at?: string

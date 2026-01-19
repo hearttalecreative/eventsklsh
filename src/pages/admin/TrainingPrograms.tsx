@@ -35,10 +35,13 @@ interface TrainingProgram {
   name: string;
   description: string | null;
   price_cents: number;
+  original_price_cents: number | null;
   processing_fee_percent: number;
   is_bundle: boolean;
   display_order: number;
   active: boolean;
+  available_from: string | null;
+  available_to: string | null;
   created_at: string;
 }
 
@@ -153,9 +156,12 @@ export default function AdminTrainingPrograms() {
     name: '',
     description: '',
     price_cents: '',
+    original_price_cents: '',
     processing_fee_percent: '3.5',
     is_bundle: false,
     active: true,
+    available_from: '',
+    available_to: '',
   });
 
   const publicUrl = `${window.location.origin}/trainings`;
@@ -192,9 +198,12 @@ export default function AdminTrainingPrograms() {
         name: data.name,
         description: data.description || null,
         price_cents: Math.round(parseFloat(data.price_cents) * 100),
+        original_price_cents: data.original_price_cents ? Math.round(parseFloat(data.original_price_cents) * 100) : null,
         processing_fee_percent: parseFloat(data.processing_fee_percent) || 3.5,
         is_bundle: data.is_bundle,
         active: data.active,
+        available_from: data.available_from || null,
+        available_to: data.available_to || null,
         ...(data.id ? {} : { display_order: maxOrder + 1 }),
       };
 
@@ -292,9 +301,12 @@ export default function AdminTrainingPrograms() {
         name: program.name,
         description: program.description || '',
         price_cents: formatPrice(program.price_cents),
+        original_price_cents: program.original_price_cents ? formatPrice(program.original_price_cents) : '',
         processing_fee_percent: program.processing_fee_percent.toString(),
         is_bundle: program.is_bundle,
         active: program.active,
+        available_from: program.available_from || '',
+        available_to: program.available_to || '',
       });
     } else {
       setEditingProgram(null);
@@ -302,9 +314,12 @@ export default function AdminTrainingPrograms() {
         name: '',
         description: '',
         price_cents: '',
+        original_price_cents: '',
         processing_fee_percent: '3.5',
         is_bundle: false,
         active: true,
+        available_from: '',
+        available_to: '',
       });
     }
     setIsDialogOpen(true);
@@ -381,7 +396,7 @@ export default function AdminTrainingPrograms() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price ($) *</Label>
+                      <Label htmlFor="price">Sale Price ($) *</Label>
                       <Input
                         id="price"
                         type="number"
@@ -393,18 +408,53 @@ export default function AdminTrainingPrograms() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="fee">Processing Fee (%)</Label>
+                      <Label htmlFor="original_price">Original Price ($)</Label>
                       <Input
-                        id="fee"
+                        id="original_price"
                         type="number"
-                        step="0.1"
+                        step="0.01"
                         min="0"
-                        max="100"
-                        value={formData.processing_fee_percent}
-                        onChange={(e) => setFormData({ ...formData, processing_fee_percent: e.target.value })}
+                        placeholder="Leave empty if no discount"
+                        value={formData.original_price_cents}
+                        onChange={(e) => setFormData({ ...formData, original_price_cents: e.target.value })}
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fee">Processing Fee (%)</Label>
+                    <Input
+                      id="fee"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={formData.processing_fee_percent}
+                      onChange={(e) => setFormData({ ...formData, processing_fee_percent: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="available_from">Available From</Label>
+                      <Input
+                        id="available_from"
+                        type="date"
+                        value={formData.available_from}
+                        onChange={(e) => setFormData({ ...formData, available_from: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="available_to">Available To</Label>
+                      <Input
+                        id="available_to"
+                        type="date"
+                        value={formData.available_to}
+                        onChange={(e) => setFormData({ ...formData, available_to: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Set date range to limit when users can book this training. Leave empty for no restrictions.
+                  </p>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="is_bundle">Is Bundle?</Label>
                     <Switch
