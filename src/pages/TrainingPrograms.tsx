@@ -16,9 +16,12 @@ interface TrainingProgram {
   name: string;
   description: string | null;
   price_cents: number;
+  original_price_cents: number | null;
   processing_fee_percent: number;
   is_bundle: boolean;
   display_order: number;
+  available_from: string | null;
+  available_to: string | null;
 }
 
 const calculateFee = (priceCents: number, feePercent: number) => {
@@ -80,9 +83,21 @@ function BundlesSection({ currentProgramId }: { currentProgramId: string }) {
                     {bundle.name}
                   </h4>
                   <div className="flex items-center justify-between mt-3">
-                    <span className="text-lg font-semibold text-foreground">{formatPrice(bundle.price_cents)}</span>
+                    <div>
+                      <span className="text-lg font-semibold text-foreground">{formatPrice(bundle.price_cents)}</span>
+                      {bundle.original_price_cents && bundle.original_price_cents > bundle.price_cents && (
+                        <span className="text-sm text-muted-foreground line-through ml-2">
+                          {formatPrice(bundle.original_price_cents)}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-primary font-medium">View Details →</span>
                   </div>
+                  {bundle.original_price_cents && bundle.original_price_cents > bundle.price_cents && (
+                    <p className="text-xs text-green-600 font-medium mt-1">
+                      Save {formatPrice(bundle.original_price_cents - bundle.price_cents)}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </Link>
@@ -237,8 +252,20 @@ export default function TrainingPrograms() {
                   </p>
                 )}
                 <div className="mt-6">
-                  <span className="text-3xl font-semibold text-foreground">{formatPrice(selectedProgram.price_cents)}</span>
-                  <span className="text-sm text-muted-foreground ml-2">+ 3.5% processing fee</span>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-3xl font-semibold text-foreground">{formatPrice(selectedProgram.price_cents)}</span>
+                    {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
+                      <span className="text-xl text-muted-foreground line-through">
+                        {formatPrice(selectedProgram.original_price_cents)}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">+ 3.5% processing fee</span>
+                  {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
+                    <p className="text-sm text-green-600 font-medium mt-1">
+                      You save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)}
+                    </p>
+                  )}
                 </div>
                 <p className="mt-4 text-sm text-muted-foreground italic">
                   Upon completion of registration, our team will reach out regarding date confirmation.
@@ -292,11 +319,20 @@ export default function TrainingPrograms() {
                         <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
                         <Input
                           id="preferredDates"
-                          placeholder="e.g., January 15-17, 2025 or flexible weekends"
+                          placeholder={
+                            selectedProgram.available_from && selectedProgram.available_to
+                              ? `Select dates between ${new Date(selectedProgram.available_from).toLocaleDateString()} - ${new Date(selectedProgram.available_to).toLocaleDateString()}`
+                              : "e.g., January 15-17, 2025 or flexible weekends"
+                          }
                           value={formData.preferredDates}
                           onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
                           required
                         />
+                        {selectedProgram.available_from && selectedProgram.available_to && (
+                          <p className="text-xs text-muted-foreground">
+                            Available dates: {new Date(selectedProgram.available_from).toLocaleDateString()} - {new Date(selectedProgram.available_to).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-start space-x-3 pt-2">
                         <Checkbox
@@ -436,7 +472,19 @@ export default function TrainingPrograms() {
                         </p>
                         <div className="mt-auto pt-6 space-y-4">
                           <div className="border-t border-border/50 pt-4">
-                            <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
+                              {program.original_price_cents && program.original_price_cents > program.price_cents && (
+                                <span className="text-lg text-muted-foreground line-through">
+                                  {formatPrice(program.original_price_cents)}
+                                </span>
+                              )}
+                            </div>
+                            {program.original_price_cents && program.original_price_cents > program.price_cents && (
+                              <p className="text-sm text-green-600 font-medium mt-1">
+                                Save {formatPrice(program.original_price_cents - program.price_cents)}
+                              </p>
+                            )}
                           </div>
                           <Button 
                             variant="default"
@@ -514,7 +562,19 @@ export default function TrainingPrograms() {
                         </p>
                         <div className="mt-auto pt-6 space-y-4">
                           <div className="border-t border-primary/20 pt-4">
-                            <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
+                              {program.original_price_cents && program.original_price_cents > program.price_cents && (
+                                <span className="text-lg text-muted-foreground line-through">
+                                  {formatPrice(program.original_price_cents)}
+                                </span>
+                              )}
+                            </div>
+                            {program.original_price_cents && program.original_price_cents > program.price_cents && (
+                              <p className="text-sm text-green-600 font-medium mt-1">
+                                Save {formatPrice(program.original_price_cents - program.price_cents)}
+                              </p>
+                            )}
                           </div>
                           <Button 
                             variant="default"
@@ -557,8 +617,20 @@ export default function TrainingPrograms() {
                           <p className="font-medium text-foreground">{selectedProgram.name}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-semibold text-foreground">{formatPrice(selectedProgram.price_cents)}</p>
+                          <div className="flex items-center justify-end gap-2">
+                            <p className="text-lg font-semibold text-foreground">{formatPrice(selectedProgram.price_cents)}</p>
+                            {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
+                              <p className="text-sm text-muted-foreground line-through">
+                                {formatPrice(selectedProgram.original_price_cents)}
+                              </p>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">+ 3.5% fee</p>
+                          {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
+                            <p className="text-xs text-green-600 font-medium">
+                              Save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -609,12 +681,21 @@ export default function TrainingPrograms() {
                       <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
                       <Input
                         id="preferredDates"
-                        placeholder="e.g., January 15-17, 2025 or flexible weekends"
+                        placeholder={
+                          selectedProgram?.available_from && selectedProgram?.available_to
+                            ? `Select dates between ${new Date(selectedProgram.available_from).toLocaleDateString()} - ${new Date(selectedProgram.available_to).toLocaleDateString()}`
+                            : "e.g., January 15-17, 2025 or flexible weekends"
+                        }
                         value={formData.preferredDates}
                         onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
                         required
                         disabled={!selectedProgram}
                       />
+                      {selectedProgram?.available_from && selectedProgram?.available_to && (
+                        <p className="text-xs text-muted-foreground">
+                          Available dates: {new Date(selectedProgram.available_from).toLocaleDateString()} - {new Date(selectedProgram.available_to).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-start space-x-3 pt-2">
                       <Checkbox
