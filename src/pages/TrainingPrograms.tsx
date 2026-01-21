@@ -94,8 +94,8 @@ function BundlesSection({ currentProgramId }: { currentProgramId: string }) {
                     <span className="text-xs text-primary font-medium">View Details →</span>
                   </div>
                   {bundle.original_price_cents && bundle.original_price_cents > bundle.price_cents && (
-                    <p className="text-xs text-green-600 font-medium mt-1">
-                      Save {formatPrice(bundle.original_price_cents - bundle.price_cents)}
+                    <p className="text-xs text-success font-medium mt-1">
+                      Save {formatPrice(bundle.original_price_cents - bundle.price_cents)} with our special sale now.
                     </p>
                   )}
                 </CardContent>
@@ -252,6 +252,9 @@ export default function TrainingPrograms() {
                   </p>
                 )}
                 <div className="mt-6">
+                  {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">LIMITED SALE PRICE</p>
+                  )}
                   <div className="flex items-center justify-center gap-3">
                     <span className="text-3xl font-semibold text-foreground">{formatPrice(selectedProgram.price_cents)}</span>
                     {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
@@ -262,8 +265,8 @@ export default function TrainingPrograms() {
                   </div>
                   <span className="text-sm text-muted-foreground">+ 3.5% processing fee</span>
                   {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
-                    <p className="text-sm text-green-600 font-medium mt-1">
-                      You save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)}
+                    <p className="text-sm text-success font-medium mt-1">
+                      Save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)} with our special sale now.
                     </p>
                   )}
                 </div>
@@ -472,6 +475,9 @@ export default function TrainingPrograms() {
                         </p>
                         <div className="mt-auto pt-6 space-y-4">
                           <div className="border-t border-border/50 pt-4">
+                            {program.original_price_cents && program.original_price_cents > program.price_cents && (
+                              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">LIMITED SALE PRICE</p>
+                            )}
                             <div className="flex items-center gap-2">
                               <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
                               {program.original_price_cents && program.original_price_cents > program.price_cents && (
@@ -481,8 +487,8 @@ export default function TrainingPrograms() {
                               )}
                             </div>
                             {program.original_price_cents && program.original_price_cents > program.price_cents && (
-                              <p className="text-sm text-green-600 font-medium mt-1">
-                                Save {formatPrice(program.original_price_cents - program.price_cents)}
+                              <p className="text-sm text-success font-medium mt-1">
+                                Save {formatPrice(program.original_price_cents - program.price_cents)} with our special sale now.
                               </p>
                             )}
                           </div>
@@ -562,6 +568,9 @@ export default function TrainingPrograms() {
                         </p>
                         <div className="mt-auto pt-6 space-y-4">
                           <div className="border-t border-primary/20 pt-4">
+                            {program.original_price_cents && program.original_price_cents > program.price_cents && (
+                              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">LIMITED SALE PRICE</p>
+                            )}
                             <div className="flex items-center gap-2">
                               <span className="text-2xl font-semibold text-foreground">{formatPrice(program.price_cents)}</span>
                               {program.original_price_cents && program.original_price_cents > program.price_cents && (
@@ -571,8 +580,8 @@ export default function TrainingPrograms() {
                               )}
                             </div>
                             {program.original_price_cents && program.original_price_cents > program.price_cents && (
-                              <p className="text-sm text-green-600 font-medium mt-1">
-                                Save {formatPrice(program.original_price_cents - program.price_cents)}
+                              <p className="text-sm text-success font-medium mt-1">
+                                Save {formatPrice(program.original_price_cents - program.price_cents)} with our special sale now.
                               </p>
                             )}
                           </div>
@@ -627,8 +636,8 @@ export default function TrainingPrograms() {
                           </div>
                           <p className="text-xs text-muted-foreground">+ 3.5% fee</p>
                           {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
-                            <p className="text-xs text-green-600 font-medium">
-                              Save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)}
+                            <p className="text-xs text-success font-medium">
+                              Save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)} with our special sale now.
                             </p>
                           )}
                         </div>
