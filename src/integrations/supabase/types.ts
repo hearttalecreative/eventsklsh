@@ -856,6 +856,7 @@ export type Database = {
           original_price_cents: number | null
           price_cents: number
           processing_fee_percent: number
+          related_training_ids: string[] | null
           updated_at: string
         }
         Insert: {
@@ -871,6 +872,7 @@ export type Database = {
           original_price_cents?: number | null
           price_cents: number
           processing_fee_percent?: number
+          related_training_ids?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -886,6 +888,7 @@ export type Database = {
           original_price_cents?: number | null
           price_cents?: number
           processing_fee_percent?: number
+          related_training_ids?: string[] | null
           updated_at?: string
         }
         Relationships: []

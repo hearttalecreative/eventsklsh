@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -42,6 +43,7 @@ interface TrainingProgram {
   active: boolean;
   available_from: string | null;
   available_to: string | null;
+  related_training_ids: string[] | null;
   created_at: string;
 }
 
@@ -163,6 +165,7 @@ export default function AdminTrainingPrograms() {
     active: true,
     available_from: '',
     available_to: '',
+    related_training_ids: [] as string[],
   });
 
   const publicUrl = `${window.location.origin}/trainings`;
@@ -247,6 +250,7 @@ export default function AdminTrainingPrograms() {
         active: data.active,
         available_from: data.available_from || null,
         available_to: data.available_to || null,
+        related_training_ids: data.is_bundle ? [] : (data.related_training_ids || []),
         ...(data.id ? {} : { display_order: maxOrder + 1 }),
       };
 
@@ -350,6 +354,7 @@ export default function AdminTrainingPrograms() {
         active: program.active,
         available_from: program.available_from || '',
         available_to: program.available_to || '',
+        related_training_ids: program.related_training_ids || [],
       });
     } else {
       setEditingProgram(null);
@@ -363,6 +368,7 @@ export default function AdminTrainingPrograms() {
         active: true,
         available_from: '',
         available_to: '',
+        related_training_ids: [],
       });
     }
     setIsDialogOpen(true);
@@ -503,9 +509,46 @@ export default function AdminTrainingPrograms() {
                     <Switch
                       id="is_bundle"
                       checked={formData.is_bundle}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_bundle: checked })}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_bundle: checked, related_training_ids: checked ? [] : formData.related_training_ids })}
                     />
                   </div>
+                  
+                  {/* Related Trainings - Only for non-bundles */}
+                  {!formData.is_bundle && (
+                    <div className="space-y-2">
+                      <Label>Related Trainings</Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Select trainings to display as "Want to learn about..." links on this program's sales page.
+                      </p>
+                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                        {programs?.filter(p => !p.is_bundle && p.id !== editingProgram?.id).map(program => (
+                          <div key={program.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`related-${program.id}`}
+                              checked={formData.related_training_ids.includes(program.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFormData({ ...formData, related_training_ids: [...formData.related_training_ids, program.id] });
+                                } else {
+                                  setFormData({ ...formData, related_training_ids: formData.related_training_ids.filter(id => id !== program.id) });
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`related-${program.id}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {program.name}
+                            </label>
+                          </div>
+                        ))}
+                        {programs?.filter(p => !p.is_bundle && p.id !== editingProgram?.id).length === 0 && (
+                          <p className="text-xs text-muted-foreground">No other trainings available to link.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between">
                     <Label htmlFor="active">Active</Label>
                     <Switch
