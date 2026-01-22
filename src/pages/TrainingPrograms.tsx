@@ -22,6 +22,7 @@ interface TrainingProgram {
   display_order: number;
   available_from: string | null;
   available_to: string | null;
+  related_training_ids: string[] | null;
 }
 
 // Helper to format savings message with amount placeholder
@@ -41,6 +42,30 @@ const formatPrice = (cents: number) => {
     maximumFractionDigits: 0,
   }).format(cents / 100);
 };
+
+// Component for displaying related training links
+function RelatedTrainingsLinks({ relatedIds, allPrograms }: { relatedIds: string[] | null; allPrograms: TrainingProgram[] }) {
+  if (!relatedIds || relatedIds.length === 0) return null;
+
+  const relatedPrograms = allPrograms.filter(p => relatedIds.includes(p.id) && !p.is_bundle);
+  if (relatedPrograms.length === 0) return null;
+
+  return (
+    <div className="mt-6 space-y-2">
+      {relatedPrograms.map(program => (
+        <p key={program.id} className="text-sm text-muted-foreground">
+          Want to learn about {program.name}?{' '}
+          <Link 
+            to={`/trainings?program=${program.id}`} 
+            className="text-primary hover:underline font-medium"
+          >
+            Click Here
+          </Link>
+        </p>
+      ))}
+    </div>
+  );
+}
 
 // Component for displaying bundle packages in direct link mode
 function BundlesSection({ currentProgramId, savingsMessage }: { currentProgramId: string; savingsMessage: string }) {
@@ -108,6 +133,13 @@ function BundlesSection({ currentProgramId, savingsMessage }: { currentProgramId
             </Link>
           ))}
         </div>
+
+        {/* View all training programs link */}
+        <p className="text-center mt-8">
+          <Link to="/trainings" className="text-primary hover:underline">
+            View all training programs
+          </Link>
+        </p>
       </div>
     </section>
   );
@@ -154,6 +186,22 @@ export default function TrainingPrograms() {
       if (error) throw error;
       return data as TrainingProgram[];
     },
+  });
+
+  // Fetch all programs for related training links (used in direct link mode)
+  const { data: allPrograms } = useQuery({
+    queryKey: ['all-training-programs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('training_programs')
+        .select('*')
+        .eq('active', true)
+        .order('display_order', { ascending: true });
+      
+      if (error) throw error;
+      return data as TrainingProgram[];
+    },
+    enabled: isDirectLink, // Only fetch when in direct link mode
   });
 
   // Fetch global savings message setting
@@ -295,6 +343,11 @@ export default function TrainingPrograms() {
                 <p className="mt-4 text-sm text-muted-foreground italic">
                   Upon completion of registration, our team will reach out regarding date confirmation.
                 </p>
+                {/* Related trainings links */}
+                <RelatedTrainingsLinks 
+                  relatedIds={selectedProgram.related_training_ids} 
+                  allPrograms={allPrograms || []}
+                />
               </div>
             </section>
 
