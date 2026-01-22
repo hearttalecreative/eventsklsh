@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminHeader from '@/components/admin/AdminHeader';
@@ -152,6 +152,7 @@ export default function AdminTrainingPrograms() {
   const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedProgramId, setCopiedProgramId] = useState<string | null>(null);
+  const [savingsMessageInput, setSavingsMessageInput] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -187,6 +188,48 @@ export default function AdminTrainingPrograms() {
       
       if (error) throw error;
       return data as TrainingProgram[];
+    },
+  });
+
+  // Fetch global savings message setting
+  const { data: savingsMessageSetting } = useQuery({
+    queryKey: ['app-settings', 'training_savings_message'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('*')
+        .eq('id', 'training_savings_message')
+        .single();
+      
+      if (error) return { id: 'training_savings_message', value: 'Save {amount} with our special sale now.', description: '' };
+      return data;
+    },
+  });
+
+  // Set initial value for savings message input
+  useEffect(() => {
+    if (savingsMessageSetting?.value && savingsMessageInput === '') {
+      setSavingsMessageInput(savingsMessageSetting.value);
+    }
+  }, [savingsMessageSetting]);
+
+  const savingsMessageMutation = useMutation({
+    mutationFn: async (message: string) => {
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({ 
+          id: 'training_savings_message', 
+          value: message,
+          description: 'Message shown below training/bundle prices when there is a discount. Use {amount} as placeholder for the savings amount.'
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-settings', 'training_savings_message'] });
+      toast.success('Savings message updated');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update message');
     },
   });
 
@@ -484,6 +527,36 @@ export default function AdminTrainingPrograms() {
               </DialogContent>
             </Dialog>
           </div>
+
+          {/* Savings Message Configuration */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Savings Message</CardTitle>
+              <CardDescription>
+                Customize the text shown below prices when there's a discount. Use <code className="bg-muted px-1 rounded">{'{amount}'}</code> as a placeholder for the savings amount.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={savingsMessageInput}
+                  onChange={(e) => setSavingsMessageInput(e.target.value)}
+                  placeholder="Save {amount} with our special sale now."
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={() => savingsMessageMutation.mutate(savingsMessageInput)}
+                  disabled={savingsMessageMutation.isPending || savingsMessageInput === savingsMessageSetting?.value}
+                >
+                  {savingsMessageMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Preview: {savingsMessageInput.replace('{amount}', '$100')}
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Public Link Card */}
           <Card>

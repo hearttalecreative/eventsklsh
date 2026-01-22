@@ -24,6 +24,11 @@ interface TrainingProgram {
   available_to: string | null;
 }
 
+// Helper to format savings message with amount placeholder
+const formatSavingsMessage = (template: string, amount: string) => {
+  return template.replace('{amount}', amount);
+};
+
 const calculateFee = (priceCents: number, feePercent: number) => {
   return Math.round(priceCents * (feePercent / 100));
 };
@@ -38,7 +43,7 @@ const formatPrice = (cents: number) => {
 };
 
 // Component for displaying bundle packages in direct link mode
-function BundlesSection({ currentProgramId }: { currentProgramId: string }) {
+function BundlesSection({ currentProgramId, savingsMessage }: { currentProgramId: string; savingsMessage: string }) {
   const { data: bundles, isLoading } = useQuery({
     queryKey: ['training-bundles-for-direct-link'],
     queryFn: async () => {
@@ -95,7 +100,7 @@ function BundlesSection({ currentProgramId }: { currentProgramId: string }) {
                   </div>
                   {bundle.original_price_cents && bundle.original_price_cents > bundle.price_cents && (
                     <p className="text-xs text-success font-medium mt-1">
-                      Save {formatPrice(bundle.original_price_cents - bundle.price_cents)} with our special sale now.
+                      {formatSavingsMessage(savingsMessage, formatPrice(bundle.original_price_cents - bundle.price_cents))}
                     </p>
                   )}
                 </CardContent>
@@ -150,6 +155,23 @@ export default function TrainingPrograms() {
       return data as TrainingProgram[];
     },
   });
+
+  // Fetch global savings message setting
+  const { data: savingsMessageSetting } = useQuery({
+    queryKey: ['app-settings', 'training_savings_message'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('id', 'training_savings_message')
+        .single();
+      
+      if (error) return 'Save {amount} with our special sale now.';
+      return data?.value || 'Save {amount} with our special sale now.';
+    },
+  });
+
+  const savingsMessage = savingsMessageSetting || 'Save {amount} with our special sale now.';
 
   // Auto-select program when accessed via direct link
   useEffect(() => {
@@ -266,7 +288,7 @@ export default function TrainingPrograms() {
                   <span className="text-sm text-muted-foreground">+ 3.5% processing fee</span>
                   {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
                     <p className="text-sm text-success font-medium mt-1">
-                      Save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)} with our special sale now.
+                      {formatSavingsMessage(savingsMessage, formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents))}
                     </p>
                   )}
                 </div>
@@ -389,7 +411,7 @@ export default function TrainingPrograms() {
             </section>
 
             {/* Bundle Packages Section */}
-            <BundlesSection currentProgramId={selectedProgram.id} />
+            <BundlesSection currentProgramId={selectedProgram.id} savingsMessage={savingsMessage} />
           </main>
         </div>
       </>
@@ -488,7 +510,7 @@ export default function TrainingPrograms() {
                             </div>
                             {program.original_price_cents && program.original_price_cents > program.price_cents && (
                               <p className="text-sm text-success font-medium mt-1">
-                                Save {formatPrice(program.original_price_cents - program.price_cents)} with our special sale now.
+                                {formatSavingsMessage(savingsMessage, formatPrice(program.original_price_cents - program.price_cents))}
                               </p>
                             )}
                           </div>
@@ -581,7 +603,7 @@ export default function TrainingPrograms() {
                             </div>
                             {program.original_price_cents && program.original_price_cents > program.price_cents && (
                               <p className="text-sm text-success font-medium mt-1">
-                                Save {formatPrice(program.original_price_cents - program.price_cents)} with our special sale now.
+                                {formatSavingsMessage(savingsMessage, formatPrice(program.original_price_cents - program.price_cents))}
                               </p>
                             )}
                           </div>
@@ -637,7 +659,7 @@ export default function TrainingPrograms() {
                           <p className="text-xs text-muted-foreground">+ 3.5% fee</p>
                           {selectedProgram.original_price_cents && selectedProgram.original_price_cents > selectedProgram.price_cents && (
                             <p className="text-xs text-success font-medium">
-                              Save {formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents)} with our special sale now.
+                              {formatSavingsMessage(savingsMessage, formatPrice(selectedProgram.original_price_cents - selectedProgram.price_cents))}
                             </p>
                           )}
                         </div>
