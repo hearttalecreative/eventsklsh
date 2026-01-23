@@ -43,7 +43,7 @@ const formatPrice = (cents: number) => {
   }).format(cents / 100);
 };
 
-// Component for displaying related training links - subtle secondary action
+// Component for displaying related training links - attractive secondary action
 function RelatedTrainingsLinks({ relatedIds, allPrograms }: { relatedIds: string[] | null; allPrograms: TrainingProgram[] }) {
   if (!relatedIds || relatedIds.length === 0) return null;
 
@@ -51,18 +51,17 @@ function RelatedTrainingsLinks({ relatedIds, allPrograms }: { relatedIds: string
   if (relatedPrograms.length === 0) return null;
 
   return (
-    <div className="mt-8 pt-6 border-t border-border/30">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground/70 mb-3">Also available</p>
-      <div className="space-y-2">
+    <div className="mt-10 pt-8 border-t border-border/40">
+      <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-5 text-center">Also Available</p>
+      <div className="flex flex-col items-center gap-3">
         {relatedPrograms.map(program => (
           <Link 
             key={program.id}
             to={`/trainings?program=${program.id}`} 
-            className="group flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="group inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 hover:bg-primary/10 border border-border/50 hover:border-primary/30 transition-all"
           >
-            <span className="w-1 h-1 rounded-full bg-muted-foreground/40 group-hover:bg-primary transition-colors" />
-            <span>{program.name}</span>
-            <ArrowRight className="h-3 w-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
+            <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{program.name}</span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
           </Link>
         ))}
       </div>
@@ -154,17 +153,6 @@ function BundlesSection({ currentProgramId, savingsMessage }: { currentProgramId
           })}
         </div>
 
-        {/* Global navigation link - clearly separate from purchase CTAs */}
-        <div className="mt-12 pt-8 border-t border-border/20">
-          <p className="text-center">
-            <Link 
-              to="/trainings" 
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <span>← Back to all training programs</span>
-            </Link>
-          </p>
-        </div>
       </div>
     </section>
   );
@@ -581,8 +569,8 @@ export default function TrainingPrograms() {
             <div className="container max-w-6xl mx-auto px-4">
               <div className="flex items-center justify-center gap-3 mb-10">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-medium">1</div>
-                <h2 className="font-playfair text-2xl font-normal tracking-wide flex items-center gap-2 text-foreground">
-                  <GraduationCap className="h-5 w-5 text-primary" />
+                <h2 className="font-playfair text-xl md:text-2xl font-normal tracking-wide flex items-center gap-2 text-muted-foreground">
+                  <GraduationCap className="h-5 w-5 text-primary/70" />
                   Choose Your Training Level
                 </h2>
               </div>
@@ -606,9 +594,9 @@ export default function TrainingPrograms() {
                         scrollToForm();
                       }}
                     >
-                      {/* Sale indicator bar */}
+                      {/* Sale indicator bar - muted to not compete with CTA */}
                       {hasSale && (
-                        <div className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest text-center py-1.5">
+                        <div className="bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-widest text-center py-1.5 border-b border-border/50">
                           Limited Sale
                         </div>
                       )}
@@ -622,7 +610,7 @@ export default function TrainingPrograms() {
                       )}
                       
                       <CardContent className="flex flex-col flex-1 p-6">
-                        <h3 className="font-playfair text-xl font-normal leading-tight text-foreground mb-3 pr-8">
+                        <h3 className="font-playfair text-lg md:text-xl font-medium leading-tight text-foreground mb-3 pr-8">
                           {program.name}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed flex-1">
@@ -684,8 +672,8 @@ export default function TrainingPrograms() {
             <div className="container max-w-6xl mx-auto px-4">
               <div className="flex items-center justify-center gap-3 mb-10">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-medium">2</div>
-                <h2 className="font-playfair text-2xl font-normal tracking-wide flex items-center gap-2 text-foreground">
-                  <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="font-playfair text-xl md:text-2xl font-normal tracking-wide flex items-center gap-2 text-muted-foreground">
+                  <Sparkles className="h-5 w-5 text-primary/70" />
                   Bundle Packages
                 </h2>
               </div>
@@ -709,9 +697,9 @@ export default function TrainingPrograms() {
                         scrollToForm();
                       }}
                     >
-                      {/* Sale indicator bar */}
+                      {/* Sale indicator bar - muted to not compete with CTA */}
                       {hasSale && (
-                        <div className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest text-center py-1.5">
+                        <div className="bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-widest text-center py-1.5 border-b border-border/50">
                           Limited Sale
                         </div>
                       )}
@@ -730,7 +718,7 @@ export default function TrainingPrograms() {
                           <span className="text-xs font-semibold text-primary uppercase tracking-wider">Bundle & Save</span>
                         </div>
                         
-                        <h3 className="font-playfair text-xl font-normal leading-tight text-foreground mb-3 pr-8">
+                        <h3 className="font-playfair text-lg md:text-xl font-medium leading-tight text-foreground mb-3 pr-8">
                           {program.name}
                         </h3>
                         <p className="text-sm text-muted-foreground leading-relaxed flex-1">
