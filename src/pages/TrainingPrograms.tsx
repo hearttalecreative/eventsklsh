@@ -455,11 +455,6 @@ export default function TrainingPrograms() {
                   </CardContent>
                 </Card>
 
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                  <Link to="/trainings" className="text-primary hover:underline">
-                    View all training programs
-                  </Link>
-                </p>
               </div>
             </section>
 
