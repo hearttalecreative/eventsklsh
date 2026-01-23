@@ -82,10 +82,15 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          {!(typeof window !== 'undefined' && window.location.pathname === '/') && (
+          {!(typeof window !== 'undefined' && (
+            window.location.pathname === '/' || 
+            window.location.pathname === '/trainings' || 
+            window.location.pathname.startsWith('/trainings?') ||
+            window.location.pathname === '/training-success'
+          )) && (
             <footer className="container mx-auto px-4 py-8 text-center border-t">
               <p className="text-sm text-muted-foreground">
-                © Copyright 2025 Kyle Lam Sound Healing. All Rights Reserved. | Developed with ♥ by{' '}
+                © Copyright {new Date().getFullYear()} Kyle Lam Sound Healing. All Rights Reserved. | Developed with ❤️ by{' '}
                 <a 
                   href="https://hearttalecreative.com/" 
                   target="_blank" 

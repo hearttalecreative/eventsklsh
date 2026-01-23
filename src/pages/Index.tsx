@@ -38,7 +38,7 @@ const Index = () => {
 
       <footer className="container mx-auto px-4 py-8 text-center border-t">
         <p className="text-sm text-muted-foreground">
-          © Copyright 2025 Kyle Lam Sound Healing. All Rights Reserved. | Developed with ♥ by{' '}
+          © Copyright {new Date().getFullYear()} Kyle Lam Sound Healing. All Rights Reserved. | Developed with ❤️ by{' '}
           <a 
             href="https://hearttalecreative.com/" 
             target="_blank" 
