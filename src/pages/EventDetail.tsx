@@ -168,13 +168,9 @@ const EventDetail = () => {
     );
   }
 
-  if (!selectedTicket) {
-    return (
-      <div className="container mx-auto py-16">
-        <p className="text-muted-foreground">Event not found. <Link to="/" className="underline">Go back</Link></p>
-      </div>
-    );
-  }
+  // For sold-out or paused events without tickets, we still want to show the event
+  // Only truly block if event exists but has no tickets AND is not in a special status
+  const hasNoTicketsAndNotSpecialStatus = !selectedTicket && !['sold_out', 'paused'].includes(event.status);
 
   const endOrStart = new Date(event.endsAt || event.startsAt);
   const hasTickets = Array.isArray(event.tickets) && event.tickets.length > 0;
@@ -186,7 +182,7 @@ const EventDetail = () => {
   const canPurchaseTickets = hasTickets && !isPast && event.status === 'published';
 
   const currency = 'USD';
-  const ticketUnit = effectiveUnitAmount(selectedTicket);
+  const ticketUnit = selectedTicket ? effectiveUnitAmount(selectedTicket) : 0;
   const ticketsSubtotal = ticketUnit * quantityTickets;
   const addonsSubtotal = Object.entries(addonsQty).reduce((sum, [id, qty]) => {
     const addon = event.addons.find((a) => a.id === id);
@@ -450,270 +446,278 @@ const proceed = async () => {
                 </p>
               </div>
             )}
-            <h2 className="text-xl font-semibold mb-4">1. Choose tickets</h2>
-            <div className="space-y-3">
-              {event.tickets.map((t) => {
-                const unit = effectiveUnitAmount(t);
-                const isSelected = selectedTicketId === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTicketId(t.id)}
-                    className={`w-full text-left p-4 rounded-lg border transition-colors ${isSelected ? 'border-primary bg-secondary' : 'hover:bg-muted'}`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{t.name}{t.zone ? ` — ${t.zone}` : ''}</div>
-                        {t.description && (<div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">{t.description}</div>)}
-                        {isSelected && ticketAvailability && ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0 && (
-                          <div className="text-xs text-amber-600 font-medium mt-1">
-                            🔥 Almost Sold Out!
-                          </div>
-                        )}
-                        {isSelected && ticketAvailability && ticketAvailability.remaining === 0 && (
-                          <div className="text-xs text-destructive mt-1">
-                            ⚠️ Sold out
-                          </div>
-                        )}
-                        <div className="text-xs text-muted-foreground mt-1">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
-                      </div>
-                      <div className="text-left sm:text-right shrink-0">
-                        <div className="font-semibold">{formatCurrency(unit, 'USD')}</div>
-                        {t.earlyBirdAmountCents && t.earlyBirdEnd && new Date() <= new Date(t.earlyBirdEnd) && (
-                          <div className="text-xs text-accent-foreground bg-accent/20 inline-block px-2 py-0.5 rounded">Early bird</div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <label className="text-sm text-muted-foreground">Tickets</label>
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" size="icon" aria-label="Decrease tickets"
-                  onClick={() => setQuantityTickets((v) => clamp(v - 1, 1, selectedTicket.capacityTotal))}
-                  disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}>
-                  −
-                </Button>
-                <Input
-                  type="number"
-                  min={1}
-                  max={ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal}
-                  value={quantityTickets}
-                  onChange={(e) => {
-                    // remaining is already in UNITS (purchasable tickets), not attendees
-                    const maxTickets = ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal;
-                    setQuantityTickets(clamp(parseInt(e.target.value || '1', 10), 1, maxTickets));
-                  }}
-                  className="w-20 text-center"
-                  disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}
-                />
-                <Button type="button" variant="outline" size="icon" aria-label="Increase tickets"
-                  onClick={() => {
-                    // remaining is already in UNITS (purchasable tickets), not attendees
-                    const maxTickets = ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal;
-                    setQuantityTickets((v) => clamp(v + 1, 1, maxTickets));
-                  }}
-                  disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}>
-                  +
-                </Button>
-              </div>
-              <div className="text-sm text-muted-foreground">Participants: <span className="font-medium text-foreground">{participantsCount}</span></div>
-              {ticketAvailability && !ticketAvailability.available && (
-                <div className="w-full text-sm text-destructive">
-                  {ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0 
-                    ? '⚠️ Almost sold out! Not enough tickets available for your selection.'
-                    : '⚠️ Not enough tickets available for your selection.'}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {event.addons.length > 0 && (
-            <section className="p-6 border rounded-lg bg-card animate-enter">
-              <h2 className="text-xl font-semibold mb-4">2. Add-ons</h2>
-              <div className="space-y-4">
-                {event.addons.map((a: Addon) => (
-                  <div key={a.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                     <div className="min-w-0 flex-1">
-                       <div className="font-medium">{a.name}</div>
-                       {a.description && (
-                         <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">{a.description}</p>
-                       )}
-                       <div className="text-sm text-muted-foreground mt-1">
-                         {formatCurrency(a.unitAmountCents, currency)}
-                         {(a as any).max_quantity_per_person && (
-                           <span className="ml-2 text-xs">
-                             (Max {(a as any).max_quantity_per_person} per person)
-                           </span>
-                         )}
-                       </div>
-                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        aria-label={`Decrease ${a.name}`}
-                        onClick={() =>
-                          setAddonsQty((prev) => ({ ...prev, [a.id]: Math.max((prev[a.id] ?? 0) - 1, 0) }))
-                        }
+            {hasTickets && selectedTicket ? (
+              <>
+                <h2 className="text-xl font-semibold mb-4">1. Choose tickets</h2>
+                <div className="space-y-3">
+                  {event.tickets.map((t) => {
+                    const unit = effectiveUnitAmount(t);
+                    const isSelected = selectedTicketId === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedTicketId(t.id)}
+                        className={`w-full text-left p-4 rounded-lg border transition-colors ${isSelected ? 'border-primary bg-secondary' : 'hover:bg-muted'}`}
                       >
-                        −
-                      </Button>
-                       <Input
-                         type="number"
-                         min={0}
-                         max={(a as any).max_quantity_per_person ? (a as any).max_quantity_per_person * participantsCount : undefined}
-                         value={addonsQty[a.id] ?? 0}
-                         onChange={(e) => {
-                           const raw = parseInt(e.target.value || '0', 10);
-                           const maxPerPerson = (a as any).max_quantity_per_person;
-                           const max = maxPerPerson ? maxPerPerson * participantsCount : undefined;
-                           const v = isNaN(raw) ? 0 : Math.max(raw, 0);
-                           const finalValue = max ? Math.min(v, max) : v;
-                           setAddonsQty((prev) => ({ ...prev, [a.id]: finalValue }));
-                         }}
-                         className="w-16 text-center"
-                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        aria-label={`Increase ${a.name}`}
-                        onClick={() =>
-                          setAddonsQty((prev) => {
-                            const current = prev[a.id] ?? 0;
-                            const maxPerPerson = (a as any).max_quantity_per_person;
-                            const max = maxPerPerson ? maxPerPerson * participantsCount : undefined;
-                            const newValue = current + 1;
-                            return { ...prev, [a.id]: max ? Math.min(newValue, max) : newValue };
-                          })
-                        }
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-
-          <section className="p-6 border rounded-lg bg-card animate-enter">
-            <h2 className="text-xl font-semibold mb-4">3. Participants</h2>
-            <div className="divide-y">
-              {participants.map((p, i) => (
-                <div key={i} className="py-4">
-                  <div className="text-sm font-medium mb-2">Participant #{i + 1}</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label htmlFor={`p-${i}-name`}>Full name</Label>
-                      <Input
-                        id={`p-${i}-name`}
-                        placeholder="Name and last name"
-                        value={p.fullName}
-                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`p-${i}-email`}>Email</Label>
-                      <Input
-                        id={`p-${i}-email`}
-                        type="email"
-                        placeholder="name@example.com"
-                        value={p.email}
-                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`p-${i}-phone`}>Phone</Label>
-                      <Input
-                        id={`p-${i}-phone`}
-                        placeholder="e.g. +1 555 555 5555"
-                        value={p.phone}
-                        onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
-                        required
-                      />
-                    </div>
-                  </div>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium">{t.name}{t.zone ? ` — ${t.zone}` : ''}</div>
+                            {t.description && (<div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">{t.description}</div>)}
+                            {isSelected && ticketAvailability && ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0 && (
+                              <div className="text-xs font-medium mt-1 text-accent-foreground">
+                                🔥 Almost Sold Out!
+                              </div>
+                            )}
+                            {isSelected && ticketAvailability && ticketAvailability.remaining === 0 && (
+                              <div className="text-xs text-destructive mt-1">
+                                ⚠️ Sold out
+                              </div>
+                            )}
+                            <div className="text-xs text-muted-foreground mt-1">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
+                          </div>
+                          <div className="text-left sm:text-right shrink-0">
+                            <div className="font-semibold">{formatCurrency(unit, 'USD')}</div>
+                            {t.earlyBirdAmountCents && t.earlyBirdEnd && new Date() <= new Date(t.earlyBirdEnd) && (
+                              <div className="text-xs text-accent-foreground bg-accent/20 inline-block px-2 py-0.5 rounded">Early bird</div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="p-6 border rounded-lg bg-card animate-enter">
-            <h2 className="text-xl font-semibold mb-4">4. Terms, Coupon & Summary</h2>
-            <div className="flex items-center gap-2 mb-4">
-              <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(Boolean(v))} />
-              <label htmlFor="terms" className="text-sm">I accept the <a href="https://kylelamsoundhealing.com/refund-and-event-credit-policy/" target="_blank" rel="noopener noreferrer" className="underline">Refund Policy, Privacy Policy & Liability Waiver</a></label>
-            </div>
-            <div className="flex items-center gap-2 mb-3">
-              <Input placeholder="Coupon code" value={coupon} onChange={(e) => { setCoupon(e.target.value); setCouponValid(false); }} className="max-w-xs" />
-              <Button type="button" variant="outline" onClick={async () => {
-                if (!coupon) { toast.error('Enter a coupon'); return; }
-                // Get primary participant email for one_per_customer validation
-                const primaryEmail = participants[0]?.email?.toLowerCase().trim() || null;
-                try {
-                  const { data, error } = await supabase.functions.invoke('validate-coupon', {
-                    body: { eventId: event.id, code: coupon, email: primaryEmail }
-                  });
-                  if (error) throw error as any;
-                  if (data?.valid) {
-                    setCouponValid(true);
-                    setCouponInfo(data.coupon || null);
-                    toast.success('Coupon applied');
-                  } else {
-                    setCouponValid(false);
-                    // Show specific message if provided
-                    const errorMsg = data?.message || 'Invalid coupon';
-                    toast.error(errorMsg);
-                  }
-                } catch (err: any) {
-                  toast.error(err?.message || 'Failed to validate coupon');
-                }
-              }}>Apply coupon</Button>
-            </div>
-            {discount > 0 && (
-              <p className="text-xs text-accent-foreground mb-3">You saved {formatCurrency(discount, currency)} with coupon {coupon.toUpperCase()}.</p>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <label className="text-sm text-muted-foreground">Tickets</label>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="icon" aria-label="Decrease tickets"
+                      onClick={() => setQuantityTickets((v) => clamp(v - 1, 1, selectedTicket.capacityTotal))}
+                      disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}>
+                      −
+                    </Button>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal}
+                      value={quantityTickets}
+                      onChange={(e) => {
+                        const maxTickets = ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal;
+                        setQuantityTickets(clamp(parseInt(e.target.value || '1', 10), 1, maxTickets));
+                      }}
+                      className="w-20 text-center"
+                      disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}
+                    />
+                    <Button type="button" variant="outline" size="icon" aria-label="Increase tickets"
+                      onClick={() => {
+                        const maxTickets = ticketAvailability ? ticketAvailability.remaining : selectedTicket.capacityTotal;
+                        setQuantityTickets((v) => clamp(v + 1, 1, maxTickets));
+                      }}
+                      disabled={!canPurchaseTickets || (ticketAvailability && ticketAvailability.remaining === 0)}>
+                      +
+                    </Button>
+                  </div>
+                  <div className="text-sm text-muted-foreground">Participants: <span className="font-medium text-foreground">{participantsCount}</span></div>
+                  {ticketAvailability && !ticketAvailability.available && (
+                    <div className="w-full text-sm text-destructive">
+                      {ticketAvailability.remaining <= 5 && ticketAvailability.remaining > 0 
+                        ? '⚠️ Almost sold out! Not enough tickets available for your selection.'
+                        : '⚠️ Not enough tickets available for your selection.'}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">No tickets are currently available for this event.</p>
+              </div>
             )}
-            <p className="text-xs text-muted-foreground mt-2 mb-4">Coupons apply only to ticket value. Add-ons are not discounted.</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-start justify-between">
-                <div className="text-muted-foreground truncate">{selectedTicket.name} × {quantityTickets} {participantsPerTicket > 1 ? `(includes ${participantsPerTicket} participants each)` : ''}</div>
-                <div className="font-medium">{formatCurrency(ticketsSubtotal, currency)}</div>
-              </div>
-              {Object.entries(addonsQty).filter(([_, qty]) => (qty ?? 0) > 0).map(([id, qty]) => {
-                const a = event.addons.find((x) => x.id === id)!;
-                return (
-                  <div key={id} className="flex items-start justify-between pl-4">
-                    <div className="text-muted-foreground truncate">{a.name} × {qty}</div>
-                    <div>{formatCurrency(a.unitAmountCents * (qty ?? 0), currency)}</div>
-                  </div>
-                );
-              })}
-              {discount > 0 && (
-                <div className="flex justify-between text-accent-foreground">
-                  <span>Discount</span>
-                  <span>-{formatCurrency(discount, currency)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Processing Fee (3.5%)</span>
-                <span>{formatCurrency(processingFee, currency)}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t font-semibold">
-                <span>Total</span>
-                <span>{formatCurrency(total, currency)}</span>
-              </div>
-            </div>
-            <Button className="w-full mt-4" onClick={proceed} disabled={!canPurchaseTickets}>Proceed to payment</Button>
-            <p className="text-xs text-muted-foreground mt-2">You will be redirected to Stripe Checkout.</p>
           </section>
+
+          {hasTickets && selectedTicket && (
+            <>
+              {event.addons.length > 0 && (
+                <section className="p-6 border rounded-lg bg-card animate-enter">
+                  <h2 className="text-xl font-semibold mb-4">2. Add-ons</h2>
+                  <div className="space-y-4">
+                    {event.addons.map((a: Addon) => (
+                      <div key={a.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                         <div className="min-w-0 flex-1">
+                           <div className="font-medium">{a.name}</div>
+                           {a.description && (
+                             <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap break-words">{a.description}</p>
+                           )}
+                           <div className="text-sm text-muted-foreground mt-1">
+                             {formatCurrency(a.unitAmountCents, currency)}
+                             {(a as any).max_quantity_per_person && (
+                               <span className="ml-2 text-xs">
+                                 (Max {(a as any).max_quantity_per_person} per person)
+                               </span>
+                             )}
+                           </div>
+                         </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Decrease ${a.name}`}
+                            onClick={() =>
+                              setAddonsQty((prev) => ({ ...prev, [a.id]: Math.max((prev[a.id] ?? 0) - 1, 0) }))
+                            }
+                          >
+                            −
+                          </Button>
+                           <Input
+                             type="number"
+                             min={0}
+                             max={(a as any).max_quantity_per_person ? (a as any).max_quantity_per_person * participantsCount : undefined}
+                             value={addonsQty[a.id] ?? 0}
+                             onChange={(e) => {
+                               const raw = parseInt(e.target.value || '0', 10);
+                               const maxPerPerson = (a as any).max_quantity_per_person;
+                               const max = maxPerPerson ? maxPerPerson * participantsCount : undefined;
+                               const v = isNaN(raw) ? 0 : Math.max(raw, 0);
+                               const finalValue = max ? Math.min(v, max) : v;
+                               setAddonsQty((prev) => ({ ...prev, [a.id]: finalValue }));
+                             }}
+                             className="w-16 text-center"
+                           />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Increase ${a.name}`}
+                            onClick={() =>
+                              setAddonsQty((prev) => {
+                                const current = prev[a.id] ?? 0;
+                                const maxPerPerson = (a as any).max_quantity_per_person;
+                                const max = maxPerPerson ? maxPerPerson * participantsCount : undefined;
+                                const newValue = current + 1;
+                                return { ...prev, [a.id]: max ? Math.min(newValue, max) : newValue };
+                              })
+                            }
+                          >
+                            +
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+
+              <section className="p-6 border rounded-lg bg-card animate-enter">
+                <h2 className="text-xl font-semibold mb-4">3. Participants</h2>
+                <div className="divide-y">
+                  {participants.map((p, i) => (
+                    <div key={i} className="py-4">
+                      <div className="text-sm font-medium mb-2">Participant #{i + 1}</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor={`p-${i}-name`}>Full name</Label>
+                          <Input
+                            id={`p-${i}-name`}
+                            placeholder="Name and last name"
+                            value={p.fullName}
+                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, fullName: e.target.value } : v)))}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`p-${i}-email`}>Email</Label>
+                          <Input
+                            id={`p-${i}-email`}
+                            type="email"
+                            placeholder="name@example.com"
+                            value={p.email}
+                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, email: e.target.value } : v)))}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={`p-${i}-phone`}>Phone</Label>
+                          <Input
+                            id={`p-${i}-phone`}
+                            placeholder="e.g. +1 555 555 5555"
+                            value={p.phone}
+                            onChange={(e) => setParticipants((arr) => arr.map((v, idx) => (idx === i ? { ...v, phone: e.target.value } : v)))}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="p-6 border rounded-lg bg-card animate-enter">
+                <h2 className="text-xl font-semibold mb-4">4. Terms, Coupon & Summary</h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <Checkbox id="terms" checked={acceptedTerms} onCheckedChange={(v) => setAcceptedTerms(Boolean(v))} />
+                  <label htmlFor="terms" className="text-sm">I accept the <a href="https://kylelamsoundhealing.com/refund-and-event-credit-policy/" target="_blank" rel="noopener noreferrer" className="underline">Refund Policy, Privacy Policy & Liability Waiver</a></label>
+                </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Input placeholder="Coupon code" value={coupon} onChange={(e) => { setCoupon(e.target.value); setCouponValid(false); }} className="max-w-xs" />
+                  <Button type="button" variant="outline" onClick={async () => {
+                    if (!coupon) { toast.error('Enter a coupon'); return; }
+                    const primaryEmail = participants[0]?.email?.toLowerCase().trim() || null;
+                    try {
+                      const { data, error } = await supabase.functions.invoke('validate-coupon', {
+                        body: { eventId: event.id, code: coupon, email: primaryEmail }
+                      });
+                      if (error) throw error as any;
+                      if (data?.valid) {
+                        setCouponValid(true);
+                        setCouponInfo(data.coupon || null);
+                        toast.success('Coupon applied');
+                      } else {
+                        setCouponValid(false);
+                        const errorMsg = data?.message || 'Invalid coupon';
+                        toast.error(errorMsg);
+                      }
+                    } catch (err: any) {
+                      toast.error(err?.message || 'Failed to validate coupon');
+                    }
+                  }}>Apply coupon</Button>
+                </div>
+                {discount > 0 && (
+                  <p className="text-xs text-accent-foreground mb-3">You saved {formatCurrency(discount, currency)} with coupon {coupon.toUpperCase()}.</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-2 mb-4">Coupons apply only to ticket value. Add-ons are not discounted.</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start justify-between">
+                    <div className="text-muted-foreground truncate">{selectedTicket.name} × {quantityTickets} {participantsPerTicket > 1 ? `(includes ${participantsPerTicket} participants each)` : ''}</div>
+                    <div className="font-medium">{formatCurrency(ticketsSubtotal, currency)}</div>
+                  </div>
+                  {Object.entries(addonsQty).filter(([_, qty]) => (qty ?? 0) > 0).map(([id, qty]) => {
+                    const a = event.addons.find((x) => x.id === id)!;
+                    return (
+                      <div key={id} className="flex items-start justify-between pl-4">
+                        <div className="text-muted-foreground truncate">{a.name} × {qty}</div>
+                        <div>{formatCurrency(a.unitAmountCents * (qty ?? 0), currency)}</div>
+                      </div>
+                    );
+                  })}
+                  {discount > 0 && (
+                    <div className="flex justify-between text-accent-foreground">
+                      <span>Discount</span>
+                      <span>-{formatCurrency(discount, currency)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Processing Fee (3.5%)</span>
+                    <span>{formatCurrency(processingFee, currency)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t font-semibold">
+                    <span>Total</span>
+                    <span>{formatCurrency(total, currency)}</span>
+                  </div>
+                </div>
+                <Button className="w-full mt-4" onClick={proceed} disabled={!canPurchaseTickets}>Proceed to payment</Button>
+                <p className="text-xs text-muted-foreground mt-2">You will be redirected to Stripe Checkout.</p>
+              </section>
+            </>
+          )}
         </aside>
       </div>
     </main>
