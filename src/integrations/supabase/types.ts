@@ -845,6 +845,7 @@ export type Database = {
       training_programs: {
         Row: {
           active: boolean
+          availability_info: string | null
           available_from: string | null
           available_to: string | null
           created_at: string
@@ -861,6 +862,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          availability_info?: string | null
           available_from?: string | null
           available_to?: string | null
           created_at?: string
@@ -877,6 +879,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          availability_info?: string | null
           available_from?: string | null
           available_to?: string | null
           created_at?: string

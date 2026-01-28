@@ -23,6 +23,7 @@ interface TrainingProgram {
   available_from: string | null;
   available_to: string | null;
   related_training_ids: string[] | null;
+  availability_info: string | null;
 }
 
 // Helper to format savings message with amount placeholder
@@ -372,9 +373,10 @@ export default function TrainingPrograms() {
                   {hasSale && (
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
                       <Check className="h-4 w-4 text-success" />
-                      <span className="text-sm font-semibold text-success">
-                        {formatSavingsMessage(savingsMessage, formatPrice(savings))}
-                      </span>
+                      <span 
+                        className="text-xs font-normal text-success"
+                        dangerouslySetInnerHTML={{ __html: formatSavingsMessage(savingsMessage, formatPrice(savings)) }}
+                      />
                     </div>
                   )}
                   
@@ -448,19 +450,16 @@ export default function TrainingPrograms() {
                         <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
                         <Input
                           id="preferredDates"
-                          placeholder={
-                            selectedProgram.available_from && selectedProgram.available_to
-                              ? `Select dates between ${new Date(selectedProgram.available_from).toLocaleDateString()} - ${new Date(selectedProgram.available_to).toLocaleDateString()}`
-                              : "e.g., January 15-17, 2025 or flexible weekends"
-                          }
+                          placeholder="e.g., January 15-17, 2025 or flexible weekends"
                           value={formData.preferredDates}
                           onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
                           required
                         />
-                        {selectedProgram.available_from && selectedProgram.available_to && (
-                          <p className="text-xs text-muted-foreground">
-                            Available dates: {new Date(selectedProgram.available_from).toLocaleDateString()} - {new Date(selectedProgram.available_to).toLocaleDateString()}
-                          </p>
+                        {selectedProgram.availability_info && (
+                          <p 
+                            className="text-xs text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: selectedProgram.availability_info }}
+                          />
                         )}
                       </div>
                       <div className="flex items-start space-x-3 pt-2">
@@ -499,7 +498,7 @@ export default function TrainingPrograms() {
                             Processing...
                           </>
                         ) : (
-                          `Proceed to Payment - ${formatPrice(selectedProgram.price_cents + calculateFee(selectedProgram.price_cents, selectedProgram.processing_fee_percent))}`
+                          `Proceed to Payment - ${formatPrice(selectedProgram.price_cents)}`
                         )}
                       </Button>
                     </form>
@@ -852,20 +851,17 @@ export default function TrainingPrograms() {
                       <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
                       <Input
                         id="preferredDates"
-                        placeholder={
-                          selectedProgram?.available_from && selectedProgram?.available_to
-                            ? `Select dates between ${new Date(selectedProgram.available_from).toLocaleDateString()} - ${new Date(selectedProgram.available_to).toLocaleDateString()}`
-                            : "e.g., January 15-17, 2025 or flexible weekends"
-                        }
+                        placeholder="e.g., January 15-17, 2025 or flexible weekends"
                         value={formData.preferredDates}
                         onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
                         required
                         disabled={!selectedProgram}
                       />
-                      {selectedProgram?.available_from && selectedProgram?.available_to && (
-                        <p className="text-xs text-muted-foreground">
-                          Available dates: {new Date(selectedProgram.available_from).toLocaleDateString()} - {new Date(selectedProgram.available_to).toLocaleDateString()}
-                        </p>
+                      {selectedProgram?.availability_info && (
+                        <p 
+                          className="text-xs text-muted-foreground"
+                          dangerouslySetInnerHTML={{ __html: selectedProgram.availability_info }}
+                        />
                       )}
                     </div>
                     <div className="flex items-start space-x-3 pt-2">
@@ -905,7 +901,7 @@ export default function TrainingPrograms() {
                           Processing...
                         </>
                       ) : selectedProgram ? (
-                        `Proceed to Payment - ${formatPrice(selectedProgram.price_cents + calculateFee(selectedProgram.price_cents, selectedProgram.processing_fee_percent))}`
+                        `Proceed to Payment - ${formatPrice(selectedProgram.price_cents)}`
                       ) : (
                         'Select a Program to Continue'
                       )}

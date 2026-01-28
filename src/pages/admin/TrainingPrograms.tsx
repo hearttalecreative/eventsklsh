@@ -44,6 +44,7 @@ interface TrainingProgram {
   available_from: string | null;
   available_to: string | null;
   related_training_ids: string[] | null;
+  availability_info: string | null;
   created_at: string;
 }
 
@@ -163,8 +164,7 @@ export default function AdminTrainingPrograms() {
     processing_fee_percent: '3.5',
     is_bundle: false,
     active: true,
-    available_from: '',
-    available_to: '',
+    availability_info: '',
     related_training_ids: [] as string[],
   });
 
@@ -248,8 +248,7 @@ export default function AdminTrainingPrograms() {
         processing_fee_percent: parseFloat(data.processing_fee_percent) || 3.5,
         is_bundle: data.is_bundle,
         active: data.active,
-        available_from: data.available_from || null,
-        available_to: data.available_to || null,
+        availability_info: data.availability_info || null,
         related_training_ids: data.is_bundle ? [] : (data.related_training_ids || []),
         ...(data.id ? {} : { display_order: maxOrder + 1 }),
       };
@@ -352,8 +351,7 @@ export default function AdminTrainingPrograms() {
         processing_fee_percent: program.processing_fee_percent.toString(),
         is_bundle: program.is_bundle,
         active: program.active,
-        available_from: program.available_from || '',
-        available_to: program.available_to || '',
+        availability_info: program.availability_info || '',
         related_training_ids: program.related_training_ids || [],
       });
     } else {
@@ -366,8 +364,7 @@ export default function AdminTrainingPrograms() {
         processing_fee_percent: '3.5',
         is_bundle: false,
         active: true,
-        available_from: '',
-        available_to: '',
+        availability_info: '',
         related_training_ids: [],
       });
     }
@@ -481,29 +478,19 @@ export default function AdminTrainingPrograms() {
                       onChange={(e) => setFormData({ ...formData, processing_fee_percent: e.target.value })}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="available_from">Available From</Label>
-                      <Input
-                        id="available_from"
-                        type="date"
-                        value={formData.available_from}
-                        onChange={(e) => setFormData({ ...formData, available_from: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="available_to">Available To</Label>
-                      <Input
-                        id="available_to"
-                        type="date"
-                        value={formData.available_to}
-                        onChange={(e) => setFormData({ ...formData, available_to: e.target.value })}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="availability_info">Availability Info</Label>
+                    <Textarea
+                      id="availability_info"
+                      placeholder="e.g., Available February - March 2025"
+                      value={formData.availability_info}
+                      onChange={(e) => setFormData({ ...formData, availability_info: e.target.value })}
+                      rows={2}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This text appears below "Preferred Date or Dates" field. Use <code className="bg-muted px-1 rounded">&lt;br&gt;</code> for line breaks.
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Set date range to limit when users can book this training. Leave empty for no restrictions.
-                  </p>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="is_bundle">Is Bundle?</Label>
                     <Switch
