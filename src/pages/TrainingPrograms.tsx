@@ -456,7 +456,7 @@ export default function TrainingPrograms() {
                         {selectedProgram.availability_info && (
                           <p 
                             className="text-xs text-muted-foreground"
-                            dangerouslySetInnerHTML={{ __html: selectedProgram.availability_info }}
+                            dangerouslySetInnerHTML={{ __html: selectedProgram.availability_info || '' }}
                           />
                         )}
                       </div>
@@ -857,7 +857,7 @@ export default function TrainingPrograms() {
                       {selectedProgram?.availability_info && (
                         <p 
                           className="text-xs text-muted-foreground"
-                          dangerouslySetInnerHTML={{ __html: selectedProgram.availability_info }}
+                          dangerouslySetInnerHTML={{ __html: selectedProgram.availability_info || '' }}
                         />
                       )}
                     </div>
