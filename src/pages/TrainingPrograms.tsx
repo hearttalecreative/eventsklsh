@@ -371,8 +371,7 @@ export default function TrainingPrograms() {
                   
                   {/* Savings badge - highlighted but secondary to price */}
                   {hasSale && (
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-success/10 border border-success/20">
-                      <Check className="h-4 w-4 text-success" />
+                    <div className="inline-flex items-center px-4 py-2 rounded-lg bg-success/10 border border-success/20">
                       <span 
                         className="text-xs font-normal text-success"
                         dangerouslySetInnerHTML={{ __html: formatSavingsMessage(savingsMessage, formatPrice(savings)) }}
@@ -450,7 +449,6 @@ export default function TrainingPrograms() {
                         <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
                         <Input
                           id="preferredDates"
-                          placeholder="e.g., January 15-17, 2025 or flexible weekends"
                           value={formData.preferredDates}
                           onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
                           required
@@ -851,7 +849,6 @@ export default function TrainingPrograms() {
                       <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
                       <Input
                         id="preferredDates"
-                        placeholder="e.g., January 15-17, 2025 or flexible weekends"
                         value={formData.preferredDates}
                         onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
                         required
