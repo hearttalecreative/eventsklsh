@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import RichMarkdownEditor from '@/components/RichMarkdownEditor';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -35,6 +36,7 @@ interface TrainingProgram {
   id: string;
   name: string;
   description: string | null;
+  excerpt: string | null;
   price_cents: number;
   original_price_cents: number | null;
   processing_fee_percent: number;
@@ -158,6 +160,7 @@ export default function AdminTrainingPrograms() {
   const [savingsMessageInput, setSavingsMessageInput] = useState('');
   const [formData, setFormData] = useState({
     name: '',
+    excerpt: '',
     description: '',
     price_cents: '',
     original_price_cents: '',
@@ -242,6 +245,7 @@ export default function AdminTrainingPrograms() {
       
       const payload = {
         name: data.name,
+        excerpt: data.excerpt || null,
         description: data.description || null,
         price_cents: Math.round(parseFloat(data.price_cents) * 100),
         original_price_cents: data.original_price_cents ? Math.round(parseFloat(data.original_price_cents) * 100) : null,
@@ -345,6 +349,7 @@ export default function AdminTrainingPrograms() {
       setEditingProgram(program);
       setFormData({
         name: program.name,
+        excerpt: program.excerpt || '',
         description: program.description || '',
         price_cents: formatPrice(program.price_cents),
         original_price_cents: program.original_price_cents ? formatPrice(program.original_price_cents) : '',
@@ -358,6 +363,7 @@ export default function AdminTrainingPrograms() {
       setEditingProgram(null);
       setFormData({
         name: '',
+        excerpt: '',
         description: '',
         price_cents: '',
         original_price_cents: '',
@@ -389,7 +395,7 @@ export default function AdminTrainingPrograms() {
   };
 
   const handleCopyProgramLink = (program: TrainingProgram) => {
-    const directUrl = `${window.location.origin}/trainings?program=${program.id}`;
+    const directUrl = `${window.location.origin}/trainings/${program.id}`;
     navigator.clipboard.writeText(directUrl);
     setCopiedProgramId(program.id);
     toast.success(`Direct link for "${program.name}" copied`);
@@ -432,13 +438,27 @@ export default function AdminTrainingPrograms() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="excerpt">Excerpt (Short Summary)</Label>
                     <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={4}
+                      id="excerpt"
+                      value={formData.excerpt}
+                      onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                      rows={2}
+                      placeholder="Brief description shown on the listing page"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      This text appears on the main trainings page. Keep it short (1-2 sentences).
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Full Description (Markdown)</Label>
+                    <RichMarkdownEditor
+                      value={formData.description}
+                      onChange={(val) => setFormData({ ...formData, description: val })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Full description with formatting. Shown on the individual program detail page.
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

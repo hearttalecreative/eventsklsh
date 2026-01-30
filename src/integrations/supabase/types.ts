@@ -851,6 +851,7 @@ export type Database = {
           created_at: string
           description: string | null
           display_order: number
+          excerpt: string | null
           id: string
           is_bundle: boolean
           name: string
@@ -868,6 +869,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number
+          excerpt?: string | null
           id?: string
           is_bundle?: boolean
           name: string
@@ -885,6 +887,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number
+          excerpt?: string | null
           id?: string
           is_bundle?: boolean
           name?: string

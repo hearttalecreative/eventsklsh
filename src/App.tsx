@@ -26,6 +26,7 @@ import SystemLogs from "./pages/admin/SystemLogs";
 import CaliforniaEvents from "./pages/CaliforniaEvents";
 import FloridaEvents from "./pages/FloridaEvents";
 import TrainingPrograms from "./pages/TrainingPrograms";
+import TrainingDetail from "./pages/TrainingDetail";
 import TrainingSuccess from "./pages/TrainingSuccess";
 import AdminTrainingPrograms from "./pages/admin/TrainingPrograms";
 
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/events/california" element={<CaliforniaEvents />} />
             <Route path="/events/florida" element={<FloridaEvents />} />
             <Route path="/trainings" element={<TrainingPrograms />} />
+            <Route path="/trainings/:programId" element={<TrainingDetail />} />
             <Route path="/training-success" element={<TrainingSuccess />} />
             <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/admin/training-programs" element={<AdminRoute><AdminTrainingPrograms /></AdminRoute>} />
