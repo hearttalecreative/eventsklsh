@@ -43,46 +43,98 @@ const formatSavingsMessage = (template: string, amount: string) => {
   return template.replace('{amount}', amount);
 };
 
-// Related trainings/bundles section
-function RelatedProgramsSection({ 
+// All other programs section (excluding current)
+function OtherProgramsSection({ 
   currentProgram,
   allPrograms 
 }: { 
   currentProgram: TrainingProgram;
   allPrograms: TrainingProgram[];
 }) {
-  // For individual trainings, show related trainings + bundles
-  // For bundles, show other bundles and individual trainings
-  
-  const relatedPrograms = currentProgram.is_bundle
-    ? allPrograms.filter(p => p.id !== currentProgram.id)
-    : [
-        // First related trainings
-        ...allPrograms.filter(p => 
-          currentProgram.related_training_ids?.includes(p.id) && !p.is_bundle
-        ),
-        // Then bundles
-        ...allPrograms.filter(p => p.is_bundle),
-      ];
+  const otherPrograms = allPrograms.filter(p => p.id !== currentProgram.id);
 
-  if (relatedPrograms.length === 0) return null;
+  if (otherPrograms.length === 0) return null;
 
-  const bundles = relatedPrograms.filter(p => p.is_bundle);
-  const trainings = relatedPrograms.filter(p => !p.is_bundle);
+  const bundles = otherPrograms.filter(p => p.is_bundle);
+  const trainings = otherPrograms.filter(p => !p.is_bundle);
 
   return (
     <section className="py-14 md:py-20 bg-gradient-to-b from-muted/30 to-background">
       <div className="container max-w-5xl mx-auto px-4">
-        {/* Bundles section for individual trainings */}
-        {!currentProgram.is_bundle && bundles.length > 0 && (
-          <div className="mb-12">
-            <div className="text-center mb-8">
-              <p className="text-xs uppercase tracking-widest text-primary/70 mb-2">Bundle & Save</p>
-              <h3 className="font-playfair text-xl md:text-2xl font-normal tracking-wide text-foreground">
-                Save more with a training package
-              </h3>
+        <div className="text-center mb-10">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2">Explore More</p>
+          <h3 className="font-playfair text-xl md:text-2xl font-normal tracking-wide text-foreground">
+            Other Training Programs
+          </h3>
+        </div>
+
+        {/* Individual trainings */}
+        {trainings.length > 0 && (
+          <div className="mb-10">
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4 text-center">Training Levels</h4>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {trainings.map((training) => {
+                const hasSale = training.original_price_cents && training.original_price_cents > training.price_cents;
+                const savings = hasSale ? training.original_price_cents! - training.price_cents : 0;
+                
+                return (
+                  <Link
+                    key={training.id}
+                    to={`/trainings/${training.id}`}
+                    className="block group"
+                  >
+                    <Card className="h-full transition-all duration-300 hover:shadow-xl hover:border-primary/50 border-border/50 bg-background overflow-hidden">
+                      <CardContent className="p-6">
+                        <h4 className="font-playfair text-lg font-normal text-foreground mb-3 group-hover:text-primary transition-colors">
+                          {training.name}
+                        </h4>
+                        
+                        {training.excerpt && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                            {training.excerpt}
+                          </p>
+                        )}
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl font-bold text-foreground">{formatPrice(training.price_cents)}</span>
+                            {hasSale && (
+                              <span className="text-sm text-muted-foreground/70 line-through">
+                                {formatPrice(training.original_price_cents!)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {hasSale && (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/20">
+                              <span className="text-xs font-semibold text-success">
+                                Save {formatPrice(savings)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="mt-5 pt-4 border-t border-border/30">
+                          <span className="text-sm text-primary font-medium group-hover:underline flex items-center gap-1">
+                            Learn More
+                            <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
-            
+          </div>
+        )}
+
+        {/* Bundles */}
+        {bundles.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4 text-center">
+              {currentProgram.is_bundle ? 'Other Bundles' : 'Bundle & Save'}
+            </h4>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {bundles.map((bundle) => {
                 const hasSale = bundle.original_price_cents && bundle.original_price_cents > bundle.price_cents;
@@ -113,7 +165,7 @@ function RelatedProgramsSection({
                         
                         <div className="space-y-2">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-foreground">{formatPrice(bundle.price_cents)}</span>
+                            <span className="text-xl font-bold text-foreground">{formatPrice(bundle.price_cents)}</span>
                             {hasSale && (
                               <span className="text-sm text-muted-foreground/70 line-through">
                                 {formatPrice(bundle.original_price_cents!)}
@@ -141,31 +193,6 @@ function RelatedProgramsSection({
                   </Link>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Related individual trainings */}
-        {trainings.length > 0 && (
-          <div>
-            <div className="text-center mb-8">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2">Also Available</p>
-              <h3 className="font-playfair text-lg md:text-xl font-normal tracking-wide text-muted-foreground">
-                Explore other training levels
-              </h3>
-            </div>
-            
-            <div className="flex flex-wrap justify-center gap-3">
-              {trainings.map(program => (
-                <Link 
-                  key={program.id}
-                  to={`/trainings/${program.id}`} 
-                  className="group inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 hover:bg-primary/10 border border-border/50 hover:border-primary/30 transition-all"
-                >
-                  <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{program.name}</span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </Link>
-              ))}
             </div>
           </div>
         )}
@@ -331,8 +358,8 @@ export default function TrainingDetail() {
             </Link>
           </div>
 
-          {/* Hero Section */}
-          <section className="bg-gradient-to-b from-primary/5 via-primary/3 to-background py-12 md:py-16">
+          {/* Hero Section - Title Only */}
+          <section className="bg-gradient-to-b from-primary/5 via-primary/3 to-background py-10 md:py-14">
             <div className="container max-w-3xl mx-auto px-4 text-center">
               {/* Bundle badge */}
               {program.is_bundle && (
@@ -343,68 +370,15 @@ export default function TrainingDetail() {
               )}
               
               {/* Program title */}
-              <h1 className="font-playfair text-3xl md:text-4xl lg:text-[2.75rem] font-normal tracking-wide mb-6 text-foreground">
+              <h1 className="font-playfair text-3xl md:text-4xl lg:text-[2.75rem] font-normal tracking-wide text-foreground">
                 {program.name}
               </h1>
-              
-              {/* PRICING BLOCK */}
-              <div className="bg-background rounded-2xl shadow-lg border border-border/50 p-6 md:p-8 max-w-md mx-auto">
-                {hasSale && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                    </span>
-                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">Limited Sale</span>
-                  </div>
-                )}
-                
-                {/* Primary price */}
-                <div className="mb-3">
-                  <span className="text-4xl md:text-5xl font-bold text-foreground">
-                    {formatPrice(program.price_cents)}
-                  </span>
-                  {hasSale && (
-                    <span className="text-xl text-muted-foreground/60 line-through ml-3">
-                      {formatPrice(program.original_price_cents!)}
-                    </span>
-                  )}
-                </div>
-                
-                {/* Processing fee */}
-                <p className="text-xs text-muted-foreground mb-4">+ {program.processing_fee_percent}% processing fee</p>
-                
-                {/* Savings badge */}
-                {hasSale && (
-                  <div className="inline-flex items-center px-4 py-2 rounded-lg bg-success/10 border border-success/20">
-                    <span 
-                      className="text-xs font-normal text-success"
-                      dangerouslySetInnerHTML={{ __html: formatSavingsMessage(savingsMessage, formatPrice(savings)) }}
-                    />
-                  </div>
-                )}
-                
-                {/* CTA Button */}
-                <Button 
-                  onClick={scrollToForm}
-                  size="lg"
-                  className="w-full mt-6 text-base"
-                >
-                  Register Now
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Note about date confirmation */}
-              <p className="mt-6 text-sm text-muted-foreground italic max-w-md mx-auto">
-                Upon completion of registration, our team will reach out regarding date confirmation.
-              </p>
             </div>
           </section>
 
           {/* Full Description Section */}
           {program.description && (
-            <section className="py-12 md:py-16 bg-background">
+            <section className="py-10 md:py-14 bg-background">
               <div className="container max-w-3xl mx-auto px-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <ReactMarkdown 
@@ -446,8 +420,55 @@ export default function TrainingDetail() {
             </section>
           )}
 
+          {/* Pricing Block */}
+          <section className="py-10 md:py-14 bg-muted/20">
+            <div className="container max-w-md mx-auto px-4">
+              <div className="bg-background rounded-2xl shadow-lg border border-border/50 p-6 md:p-8 text-center">
+                {hasSale && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">Limited Sale</span>
+                  </div>
+                )}
+                
+                {/* Primary price */}
+                <div className="mb-3">
+                  <span className="text-4xl md:text-5xl font-bold text-foreground">
+                    {formatPrice(program.price_cents)}
+                  </span>
+                  {hasSale && (
+                    <span className="text-xl text-muted-foreground/60 line-through ml-3">
+                      {formatPrice(program.original_price_cents!)}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Processing fee */}
+                <p className="text-xs text-muted-foreground mb-4">+ {program.processing_fee_percent}% processing fee</p>
+                
+                {/* Savings badge */}
+                {hasSale && (
+                  <div className="inline-flex items-center px-4 py-2 rounded-lg bg-success/10 border border-success/20">
+                    <span 
+                      className="text-xs font-normal text-success"
+                      dangerouslySetInnerHTML={{ __html: formatSavingsMessage(savingsMessage, formatPrice(savings)) }}
+                    />
+                  </div>
+                )}
+              </div>
+              
+              {/* Note about date confirmation */}
+              <p className="mt-6 text-sm text-muted-foreground italic text-center">
+                Upon completion of registration, our team will reach out regarding date confirmation.
+              </p>
+            </div>
+          </section>
+
           {/* Registration Form */}
-          <section id="registration-form" className="py-14 md:py-20 bg-muted/30 scroll-mt-20">
+          <section id="registration-form" className="py-10 md:py-14 bg-background scroll-mt-20">
             <div className="container max-w-xl mx-auto px-4">
               <h2 className="font-playfair text-xl md:text-2xl font-normal tracking-wide text-foreground text-center mb-8">
                 Complete Your Registration
@@ -455,27 +476,6 @@ export default function TrainingDetail() {
               
               <Card className="shadow-xl border-border/50">
                 <CardContent className="p-6 md:p-8">
-                  {/* Selected Program Display */}
-                  <div className="mb-6 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Selected Program</p>
-                        <p className="font-medium text-foreground">{program.name}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="flex items-baseline justify-end gap-2">
-                          <p className="text-xl font-bold text-foreground">{formatPrice(program.price_cents)}</p>
-                          {hasSale && (
-                            <p className="text-sm text-muted-foreground/60 line-through">
-                              {formatPrice(program.original_price_cents!)}
-                            </p>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">+ {program.processing_fee_percent}% fee</p>
-                      </div>
-                    </div>
-                  </div>
-
                   <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="space-y-2">
                       <Label htmlFor="fullName">Full Name *</Label>
@@ -569,9 +569,9 @@ export default function TrainingDetail() {
             </div>
           </section>
 
-          {/* Related Programs Section */}
+          {/* Other Programs Section */}
           {allPrograms && allPrograms.length > 1 && (
-            <RelatedProgramsSection 
+            <OtherProgramsSection 
               currentProgram={program}
               allPrograms={allPrograms}
             />
