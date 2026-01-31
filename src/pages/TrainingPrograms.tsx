@@ -136,12 +136,12 @@ export default function TrainingPrograms() {
                       )}
                       
                       <CardContent className="flex flex-col flex-1 p-6">
-                        <h3 className="font-playfair text-xl md:text-2xl font-medium leading-tight text-foreground mb-3">
+                        <h3 className="font-playfair text-xl md:text-2xl font-semibold leading-tight text-foreground mb-4">
                           {program.name}
                         </h3>
                         
                         {/* Excerpt - max 50 words */}
-                        <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                        <p className="text-sm text-muted-foreground/80 leading-relaxed flex-1">
                           {truncateWords(program.excerpt, 50)}
                         </p>
                         
@@ -166,12 +166,12 @@ export default function TrainingPrograms() {
                           
                           <Button 
                             variant="default"
-                            className="w-full mt-2 transition-all bg-primary/90 hover:bg-primary group-hover:bg-primary"
+                            className="w-full mt-2 transition-all shadow-md hover:shadow-lg"
                             size="default"
                             asChild
                           >
                             <Link to={`/trainings/${program.id}`}>
-                              Learn More
+                              View Details
                               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
                           </Button>
@@ -232,12 +232,12 @@ export default function TrainingPrograms() {
                             <span className="text-xs font-semibold text-primary uppercase tracking-wider">Bundle & Save</span>
                           </div>
                           
-                          <h3 className="font-playfair text-xl md:text-2xl font-medium leading-tight text-foreground mb-3">
+                          <h3 className="font-playfair text-xl md:text-2xl font-semibold leading-tight text-foreground mb-4">
                             {program.name}
                           </h3>
                           
                           {/* Excerpt - max 50 words */}
-                          <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                          <p className="text-sm text-muted-foreground/80 leading-relaxed flex-1">
                             {truncateWords(program.excerpt, 50)}
                           </p>
                           
@@ -262,12 +262,12 @@ export default function TrainingPrograms() {
                             
                             <Button 
                               variant="default"
-                              className="w-full mt-2 transition-all bg-primary/90 hover:bg-primary group-hover:bg-primary"
+                              className="w-full mt-2 transition-all shadow-md hover:shadow-lg"
                               size="default"
                               asChild
                             >
                               <Link to={`/trainings/${program.id}`}>
-                                Learn More
+                                View Details
                                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                               </Link>
                             </Button>
