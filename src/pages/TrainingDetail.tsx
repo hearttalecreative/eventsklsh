@@ -440,17 +440,16 @@ export default function TrainingDetail() {
                 <CardContent className="p-0">
                   {/* Pricing header - More prominent */}
                   <div className="bg-gradient-to-br from-primary/8 to-primary/15 p-5 text-center">
-                    {/* Urgency badge with stronger visual */}
+                    {/* Urgency badge - compact */}
                     {hasSale && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/30 mb-3">
-                        <Clock className="h-3.5 w-3.5 text-destructive animate-pulse" />
-                        <span className="text-xs font-bold text-destructive uppercase tracking-wide">Limited Time Offer</span>
+                      <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-destructive/10 border border-destructive/20 mb-3">
+                        <span className="text-[10px] font-semibold text-destructive uppercase tracking-wide">Limited Time Offer</span>
                       </div>
                     )}
                     
-                    {/* Primary price - More prominent */}
+                    {/* Primary price */}
                     <div className="mb-1">
-                      <span className="text-4xl md:text-5xl font-bold text-foreground tracking-tight">
+                      <span className="text-3xl md:text-4xl font-semibold text-foreground tracking-tight">
                         {formatPrice(program.price_cents)}
                       </span>
                       {hasSale && (
@@ -463,16 +462,13 @@ export default function TrainingDetail() {
                     {/* Processing fee - Subtle */}
                     <p className="text-[11px] text-muted-foreground/70 mb-3">+ {program.processing_fee_percent}% processing fee at checkout</p>
                     
-                    {/* Savings - Clean single message without duplication */}
+                    {/* Savings - Clean single message without checkmark */}
                     {hasSale && (
-                      <div className="bg-success/15 border border-success/30 rounded-lg p-3">
-                        <div className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
-                          <p 
-                            className="text-sm text-success leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: savingsMessage.replace('{amount}', `<strong>${formatPrice(savings)}</strong>`) }}
-                          />
-                        </div>
+                      <div className="bg-success/15 border border-success/30 rounded-lg p-2.5">
+                        <p 
+                          className="text-sm text-success leading-relaxed text-center"
+                          dangerouslySetInnerHTML={{ __html: savingsMessage.replace('{amount}', `<strong>${formatPrice(savings)}</strong>`) }}
+                        />
                       </div>
                     )}
                   </div>
