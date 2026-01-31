@@ -42,8 +42,12 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          {/* Hide global header for /trainings and /training-success since they have their own */}
-          {!(typeof window !== 'undefined' && (window.location.pathname === '/trainings' || window.location.pathname === '/training-success')) && (
+          {/* Hide global header for /trainings, /trainings/:id, and /training-success since they have their own */}
+          {!(typeof window !== 'undefined' && (
+            window.location.pathname === '/trainings' || 
+            window.location.pathname.startsWith('/trainings/') ||
+            window.location.pathname === '/training-success'
+          )) && (
             <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="container mx-auto h-16 flex items-center justify-center">
                 <Link to="/" className="flex items-center gap-3" aria-label="Home">
@@ -87,7 +91,7 @@ const App = () => (
           {!(typeof window !== 'undefined' && (
             window.location.pathname === '/' || 
             window.location.pathname === '/trainings' || 
-            window.location.pathname.startsWith('/trainings?') ||
+            window.location.pathname.startsWith('/trainings/') ||
             window.location.pathname === '/training-success'
           )) && (
             <footer className="container mx-auto px-4 py-8 text-center border-t">
