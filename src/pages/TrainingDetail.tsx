@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Loader2, Check, ArrowRight, ArrowLeft, Sparkles, Shield, Mail, Clock } from 'lucide-react';
+import { Loader2, Check, ArrowRight, ArrowLeft, Sparkles, Shield, Mail, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -198,6 +198,7 @@ function OtherProgramsSection({
 export default function TrainingDetail() {
   const { programId } = useParams<{ programId: string }>();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -352,53 +353,82 @@ export default function TrainingDetail() {
                 </div>
               )}
               
-              {/* Program title */}
-              <h1 className="font-playfair text-xl md:text-2xl lg:text-3xl font-normal tracking-wide text-foreground">
+              {/* Program title - Larger on mobile */}
+              <h1 className="font-playfair text-2xl md:text-3xl lg:text-4xl font-normal tracking-wide text-foreground">
                 {program.name}
               </h1>
             </div>
           </section>
 
-          {/* Compact Description Section */}
+          {/* Collapsible Description Section */}
           {program.description && (
             <section className="py-4 md:py-5 bg-background">
               <div className="container max-w-2xl mx-auto px-4">
-                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      p: ({children}) => <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{children}</p>,
-                      ul: ({children}) => <ul className="mb-3 list-disc pl-5 space-y-1.5 text-sm text-muted-foreground">{children}</ul>,
-                      ol: ({children}) => <ol className="mb-3 list-decimal pl-5 space-y-1.5 text-sm text-muted-foreground">{children}</ol>,
-                      li: ({children}) => <li className="leading-relaxed">{children}</li>,
-                      a: ({href, children}) => (
-                        <a 
-                          href={href} 
-                          className="text-primary hover:underline" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                        >
-                          {children}
-                        </a>
-                      ),
-                      strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-                      em: ({children}) => <em className="italic">{children}</em>,
-                      h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-foreground">{children}</h1>,
-                      h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-foreground">{children}</h2>,
-                      h3: ({children}) => <h3 className="text-base font-medium mb-2 text-foreground">{children}</h3>,
-                      blockquote: ({children}) => (
-                        <blockquote className="mb-3 pl-3 border-l-3 border-primary/30 italic text-muted-foreground text-sm">
-                          {children}
-                        </blockquote>
-                      ),
-                      code: ({children}) => (
-                        <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">{children}</code>
-                      ),
-                    }}
+                <div className="relative">
+                  <div 
+                    className={`prose prose-sm prose-neutral dark:prose-invert max-w-none overflow-hidden transition-all duration-300 ${
+                      descriptionExpanded ? 'max-h-none' : 'max-h-[9rem]'
+                    }`}
                   >
-                    {program.description}
-                  </ReactMarkdown>
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({children}) => <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{children}</p>,
+                        ul: ({children}) => <ul className="mb-3 list-disc pl-5 space-y-1.5 text-sm text-muted-foreground">{children}</ul>,
+                        ol: ({children}) => <ol className="mb-3 list-decimal pl-5 space-y-1.5 text-sm text-muted-foreground">{children}</ol>,
+                        li: ({children}) => <li className="leading-relaxed">{children}</li>,
+                        a: ({href, children}) => (
+                          <a 
+                            href={href} 
+                            className="text-primary hover:underline" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            {children}
+                          </a>
+                        ),
+                        strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
+                        em: ({children}) => <em className="italic">{children}</em>,
+                        h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-foreground">{children}</h1>,
+                        h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-foreground">{children}</h2>,
+                        h3: ({children}) => <h3 className="text-base font-medium mb-2 text-foreground">{children}</h3>,
+                        blockquote: ({children}) => (
+                          <blockquote className="mb-3 pl-3 border-l-3 border-primary/30 italic text-muted-foreground text-sm">
+                            {children}
+                          </blockquote>
+                        ),
+                        code: ({children}) => (
+                          <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">{children}</code>
+                        ),
+                      }}
+                    >
+                      {program.description}
+                    </ReactMarkdown>
+                  </div>
+                  
+                  {/* Gradient fade overlay when collapsed */}
+                  {!descriptionExpanded && (
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                  )}
                 </div>
+                
+                {/* Read more/less toggle */}
+                <button
+                  onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                  className="mt-2 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors mx-auto"
+                >
+                  {descriptionExpanded ? (
+                    <>
+                      <span>Show less</span>
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </>
+                  ) : (
+                    <>
+                      <span>Read more</span>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </>
+                  )}
+                </button>
               </div>
             </section>
           )}
@@ -433,19 +463,16 @@ export default function TrainingDetail() {
                     {/* Processing fee - Subtle */}
                     <p className="text-[11px] text-muted-foreground/70 mb-3">+ {program.processing_fee_percent}% processing fee at checkout</p>
                     
-                    {/* Savings - Scannable format with separate lines */}
+                    {/* Savings - Clean single message without duplication */}
                     {hasSale && (
-                      <div className="bg-success/15 border border-success/30 rounded-lg p-3 text-left space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-success flex-shrink-0" />
-                          <span className="text-sm font-semibold text-success">
-                            You save {formatPrice(savings)}
-                          </span>
+                      <div className="bg-success/15 border border-success/30 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
+                          <p 
+                            className="text-sm text-success leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: savingsMessage.replace('{amount}', `<strong>${formatPrice(savings)}</strong>`) }}
+                          />
                         </div>
-                        <p 
-                          className="text-xs text-success/80 pl-6 leading-relaxed"
-                          dangerouslySetInnerHTML={{ __html: savingsMessage.replace('{amount}', formatPrice(savings)) }}
-                        />
                       </div>
                     )}
                   </div>
