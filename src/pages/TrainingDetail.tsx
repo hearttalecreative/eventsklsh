@@ -59,9 +59,9 @@ function OtherProgramsSection({
   const trainings = otherPrograms.filter(p => !p.is_bundle);
 
   return (
-    <section className="py-14 md:py-20 bg-gradient-to-b from-muted/30 to-background">
+    <section className="py-12 md:py-16 bg-gradient-to-b from-muted/30 to-background">
       <div className="container max-w-5xl mx-auto px-4">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <p className="text-xs uppercase tracking-widest text-muted-foreground/70 mb-2">Explore More</p>
           <h3 className="font-playfair text-xl md:text-2xl font-normal tracking-wide text-foreground">
             Other Training Programs
@@ -70,9 +70,9 @@ function OtherProgramsSection({
 
         {/* Individual trainings */}
         {trainings.length > 0 && (
-          <div className="mb-10">
+          <div className="mb-8">
             <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4 text-center">Training Levels</h4>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {trainings.map((training) => {
                 const hasSale = training.original_price_cents && training.original_price_cents > training.price_cents;
                 const savings = hasSale ? training.original_price_cents! - training.price_cents : 0;
@@ -83,42 +83,36 @@ function OtherProgramsSection({
                     to={`/trainings/${training.id}`}
                     className="block group"
                   >
-                    <Card className="h-full transition-all duration-300 hover:shadow-xl hover:border-primary/50 border-border/50 bg-background overflow-hidden">
-                      <CardContent className="p-6">
-                        <h4 className="font-playfair text-lg font-normal text-foreground mb-3 group-hover:text-primary transition-colors">
+                    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 border-border/50 bg-background overflow-hidden">
+                      <CardContent className="p-5">
+                        <h4 className="font-playfair text-base font-normal text-foreground mb-2 group-hover:text-primary transition-colors">
                           {training.name}
                         </h4>
                         
                         {training.excerpt && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                             {training.excerpt}
                           </p>
                         )}
                         
-                        <div className="space-y-2">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-xl font-bold text-foreground">{formatPrice(training.price_cents)}</span>
+                            <span className="text-lg font-bold text-foreground">{formatPrice(training.price_cents)}</span>
                             {hasSale && (
-                              <span className="text-sm text-muted-foreground/70 line-through">
+                              <span className="text-xs text-muted-foreground/70 line-through">
                                 {formatPrice(training.original_price_cents!)}
                               </span>
                             )}
                           </div>
                           
-                          {hasSale && (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/20">
-                              <span className="text-xs font-semibold text-success">
-                                Save {formatPrice(savings)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="mt-5 pt-4 border-t border-border/30">
-                          <span className="text-sm text-primary font-medium group-hover:underline flex items-center gap-1">
-                            Learn More
-                            <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                          </span>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all"
+                          >
+                            View Details
+                            <ArrowRight className="ml-1 h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -135,7 +129,7 @@ function OtherProgramsSection({
             <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4 text-center">
               {currentProgram.is_bundle ? 'Other Bundles' : 'Bundle & Save'}
             </h4>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {bundles.map((bundle) => {
                 const hasSale = bundle.original_price_cents && bundle.original_price_cents > bundle.price_cents;
                 const savings = hasSale ? bundle.original_price_cents! - bundle.price_cents : 0;
@@ -146,47 +140,47 @@ function OtherProgramsSection({
                     to={`/trainings/${bundle.id}`}
                     className="block group"
                   >
-                    <Card className="h-full transition-all duration-300 hover:shadow-xl hover:border-primary/50 border-primary/20 bg-gradient-to-br from-background to-primary/5 overflow-hidden">
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Sparkles className="h-4 w-4 text-primary" />
+                    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 border-primary/20 bg-gradient-to-br from-background to-primary/5 overflow-hidden">
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
                           <span className="text-xs font-semibold text-primary uppercase tracking-wider">Bundle</span>
                         </div>
                         
-                        <h4 className="font-playfair text-lg font-normal text-foreground mb-3 group-hover:text-primary transition-colors">
+                        <h4 className="font-playfair text-base font-normal text-foreground mb-2 group-hover:text-primary transition-colors">
                           {bundle.name}
                         </h4>
                         
                         {bundle.excerpt && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                             {bundle.excerpt}
                           </p>
                         )}
                         
-                        <div className="space-y-2">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-xl font-bold text-foreground">{formatPrice(bundle.price_cents)}</span>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-lg font-bold text-foreground">{formatPrice(bundle.price_cents)}</span>
+                              {hasSale && (
+                                <span className="text-xs text-muted-foreground/70 line-through">
+                                  {formatPrice(bundle.original_price_cents!)}
+                                </span>
+                              )}
+                            </div>
                             {hasSale && (
-                              <span className="text-sm text-muted-foreground/70 line-through">
-                                {formatPrice(bundle.original_price_cents!)}
+                              <span className="text-xs font-medium text-success">
+                                Save {formatPrice(savings)}
                               </span>
                             )}
                           </div>
                           
-                          {hasSale && (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 border border-success/20">
-                              <span className="text-xs font-semibold text-success">
-                                Save {formatPrice(savings)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="mt-5 pt-4 border-t border-border/30">
-                          <span className="text-sm text-primary font-medium group-hover:underline flex items-center gap-1">
-                            Learn More
-                            <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                          </span>
+                          <Button 
+                            size="sm" 
+                            className="group-hover:scale-105 transition-transform"
+                          >
+                            View Details
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -347,30 +341,19 @@ export default function TrainingDetail() {
         </header>
 
         <main className="flex-1">
-          {/* Back link */}
-          <div className="container max-w-4xl mx-auto px-4 pt-6">
-            <Link 
-              to="/trainings" 
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to All Programs
-            </Link>
-          </div>
-
           {/* Hero Section - Title Only */}
-          <section className="bg-gradient-to-b from-primary/5 via-primary/3 to-background py-10 md:py-14">
+          <section className="bg-gradient-to-b from-primary/5 via-primary/3 to-background pt-6 pb-4 md:pt-8 md:pb-6">
             <div className="container max-w-3xl mx-auto px-4 text-center">
               {/* Bundle badge */}
               {program.is_bundle && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <span className="text-xs font-semibold text-primary uppercase tracking-wider">Bundle Package</span>
                 </div>
               )}
               
               {/* Program title */}
-              <h1 className="font-playfair text-3xl md:text-4xl lg:text-[2.75rem] font-normal tracking-wide text-foreground">
+              <h1 className="font-playfair text-2xl md:text-3xl lg:text-4xl font-normal tracking-wide text-foreground">
                 {program.name}
               </h1>
             </div>
@@ -378,7 +361,7 @@ export default function TrainingDetail() {
 
           {/* Full Description Section */}
           {program.description && (
-            <section className="py-10 md:py-14 bg-background">
+            <section className="py-6 md:py-8 bg-background">
               <div className="container max-w-3xl mx-auto px-4">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <ReactMarkdown 
@@ -420,50 +403,151 @@ export default function TrainingDetail() {
             </section>
           )}
 
-          {/* Pricing Block */}
-          <section className="py-10 md:py-14 bg-muted/20">
-            <div className="container max-w-md mx-auto px-4">
-              <div className="bg-background rounded-2xl shadow-lg border border-border/50 p-6 md:p-8 text-center">
-                {hasSale && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                    </span>
-                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">Limited Sale</span>
+          {/* Unified Pricing + Registration Form Section */}
+          <section id="registration-form" className="py-8 md:py-12 bg-muted/30 scroll-mt-20">
+            <div className="container max-w-xl mx-auto px-4">
+              <Card className="shadow-xl border-border/50 overflow-hidden">
+                <CardContent className="p-0">
+                  {/* Pricing header */}
+                  <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-6 text-center border-b border-border/30">
+                    {hasSale && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        </span>
+                        <span className="text-xs font-semibold text-primary uppercase tracking-wider">Limited Sale</span>
+                      </div>
+                    )}
+                    
+                    {/* Primary price */}
+                    <div className="mb-2">
+                      <span className="text-3xl md:text-4xl font-bold text-foreground">
+                        {formatPrice(program.price_cents)}
+                      </span>
+                      {hasSale && (
+                        <span className="text-lg text-muted-foreground/60 line-through ml-2">
+                          {formatPrice(program.original_price_cents!)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Processing fee */}
+                    <p className="text-xs text-muted-foreground mb-3">+ {program.processing_fee_percent}% processing fee</p>
+                    
+                    {/* Savings badge */}
+                    {hasSale && (
+                      <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-success/10 border border-success/20">
+                        <span 
+                          className="text-xs font-normal text-success"
+                          dangerouslySetInnerHTML={{ __html: formatSavingsMessage(savingsMessage, formatPrice(savings)) }}
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-                
-                {/* Primary price */}
-                <div className="mb-3">
-                  <span className="text-4xl md:text-5xl font-bold text-foreground">
-                    {formatPrice(program.price_cents)}
-                  </span>
-                  {hasSale && (
-                    <span className="text-xl text-muted-foreground/60 line-through ml-3">
-                      {formatPrice(program.original_price_cents!)}
-                    </span>
-                  )}
-                </div>
-                
-                {/* Processing fee */}
-                <p className="text-xs text-muted-foreground mb-4">+ {program.processing_fee_percent}% processing fee</p>
-                
-                {/* Savings badge */}
-                {hasSale && (
-                  <div className="inline-flex items-center px-4 py-2 rounded-lg bg-success/10 border border-success/20">
-                    <span 
-                      className="text-xs font-normal text-success"
-                      dangerouslySetInnerHTML={{ __html: formatSavingsMessage(savingsMessage, formatPrice(savings)) }}
-                    />
+
+                  {/* Registration form */}
+                  <div className="p-6 md:p-8">
+                    <h2 className="font-playfair text-lg md:text-xl font-normal tracking-wide text-foreground text-center mb-6">
+                      Complete Your Registration
+                    </h2>
+                    
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Full Name *</Label>
+                        <Input
+                          id="fullName"
+                          placeholder="Enter your full name"
+                          value={formData.fullName}
+                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your@email.com"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number *</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
+                        <Input
+                          id="preferredDates"
+                          value={formData.preferredDates}
+                          onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
+                          required
+                        />
+                        {program.availability_info && (
+                          <p 
+                            className="text-xs text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: program.availability_info }}
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-start space-x-3 pt-2">
+                        <Checkbox
+                          id="terms"
+                          checked={acceptedTerms}
+                          onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                          required
+                        />
+                        <label
+                          htmlFor="terms"
+                          className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                        >
+                          I have read and agree to the{' '}
+                          <a
+                            href="https://kylelamsoundhealing.com/private-training-terms-conditions/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Terms and Conditions
+                          </a>
+                          {' '}*
+                        </label>
+                      </div>
+                      <Button 
+                        type="submit" 
+                        className="w-full mt-4" 
+                        size="lg"
+                        disabled={isSubmitting || !acceptedTerms}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          `Proceed to Payment - ${formatPrice(program.price_cents)}`
+                        )}
+                      </Button>
+                    </form>
+                    
+                    {/* Note about date confirmation */}
+                    <p className="mt-4 text-xs text-muted-foreground italic text-center">
+                      Upon completion of registration, our team will reach out regarding date confirmation.
+                    </p>
                   </div>
-                )}
-              </div>
-              
-              {/* Note about date confirmation */}
-              <p className="mt-6 text-sm text-muted-foreground italic text-center">
-                Upon completion of registration, our team will reach out regarding date confirmation.
-              </p>
+                </CardContent>
+              </Card>
             </div>
           </section>
 
@@ -576,6 +660,19 @@ export default function TrainingDetail() {
               allPrograms={allPrograms}
             />
           )}
+
+          {/* Back to All Programs link at the bottom */}
+          <div className="py-8 bg-background">
+            <div className="container max-w-4xl mx-auto px-4 text-center">
+              <Link 
+                to="/trainings" 
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to All Programs
+              </Link>
+            </div>
+          </div>
         </main>
 
         {/* Footer */}
