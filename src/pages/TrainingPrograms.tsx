@@ -31,6 +31,13 @@ const formatPrice = (cents: number) => {
   }).format(cents / 100);
 };
 
+const truncateWords = (text: string | null, maxWords: number): string => {
+  if (!text) return '';
+  const words = text.trim().split(/\s+/);
+  if (words.length <= maxWords) return text;
+  return words.slice(0, maxWords).join(' ') + '...';
+};
+
 export default function TrainingPrograms() {
   const [searchParams] = useSearchParams();
   const programIdFromUrl = searchParams.get('program');
@@ -89,12 +96,12 @@ export default function TrainingPrograms() {
         {/* Main Content */}
         <main className="flex-1">
           {/* Hero Section */}
-          <section className="bg-gradient-to-b from-primary/5 to-background py-12 md:py-16">
+          <section className="bg-gradient-to-b from-primary/5 to-background py-6 md:py-8">
             <div className="container max-w-4xl mx-auto px-4 text-center">
-              <h1 className="font-playfair text-3xl md:text-4xl font-normal tracking-wide mb-4 text-foreground">
+              <h1 className="font-playfair text-3xl md:text-4xl font-normal tracking-wide mb-2 text-foreground">
                 Private Sound Training Programs
               </h1>
-              <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                 Three structured training levels for a direct and practical learning format. 
                 Book a single level or choose a bundle package at a reduced rate.
               </p>
@@ -102,9 +109,9 @@ export default function TrainingPrograms() {
           </section>
 
           {/* Training Levels */}
-          <section className="py-12 md:py-16 bg-background">
+          <section className="py-6 md:py-10 bg-background">
             <div className="container max-w-6xl mx-auto px-4">
-              <div className="flex items-center justify-center gap-3 mb-10">
+              <div className="flex items-center justify-center gap-3 mb-6">
                 <h2 className="font-playfair text-xl md:text-2xl font-normal tracking-wide flex items-center gap-2 text-muted-foreground">
                   <GraduationCap className="h-5 w-5 text-primary/70" />
                   Training Levels
@@ -133,9 +140,9 @@ export default function TrainingPrograms() {
                           {program.name}
                         </h3>
                         
-                        {/* Excerpt */}
-                        <p className="text-sm text-muted-foreground leading-relaxed flex-1 line-clamp-3">
-                          {program.excerpt || program.description}
+                        {/* Excerpt - max 50 words */}
+                        <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                          {truncateWords(program.excerpt || program.description, 50)}
                         </p>
                         
                         {/* Pricing section */}
@@ -230,9 +237,9 @@ export default function TrainingPrograms() {
                             {program.name}
                           </h3>
                           
-                          {/* Excerpt */}
-                          <p className="text-sm text-muted-foreground leading-relaxed flex-1 line-clamp-3">
-                            {program.excerpt || program.description}
+                          {/* Excerpt - max 50 words */}
+                          <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                            {truncateWords(program.excerpt || program.description, 50)}
                           </p>
                           
                           {/* Pricing section */}
