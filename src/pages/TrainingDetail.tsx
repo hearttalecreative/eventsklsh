@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Loader2, Check, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import { Loader2, Check, ArrowRight, ArrowLeft, Sparkles, Shield, Mail, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -341,35 +341,35 @@ export default function TrainingDetail() {
         </header>
 
         <main className="flex-1">
-          {/* Hero Section - Title Only */}
-          <section className="bg-gradient-to-b from-primary/5 via-primary/3 to-background pt-6 pb-4 md:pt-8 md:pb-6">
+          {/* Hero Section - Compact Title */}
+          <section className="bg-gradient-to-b from-primary/5 to-background pt-5 pb-3 md:pt-6 md:pb-4">
             <div className="container max-w-3xl mx-auto px-4 text-center">
               {/* Bundle badge */}
               {program.is_bundle && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">Bundle Package</span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 mb-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">Bundle Package</span>
                 </div>
               )}
               
               {/* Program title */}
-              <h1 className="font-playfair text-2xl md:text-3xl lg:text-4xl font-normal tracking-wide text-foreground">
+              <h1 className="font-playfair text-xl md:text-2xl lg:text-3xl font-normal tracking-wide text-foreground">
                 {program.name}
               </h1>
             </div>
           </section>
 
-          {/* Full Description Section */}
+          {/* Compact Description Section */}
           {program.description && (
-            <section className="py-6 md:py-8 bg-background">
-              <div className="container max-w-3xl mx-auto px-4">
-                <div className="prose prose-neutral dark:prose-invert max-w-none">
+            <section className="py-4 md:py-5 bg-background">
+              <div className="container max-w-2xl mx-auto px-4">
+                <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      p: ({children}) => <p className="mb-4 leading-relaxed text-muted-foreground">{children}</p>,
-                      ul: ({children}) => <ul className="mb-4 list-disc pl-6 space-y-2 text-muted-foreground">{children}</ul>,
-                      ol: ({children}) => <ol className="mb-4 list-decimal pl-6 space-y-2 text-muted-foreground">{children}</ol>,
+                      p: ({children}) => <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{children}</p>,
+                      ul: ({children}) => <ul className="mb-3 list-disc pl-5 space-y-1.5 text-sm text-muted-foreground">{children}</ul>,
+                      ol: ({children}) => <ol className="mb-3 list-decimal pl-5 space-y-1.5 text-sm text-muted-foreground">{children}</ol>,
                       li: ({children}) => <li className="leading-relaxed">{children}</li>,
                       a: ({href, children}) => (
                         <a 
@@ -383,16 +383,16 @@ export default function TrainingDetail() {
                       ),
                       strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
                       em: ({children}) => <em className="italic">{children}</em>,
-                      h1: ({children}) => <h1 className="text-2xl font-bold mb-4 text-foreground">{children}</h1>,
-                      h2: ({children}) => <h2 className="text-xl font-semibold mb-3 text-foreground">{children}</h2>,
-                      h3: ({children}) => <h3 className="text-lg font-medium mb-2 text-foreground">{children}</h3>,
+                      h1: ({children}) => <h1 className="text-xl font-bold mb-3 text-foreground">{children}</h1>,
+                      h2: ({children}) => <h2 className="text-lg font-semibold mb-2 text-foreground">{children}</h2>,
+                      h3: ({children}) => <h3 className="text-base font-medium mb-2 text-foreground">{children}</h3>,
                       blockquote: ({children}) => (
-                        <blockquote className="mb-4 pl-4 border-l-4 border-primary/30 italic text-muted-foreground">
+                        <blockquote className="mb-3 pl-3 border-l-3 border-primary/30 italic text-muted-foreground text-sm">
                           {children}
                         </blockquote>
                       ),
                       code: ({children}) => (
-                        <code className="px-1 py-0.5 bg-muted rounded text-sm font-mono">{children}</code>
+                        <code className="px-1 py-0.5 bg-muted rounded text-xs font-mono">{children}</code>
                       ),
                     }}
                   >
@@ -404,67 +404,68 @@ export default function TrainingDetail() {
           )}
 
           {/* Unified Pricing + Registration Form Section */}
-          <section id="registration-form" className="py-8 md:py-12 bg-muted/30 scroll-mt-20">
-            <div className="container max-w-xl mx-auto px-4">
-              <Card className="shadow-xl border-border/50 overflow-hidden">
+          <section id="registration-form" className="py-6 md:py-8 bg-muted/40 scroll-mt-16">
+            <div className="container max-w-md mx-auto px-4">
+              <Card className="shadow-2xl border-border/40 overflow-hidden">
                 <CardContent className="p-0">
-                  {/* Pricing header */}
-                  <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-6 text-center border-b border-border/30">
+                  {/* Pricing header - More prominent */}
+                  <div className="bg-gradient-to-br from-primary/8 to-primary/15 p-5 text-center">
+                    {/* Urgency badge with stronger visual */}
                     {hasSale && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                        </span>
-                        <span className="text-xs font-semibold text-primary uppercase tracking-wider">Limited Sale</span>
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/30 mb-3">
+                        <Clock className="h-3.5 w-3.5 text-destructive animate-pulse" />
+                        <span className="text-xs font-bold text-destructive uppercase tracking-wide">Limited Time Offer</span>
                       </div>
                     )}
                     
-                    {/* Primary price */}
-                    <div className="mb-2">
-                      <span className="text-3xl md:text-4xl font-bold text-foreground">
+                    {/* Primary price - More prominent */}
+                    <div className="mb-1">
+                      <span className="text-4xl md:text-5xl font-bold text-foreground tracking-tight">
                         {formatPrice(program.price_cents)}
                       </span>
                       {hasSale && (
-                        <span className="text-lg text-muted-foreground/60 line-through ml-2">
+                        <span className="text-sm text-muted-foreground/50 line-through ml-2 font-normal">
                           {formatPrice(program.original_price_cents!)}
                         </span>
                       )}
                     </div>
                     
-                    {/* Processing fee */}
-                    <p className="text-xs text-muted-foreground mb-3">+ {program.processing_fee_percent}% processing fee</p>
+                    {/* Processing fee - Subtle */}
+                    <p className="text-[11px] text-muted-foreground/70 mb-3">+ {program.processing_fee_percent}% processing fee at checkout</p>
                     
-                    {/* Savings badge */}
+                    {/* Savings - Scannable format with separate lines */}
                     {hasSale && (
-                      <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-success/10 border border-success/20">
-                        <span 
-                          className="text-xs font-normal text-success"
-                          dangerouslySetInnerHTML={{ __html: formatSavingsMessage(savingsMessage, formatPrice(savings)) }}
+                      <div className="bg-success/15 border border-success/30 rounded-lg p-3 text-left space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-success flex-shrink-0" />
+                          <span className="text-sm font-semibold text-success">
+                            You save {formatPrice(savings)}
+                          </span>
+                        </div>
+                        <p 
+                          className="text-xs text-success/80 pl-6 leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: savingsMessage.replace('{amount}', formatPrice(savings)) }}
                         />
                       </div>
                     )}
                   </div>
 
-                  {/* Registration form */}
-                  <div className="p-6 md:p-8">
-                    <h2 className="font-playfair text-lg md:text-xl font-normal tracking-wide text-foreground text-center mb-6">
-                      Complete Your Registration
-                    </h2>
-                    
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="fullName">Full Name *</Label>
+                  {/* Registration form - Tighter spacing */}
+                  <div className="p-5 md:p-6">
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="fullName" className="text-xs font-medium">Full Name</Label>
                         <Input
                           id="fullName"
-                          placeholder="Enter your full name"
+                          placeholder="Your full name"
                           value={formData.fullName}
                           onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                           required
+                          className="h-10"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-xs font-medium">Email</Label>
                         <Input
                           id="email"
                           type="email"
@@ -472,10 +473,11 @@ export default function TrainingDetail() {
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           required
+                          className="h-10"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number *</Label>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="phone" className="text-xs font-medium">Phone Number</Label>
                         <Input
                           id="phone"
                           type="tel"
@@ -483,71 +485,93 @@ export default function TrainingDetail() {
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           required
+                          className="h-10"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="preferredDates">Preferred Date or Dates *</Label>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="preferredDates" className="text-xs font-medium">Preferred Date(s)</Label>
                         <Input
                           id="preferredDates"
+                          placeholder="e.g., March 15-16, 2026 or flexible"
                           value={formData.preferredDates}
                           onChange={(e) => setFormData({ ...formData, preferredDates: e.target.value })}
                           required
+                          className="h-10"
                         />
                         {program.availability_info && (
                           <p 
-                            className="text-xs text-muted-foreground"
+                            className="text-[10px] text-muted-foreground/60 leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: program.availability_info }}
                           />
                         )}
                       </div>
-                      <div className="flex items-start space-x-3 pt-2">
+                      
+                      {/* Terms checkbox - More spacing from button */}
+                      <div className="flex items-start space-x-2.5 pt-3 pb-1">
                         <Checkbox
                           id="terms"
                           checked={acceptedTerms}
                           onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
                           required
+                          className="mt-0.5"
                         />
                         <label
                           htmlFor="terms"
-                          className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                          className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
                         >
-                          I have read and agree to the{' '}
+                          I agree to the{' '}
                           <a
                             href="https://kylelamsoundhealing.com/private-training-terms-conditions/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline"
+                            className="text-primary font-medium hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            Terms and Conditions
+                            Terms & Conditions
                           </a>
-                          {' '}*
                         </label>
                       </div>
+
+                      {/* CTA Button - Stronger, action-focused */}
                       <Button 
                         type="submit" 
-                        className="w-full mt-4" 
+                        className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all" 
                         size="lg"
                         disabled={isSubmitting || !acceptedTerms}
                       >
                         {isSubmitting ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                             Processing...
                           </>
                         ) : (
-                          `Proceed to Payment - ${formatPrice(program.price_cents)}`
+                          <>
+                            Reserve Your Spot
+                            <ArrowRight className="ml-2 h-5 w-5" />
+                          </>
                         )}
                       </Button>
+
+                      {/* Trust signals */}
+                      <div className="flex items-center justify-center gap-4 pt-3 border-t border-border/30 mt-4">
+                        <div className="flex items-center gap-1.5 text-muted-foreground/70">
+                          <Shield className="h-3.5 w-3.5" />
+                          <span className="text-[10px]">Secure payment</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground/70">
+                          <Mail className="h-3.5 w-3.5" />
+                          <span className="text-[10px]">Confirmation by email</span>
+                        </div>
+                      </div>
                     </form>
-                    
-                    {/* Note about date confirmation */}
-                    <p className="mt-4 text-xs text-muted-foreground italic text-center">
-                      Upon completion of registration, our team will reach out regarding date confirmation.
-                    </p>
                   </div>
                 </CardContent>
               </Card>
+              
+              {/* Post-card note */}
+              <p className="mt-4 text-[11px] text-muted-foreground/60 text-center leading-relaxed">
+                Our team will contact you within 24 hours to confirm your preferred dates.
+              </p>
             </div>
           </section>
 
