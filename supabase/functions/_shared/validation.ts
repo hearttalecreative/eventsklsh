@@ -23,6 +23,7 @@ export interface CartInput {
   ticketQty: number;
   participants: ParticipantInput[];
   addons?: AddonInput[];
+  coupon?: string;
 }
 
 /**
@@ -190,12 +191,16 @@ export function validateCart(cart: any): CartInput {
     });
   }
   
+  // Preserve coupon code if provided (sanitize it)
+  const coupon = cart.coupon ? sanitizeString(String(cart.coupon), 50).toUpperCase() : undefined;
+
   return {
     eventId,
     ticketId,
     ticketQty,
     participants,
     addons,
+    coupon,
   };
 }
 
