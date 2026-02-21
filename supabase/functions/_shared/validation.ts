@@ -94,17 +94,10 @@ export function validatePhone(phone: string | undefined | null): string | undefi
   // If empty string after trimming, return undefined
   if (sanitized.length === 0) return undefined;
   
-  // Allow common phone formats: digits, spaces, dashes, parentheses, plus, dots, and common extensions (x, ext)
-  // This regex is more permissive to handle international formats
-  const phoneRegex = /^[\d\s\-\(\)\+\.x]+$/i;
+  // Instead of rejecting invalid characters, clean them out gracefully
+  sanitized = sanitized.replace(/[^\d\s\-\(\)\+\.x]/gi, '').trim();
   
-  if (!phoneRegex.test(sanitized)) {
-    // If still invalid, try removing common separators and checking if what remains are digits
-    const digitsOnly = sanitized.replace(/[\s\-\(\)\+\.]/g, '');
-    if (!/^[\dx]+$/i.test(digitsOnly)) {
-      throw new Error('Phone contains invalid characters. Please use only numbers, spaces, dashes, parentheses, dots, or plus sign.');
-    }
-  }
+  if (sanitized.length === 0) return undefined;
   
   return sanitized;
 }
