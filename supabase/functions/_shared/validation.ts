@@ -89,7 +89,7 @@ export function validatePhone(phone: string | undefined | null): string | undefi
     throw new Error('Phone must be a string');
   }
   
-  const sanitized = phone.trim().slice(0, 30);
+  let sanitized = phone.trim().slice(0, 30);
   
   // If empty string after trimming, return undefined
   if (sanitized.length === 0) return undefined;
