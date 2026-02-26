@@ -781,6 +781,7 @@ export type Database = {
           early_bird_end: string | null
           early_bird_start: string | null
           event_id: string
+          hidden: boolean
           id: string
           internal_notes: string | null
           name: string
@@ -799,6 +800,7 @@ export type Database = {
           early_bird_end?: string | null
           early_bird_start?: string | null
           event_id: string
+          hidden?: boolean
           id?: string
           internal_notes?: string | null
           name: string
@@ -817,6 +819,7 @@ export type Database = {
           early_bird_end?: string | null
           early_bird_start?: string | null
           event_id?: string
+          hidden?: boolean
           id?: string
           internal_notes?: string | null
           name?: string

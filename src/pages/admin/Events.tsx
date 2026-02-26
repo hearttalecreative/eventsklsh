@@ -606,7 +606,7 @@ const deleteAddon = async (id: string) => {
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description,internal_notes,display_order')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description,internal_notes,display_order,hidden')
       .eq('event_id', eventId)
       .order('display_order', { ascending: true });
     setTickets(data || []);
@@ -693,6 +693,7 @@ const updateTicketField = async (
       description: string | null;
       internal_notes: string | null;
       display_order: number;
+      hidden: boolean;
     }>
   ) => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
@@ -1052,6 +1053,15 @@ const deleteTicket = async (id: string) => {
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-muted-foreground">#{t.display_order || 0}</span>
                             <span className="text-xs text-muted-foreground">Display order</span>
+                            <div className="flex items-center gap-1.5 ml-4">
+                              <Switch
+                                checked={!t.hidden}
+                                onCheckedChange={(checked) => updateTicketField(t.id, { hidden: !checked })}
+                              />
+                              <span className={`text-xs ${t.hidden ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                {t.hidden ? 'Hidden' : 'Visible'}
+                              </span>
+                            </div>
                           </div>
                           <div className="flex items-center gap-1">
                             <Button 
