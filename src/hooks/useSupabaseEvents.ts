@@ -65,6 +65,7 @@ export function useSupabaseEventsList() {
         .from('tickets')
         .select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description,display_order')
         .in('event_id', eventIds)
+        .eq('hidden', false)
         .order('display_order', { ascending: true });
 
       // 3) addons for all events
@@ -177,7 +178,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       const eventId = eFound.id;
 
       const [{ data: tks }, { data: ads }, { data: v }] = await Promise.all([
-        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description,display_order').eq('event_id', eventId).order('display_order', { ascending: true }),
+        supabase.from('tickets').select('id,event_id,name,unit_amount_cents,currency,capacity_total,zone,participants_per_ticket,early_bird_amount_cents,early_bird_start,early_bird_end,description,display_order').eq('event_id', eventId).eq('hidden', false).order('display_order', { ascending: true }),
         supabase.from('addons').select('id,event_id,name,unit_amount_cents,description').eq('event_id', eventId),
         supabase.from('venues').select('id,name,address').eq('id', eFound.venue_id).maybeSingle(),
       ]);
