@@ -446,7 +446,7 @@ export default function AdminTrainingPrograms() {
                   Add Program
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingProgram ? 'Edit Program' : 'New Program'}</DialogTitle>
                   <DialogDescription>
