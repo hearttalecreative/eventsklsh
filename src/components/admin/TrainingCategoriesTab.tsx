@@ -116,23 +116,30 @@ export default function TrainingCategoriesTab() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData & { id?: string }) => {
+      console.log('[TrainingCategories] Save called with:', JSON.stringify(data));
       if (data.id) {
-        const { error } = await supabase.from('training_categories').update({
+        const payload = {
           name: data.name,
           slug: data.slug || generateSlug(data.name),
           description: data.description || null,
           active: data.active,
-        }).eq('id', data.id);
+        };
+        console.log('[TrainingCategories] UPDATE payload:', JSON.stringify(payload), 'id:', data.id);
+        const { data: result, error } = await supabase.from('training_categories').update(payload).eq('id', data.id).select();
+        console.log('[TrainingCategories] UPDATE result:', JSON.stringify(result), 'error:', error);
         if (error) throw error;
       } else {
         const maxOrder = categories?.length ? Math.max(...categories.map(c => c.display_order)) : -1;
-        const { error } = await supabase.from('training_categories').insert({
+        const payload = {
           name: data.name,
           slug: data.slug || generateSlug(data.name),
           description: data.description || null,
           active: data.active,
           display_order: maxOrder + 1,
-        });
+        };
+        console.log('[TrainingCategories] INSERT payload:', JSON.stringify(payload));
+        const { data: result, error } = await supabase.from('training_categories').insert(payload).select();
+        console.log('[TrainingCategories] INSERT result:', JSON.stringify(result), 'error:', error);
         if (error) throw error;
       }
     },
