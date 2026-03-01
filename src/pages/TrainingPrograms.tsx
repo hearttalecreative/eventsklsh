@@ -93,7 +93,7 @@ function CategorySection({ category, programs }: { category: TrainingCategory; p
     <section id={`category-${category.slug}`} className="py-6 md:py-10">
       <div className="container max-w-6xl mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="font-playfair text-xl md:text-2xl font-normal tracking-wide text-foreground mb-2">
+          <h2 className="font-playfair text-3xl md:text-4xl font-normal tracking-wide text-foreground mb-2">
             {category.name}
           </h2>
           {category.description && (
@@ -197,19 +197,9 @@ export default function TrainingPrograms() {
 
         {/* Main Content */}
         <main className="flex-1">
-          {/* Hero Section */}
-          <section className="bg-gradient-to-b from-primary/5 to-background py-6 md:py-8">
-            <div className="container max-w-4xl mx-auto px-4 text-center">
-              <h1 className="font-playfair text-3xl md:text-4xl font-normal tracking-wide mb-2 text-foreground">
-                {filteredCategory ? filteredCategory.name : 'Private Sound Training Programs'}
-              </h1>
-              <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                {filteredCategory
-                  ? filteredCategory.description
-                  : 'Three structured training levels for a direct and practical learning format. Book a single level or choose a bundle package at a reduced rate.'}
-              </p>
-            </div>
-          </section>
+          <h1 className="sr-only">
+            {filteredCategory ? filteredCategory.name : 'Private Sound Training Programs'}
+          </h1>
 
           {/* Categories */}
           {displayCategories.map((category, index) => (
