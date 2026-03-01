@@ -13,8 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, ExternalLink, Copy, Check, GripVertical } from 'lucide-react';
+import TrainingCategoriesTab from '@/components/admin/TrainingCategoriesTab';
 import {
   DndContext,
   closestCenter,
@@ -440,6 +442,16 @@ export default function AdminTrainingPrograms() {
               <h1 className="text-3xl font-bold">Training Programs</h1>
               <p className="text-muted-foreground">Manage your private training offerings</p>
             </div>
+          </div>
+
+          <Tabs defaultValue="programs" className="w-full">
+            <TabsList>
+              <TabsTrigger value="programs">Programs</TabsTrigger>
+              <TabsTrigger value="categories">Categories</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="programs" className="flex flex-col gap-6 mt-4">
+            <div className="flex justify-end">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => handleOpenDialog()}>
@@ -733,6 +745,12 @@ export default function AdminTrainingPrograms() {
               )}
             </CardContent>
           </Card>
+            </TabsContent>
+
+            <TabsContent value="categories" className="mt-4">
+              <TrainingCategoriesTab />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>

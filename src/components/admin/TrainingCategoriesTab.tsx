@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import AdminHeader from '@/components/admin/AdminHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,22 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, GripVertical, Copy, Check, ExternalLink } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, GripVertical, Check, ExternalLink } from 'lucide-react';
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
+  arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -41,10 +30,7 @@ interface TrainingCategory {
 }
 
 function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 interface SortableRowProps {
@@ -93,7 +79,7 @@ function SortableCategoryRow({ category, onEdit, onDelete, onCopyLink, copiedId,
   );
 }
 
-export default function AdminTrainingCategories() {
+export default function TrainingCategoriesTab() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TrainingCategory | null>(null);
@@ -117,20 +103,13 @@ export default function AdminTrainingCategories() {
     },
   });
 
-  // Get program counts per category
   const { data: programCounts } = useQuery({
     queryKey: ['admin-training-program-counts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('training_programs')
-        .select('category_id');
+      const { data, error } = await supabase.from('training_programs').select('category_id');
       if (error) throw error;
       const counts: Record<string, number> = {};
-      data?.forEach((p: any) => {
-        if (p.category_id) {
-          counts[p.category_id] = (counts[p.category_id] || 0) + 1;
-        }
-      });
+      data?.forEach((p: any) => { if (p.category_id) counts[p.category_id] = (counts[p.category_id] || 0) + 1; });
       return counts;
     },
   });
@@ -228,128 +207,105 @@ export default function AdminTrainingCategories() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdminHeader />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">Training Categories</h1>
-              <p className="text-muted-foreground">Organize training programs into categories</p>
-            </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => handleOpenDialog()}>
-                  <Plus className="h-4 w-4 mr-2" /> Add Category
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="h-4 w-4 mr-2" /> Add Category
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editing ? 'Edit Category' : 'New Category'}</DialogTitle>
+              <DialogDescription>{editing ? 'Update category details' : 'Create a new training category'}</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="cat-name">Name *</Label>
+                <Input
+                  id="cat-name"
+                  value={formData.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setFormData(f => ({ ...f, name, slug: editing ? f.slug : generateSlug(name) }));
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cat-slug">Slug</Label>
+                <Input id="cat-slug" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} />
+                <p className="text-xs text-muted-foreground">URL-friendly identifier. Auto-generated from name.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cat-desc">Description</Label>
+                <Textarea id="cat-desc" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} placeholder="Shown below the category title on the public page" />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="cat-active">Active</Label>
+                <Switch id="cat-active" checked={formData.active} onCheckedChange={(checked) => setFormData({ ...formData, active: checked })} />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
+                <Button type="submit" disabled={saveMutation.isPending}>
+                  {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {editing ? 'Update' : 'Create'}
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{editing ? 'Edit Category' : 'New Category'}</DialogTitle>
-                  <DialogDescription>{editing ? 'Update category details' : 'Create a new training category'}</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cat-name">Name *</Label>
-                    <Input
-                      id="cat-name"
-                      value={formData.name}
-                      onChange={(e) => {
-                        const name = e.target.value;
-                        setFormData(f => ({ ...f, name, slug: editing ? f.slug : generateSlug(name) }));
-                      }}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cat-slug">Slug</Label>
-                    <Input
-                      id="cat-slug"
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">URL-friendly identifier. Auto-generated from name.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cat-desc">Description</Label>
-                    <Textarea
-                      id="cat-desc"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                      placeholder="Shown below the category title on the public page"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="cat-active">Active</Label>
-                    <Switch
-                      id="cat-active"
-                      checked={formData.active}
-                      onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
-                    <Button type="submit" disabled={saveMutation.isPending}>
-                      {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      {editing ? 'Update' : 'Create'}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <GripVertical className="h-4 w-4 text-muted-foreground" /> Drag to reorder categories
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : categories && categories.length > 0 ? (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10"></TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Slug</TableHead>
-                        <TableHead>Programs</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                        {categories.map((cat) => (
-                          <SortableCategoryRow
-                            key={cat.id}
-                            category={cat}
-                            onEdit={handleOpenDialog}
-                            onDelete={(id) => deleteMutation.mutate(id)}
-                            onCopyLink={handleCopyLink}
-                            copiedId={copiedId}
-                            programCount={programCounts?.[cat.id] || 0}
-                          />
-                        ))}
-                      </SortableContext>
-                    </TableBody>
-                  </Table>
-                </DndContext>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  No categories yet. Create your first one!
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <GripVertical className="h-4 w-4 text-muted-foreground" /> Drag to reorder categories
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : categories && categories.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Programs</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                    {categories.map((cat) => (
+                      <SortableCategoryRow
+                        key={cat.id}
+                        category={cat}
+                        onEdit={handleOpenDialog}
+                        onDelete={(id) => deleteMutation.mutate(id)}
+                        onCopyLink={handleCopyLink}
+                        copiedId={copiedId}
+                        programCount={programCounts?.[cat.id] || 0}
+                      />
+                    ))}
+                  </SortableContext>
+                </TableBody>
+              </Table>
+            </DndContext>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No categories yet. Create your first one!
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

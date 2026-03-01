@@ -95,12 +95,6 @@ const AdminHeader = () => {
       iconOnly: false,
     },
     {
-      path: "/admin/training-categories",
-      label: "Categories",
-      icon: GraduationCap,
-      iconOnly: false,
-    },
-    {
       path: "/admin/manage-admins",
       label: "Admins",
       icon: Shield,
