@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, ExternalLink, Copy, Check, GripVertical } from 'lucide-react';
 import {
@@ -32,6 +33,12 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface TrainingCategory {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface TrainingProgram {
   id: string;
   name: string;
@@ -47,6 +54,7 @@ interface TrainingProgram {
   available_to: string | null;
   related_training_ids: string[] | null;
   availability_info: string | null;
+  category_id: string | null;
   created_at: string;
 }
 
@@ -64,9 +72,10 @@ interface SortableRowProps {
   onDelete: (id: string) => void;
   onCopyLink: (program: TrainingProgram) => void;
   copiedId: string | null;
+  categoryName: string | null;
 }
 
-function SortableRow({ program, onEdit, onDelete, onCopyLink, copiedId }: SortableRowProps) {
+function SortableRow({ program, onEdit, onDelete, onCopyLink, copiedId, categoryName }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -97,6 +106,7 @@ function SortableRow({ program, onEdit, onDelete, onCopyLink, copiedId }: Sortab
         </button>
       </TableCell>
       <TableCell className="font-medium">{program.name}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{categoryName || '—'}</TableCell>
       <TableCell>${formatPrice(program.price_cents)}</TableCell>
       <TableCell>{program.processing_fee_percent}%</TableCell>
       <TableCell>
@@ -169,6 +179,7 @@ export default function AdminTrainingPrograms() {
     active: true,
     availability_info: '',
     related_training_ids: [] as string[],
+    category_id: '' as string,
   });
 
   const publicUrl = `${window.location.origin}/trainings`;
@@ -196,6 +207,19 @@ export default function AdminTrainingPrograms() {
       return data as TrainingProgram[];
     },
   });
+
+  const { data: categories } = useQuery({
+    queryKey: ['admin-training-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('training_categories')
+        .select('id, name, slug')
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      return data as TrainingCategory[];
+    },
+  });
+
 
   // Fetch global savings message setting
   const { data: savingsMessageSetting } = useQuery({
@@ -254,6 +278,7 @@ export default function AdminTrainingPrograms() {
         active: data.active,
         availability_info: data.availability_info || null,
         related_training_ids: data.is_bundle ? [] : (data.related_training_ids || []),
+        category_id: data.category_id || null,
         ...(data.id ? {} : { display_order: maxOrder + 1 }),
       };
 
@@ -358,6 +383,7 @@ export default function AdminTrainingPrograms() {
         active: program.active,
         availability_info: program.availability_info || '',
         related_training_ids: program.related_training_ids || [],
+        category_id: program.category_id || '',
       });
     } else {
       setEditingProgram(null);
@@ -372,6 +398,7 @@ export default function AdminTrainingPrograms() {
         active: true,
         availability_info: '',
         related_training_ids: [],
+        category_id: '',
       });
     }
     setIsDialogOpen(true);
@@ -436,6 +463,24 @@ export default function AdminTrainingPrograms() {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={formData.category_id}
+                      onValueChange={(val) => setFormData({ ...formData, category_id: val === 'none' ? '' : val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No category</SelectItem>
+                        {categories?.map(cat => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Programs without a category won't appear on the public page.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="excerpt">Excerpt (Short Summary)</Label>
@@ -653,6 +698,7 @@ export default function AdminTrainingPrograms() {
                       <TableRow>
                         <TableHead className="w-10"></TableHead>
                         <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Fee</TableHead>
                         <TableHead>Type</TableHead>
@@ -673,6 +719,7 @@ export default function AdminTrainingPrograms() {
                             onDelete={(id) => deleteMutation.mutate(id)}
                             onCopyLink={handleCopyProgramLink}
                             copiedId={copiedProgramId}
+                            categoryName={categories?.find(c => c.id === program.category_id)?.name || null}
                           />
                         ))}
                       </SortableContext>

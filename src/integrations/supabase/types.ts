@@ -845,12 +845,46 @@ export type Database = {
           },
         ]
       }
+      training_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_programs: {
         Row: {
           active: boolean
           availability_info: string | null
           available_from: string | null
           available_to: string | null
+          category_id: string | null
           created_at: string
           description: string | null
           display_order: number
@@ -869,6 +903,7 @@ export type Database = {
           availability_info?: string | null
           available_from?: string | null
           available_to?: string | null
+          category_id?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -887,6 +922,7 @@ export type Database = {
           availability_info?: string | null
           available_from?: string | null
           available_to?: string | null
+          category_id?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -900,7 +936,15 @@ export type Database = {
           related_training_ids?: string[] | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_programs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "training_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_purchases: {
         Row: {

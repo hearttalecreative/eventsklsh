@@ -29,6 +29,7 @@ import TrainingPrograms from "./pages/TrainingPrograms";
 import TrainingDetail from "./pages/TrainingDetail";
 import TrainingSuccess from "./pages/TrainingSuccess";
 import AdminTrainingPrograms from "./pages/admin/TrainingPrograms";
+import AdminTrainingCategories from "./pages/admin/TrainingCategories";
 
 const queryClient = new QueryClient();
 
@@ -64,10 +65,12 @@ const App = () => (
             <Route path="/events/california" element={<CaliforniaEvents />} />
             <Route path="/events/florida" element={<FloridaEvents />} />
             <Route path="/trainings" element={<TrainingPrograms />} />
+            <Route path="/trainings/category/:slug" element={<TrainingPrograms />} />
             <Route path="/trainings/:programId" element={<TrainingDetail />} />
             <Route path="/training-success" element={<TrainingSuccess />} />
             <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/admin/training-programs" element={<AdminRoute><AdminTrainingPrograms /></AdminRoute>} />
+            <Route path="/admin/training-categories" element={<AdminRoute><AdminTrainingCategories /></AdminRoute>} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
             <Route path="/admin/coupons" element={<AdminRoute><CouponsPage /></AdminRoute>} />
