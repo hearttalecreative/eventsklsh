@@ -473,8 +473,16 @@ export default function TrainingDetail() {
                     )}
                   </div>
 
-                  {/* Registration form - Tighter spacing */}
+                  {/* Registration form */}
                   <div className="p-5 md:p-6">
+                    <div className="text-center mb-4">
+                      <h2 className="font-playfair text-lg md:text-xl font-normal text-foreground">
+                        Begin Your Sound Healing Journey
+                      </h2>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        Fill out the form below to reserve your spot
+                      </p>
+                    </div>
                     <form onSubmit={handleSubmit} className="space-y-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="fullName" className="text-xs font-medium">Full Name</Label>
