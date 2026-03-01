@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, ExternalLink, Copy, Check, GripVertical } from 'lucide-react';
 import TrainingCategoriesTab from '@/components/admin/TrainingCategoriesTab';
+import TrainingSalesTab from '@/components/admin/TrainingSalesTab';
 import {
   DndContext,
   closestCenter,
@@ -435,6 +436,7 @@ export default function AdminTrainingPrograms() {
             <TabsList>
               <TabsTrigger value="programs">Programs</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="sales">Sales Analytics</TabsTrigger>
             </TabsList>
 
             <TabsContent value="programs" className="flex flex-col gap-6 mt-4">
@@ -725,6 +727,10 @@ export default function AdminTrainingPrograms() {
 
             <TabsContent value="categories" className="mt-4">
               <TrainingCategoriesTab />
+            </TabsContent>
+
+            <TabsContent value="sales" className="mt-4">
+              <TrainingSalesTab />
             </TabsContent>
           </Tabs>
         </div>
