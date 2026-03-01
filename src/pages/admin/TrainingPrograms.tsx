@@ -113,15 +113,6 @@ function SortableRow({ program, onEdit, onDelete, onCopyLink, copiedId, category
       <TableCell>{program.processing_fee_percent}%</TableCell>
       <TableCell>
         <span className={`px-2 py-1 rounded-full text-xs ${
-          program.is_bundle 
-            ? 'bg-primary/10 text-primary' 
-            : 'bg-muted text-muted-foreground'
-        }`}>
-          {program.is_bundle ? 'Bundle' : 'Individual'}
-        </span>
-      </TableCell>
-      <TableCell>
-        <span className={`px-2 py-1 rounded-full text-xs ${
           program.active 
             ? 'bg-green-500/10 text-green-600' 
             : 'bg-red-500/10 text-red-600'
@@ -177,7 +168,6 @@ export default function AdminTrainingPrograms() {
     price_cents: '',
     original_price_cents: '',
     processing_fee_percent: '3.5',
-    is_bundle: false,
     active: true,
     availability_info: '',
     related_training_ids: [] as string[],
@@ -276,10 +266,9 @@ export default function AdminTrainingPrograms() {
         price_cents: Math.round(parseFloat(data.price_cents) * 100),
         original_price_cents: data.original_price_cents ? Math.round(parseFloat(data.original_price_cents) * 100) : null,
         processing_fee_percent: parseFloat(data.processing_fee_percent) || 3.5,
-        is_bundle: data.is_bundle,
         active: data.active,
         availability_info: data.availability_info || null,
-        related_training_ids: data.is_bundle ? [] : (data.related_training_ids || []),
+        related_training_ids: data.related_training_ids || [],
         category_id: data.category_id || null,
         ...(data.id ? {} : { display_order: maxOrder + 1 }),
       };
@@ -381,7 +370,6 @@ export default function AdminTrainingPrograms() {
         price_cents: formatPrice(program.price_cents),
         original_price_cents: program.original_price_cents ? formatPrice(program.original_price_cents) : '',
         processing_fee_percent: program.processing_fee_percent.toString(),
-        is_bundle: program.is_bundle,
         active: program.active,
         availability_info: program.availability_info || '',
         related_training_ids: program.related_training_ids || [],
@@ -396,7 +384,6 @@ export default function AdminTrainingPrograms() {
         price_cents: '',
         original_price_cents: '',
         processing_fee_percent: '3.5',
-        is_bundle: false,
         active: true,
         availability_info: '',
         related_training_ids: [],
@@ -568,50 +555,39 @@ export default function AdminTrainingPrograms() {
                       This text appears below "Preferred Date or Dates" field. Use <code className="bg-muted px-1 rounded">&lt;br&gt;</code> for line breaks.
                     </p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_bundle">Is Bundle?</Label>
-                    <Switch
-                      id="is_bundle"
-                      checked={formData.is_bundle}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_bundle: checked, related_training_ids: checked ? [] : formData.related_training_ids })}
-                    />
-                  </div>
-                  
-                  {/* Related Trainings - Only for non-bundles */}
-                  {!formData.is_bundle && (
-                    <div className="space-y-2">
-                      <Label>Related Trainings</Label>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Select trainings to display as "Want to learn about..." links on this program's sales page.
-                      </p>
-                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                        {programs?.filter(p => !p.is_bundle && p.id !== editingProgram?.id).map(program => (
-                          <div key={program.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`related-${program.id}`}
-                              checked={formData.related_training_ids.includes(program.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setFormData({ ...formData, related_training_ids: [...formData.related_training_ids, program.id] });
-                                } else {
-                                  setFormData({ ...formData, related_training_ids: formData.related_training_ids.filter(id => id !== program.id) });
-                                }
-                              }}
-                            />
-                            <label
-                              htmlFor={`related-${program.id}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {program.name}
-                            </label>
-                          </div>
-                        ))}
-                        {programs?.filter(p => !p.is_bundle && p.id !== editingProgram?.id).length === 0 && (
-                          <p className="text-xs text-muted-foreground">No other trainings available to link.</p>
-                        )}
-                      </div>
+                  {/* Related Trainings */}
+                  <div className="space-y-2">
+                    <Label>Related Trainings</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Select trainings to display as "Want to learn about..." links on this program's sales page.
+                    </p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                      {programs?.filter(p => p.id !== editingProgram?.id).map(program => (
+                        <div key={program.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`related-${program.id}`}
+                            checked={formData.related_training_ids.includes(program.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({ ...formData, related_training_ids: [...formData.related_training_ids, program.id] });
+                              } else {
+                                setFormData({ ...formData, related_training_ids: formData.related_training_ids.filter(id => id !== program.id) });
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`related-${program.id}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {program.name}
+                          </label>
+                        </div>
+                      ))}
+                      {programs?.filter(p => p.id !== editingProgram?.id).length === 0 && (
+                        <p className="text-xs text-muted-foreground">No other trainings available to link.</p>
+                      )}
                     </div>
-                  )}
+                  </div>
                   
                   <div className="flex items-center justify-between">
                     <Label htmlFor="active">Active</Label>
@@ -713,7 +689,7 @@ export default function AdminTrainingPrograms() {
                         <TableHead>Category</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Fee</TableHead>
-                        <TableHead>Type</TableHead>
+                        
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
