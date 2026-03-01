@@ -117,18 +117,20 @@ export default function TrainingCategoriesTab() {
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData & { id?: string }) => {
       const maxOrder = categories?.length ? Math.max(...categories.map(c => c.display_order)) : -1;
-      const payload = {
+      const payload: Record<string, any> = {
         name: data.name,
         slug: data.slug || generateSlug(data.name),
         description: data.description || null,
         active: data.active,
-        ...(data.id ? {} : { display_order: maxOrder + 1 }),
       };
+      if (!data.id) {
+        payload.display_order = maxOrder + 1;
+      }
       if (data.id) {
         const { error } = await supabase.from('training_categories').update(payload).eq('id', data.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('training_categories').insert(payload);
+        const { error } = await supabase.from('training_categories').insert(payload as any);
         if (error) throw error;
       }
     },
