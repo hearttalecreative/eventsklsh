@@ -73,7 +73,6 @@ export default function TrainingSuccess() {
         <footer className="border-t border-border/40 py-6">
           <div className="container text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} Kyle Lam Sound Healing. All rights reserved.</p>
-            <p className="mt-1">Developed by Lovable</p>
           </div>
         </footer>
       </div>
