@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import AdminRoute from "@/routes/AdminRoute";
 import { toast } from "sonner";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { Trash2 } from "lucide-react";
 
 interface Coupon {
   id: string;
@@ -181,23 +182,34 @@ const CouponsPage = () => {
             {coupons.map(c => {
               const eventName = c.event_id ? events.find(e => e.id === c.event_id)?.title : null;
               return (
-                <div key={c.id} className="flex items-center justify-between p-3 border rounded-md">
-                  <div className="text-sm">
-                    <div className="font-medium">
-                      {c.code} 
+                <div key={c.id} className="flex items-start sm:items-center justify-between gap-3 p-3 border rounded-md">
+                  <div className="text-sm min-w-0">
+                    <div className="font-medium flex items-center gap-2 min-w-0">
+                      <span className="inline-flex items-center rounded-md border border-border/70 bg-muted/40 px-2 py-0.5 font-mono text-[13px] tracking-wide shrink-0">
+                        {c.code}
+                      </span>
                       {c.event_id ? (
-                        <span className="text-muted-foreground"> ({eventName || 'Evento específico'})</span>
+                        <span className="text-muted-foreground text-xs truncate">({eventName || 'Evento específico'})</span>
                       ) : (
-                        <span className="text-muted-foreground"> (Todos los eventos)</span>
+                        <span className="text-muted-foreground text-xs">(Todos los eventos)</span>
                       )}
                     </div>
-                    <div className="text-muted-foreground text-xs">
+                    <div className="text-muted-foreground text-[11px] mt-1 leading-relaxed break-words">
                       {c.discount_percent != null ? `${c.discount_percent}%` : `${c.discount_amount_cents}¢`} · {c.apply_to}
                       {c.one_per_customer && <span className="ml-2 text-primary">• 1 per customer (global)</span>}
                       {c.one_per_customer_per_event && <span className="ml-2 text-primary">• 1 per customer per event</span>}
                     </div>
                   </div>
-                  <Button variant="destructive" onClick={()=>remove(c.id)}>Eliminar</Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="h-8 w-8 min-h-8 min-w-8 shrink-0 aspect-square p-0"
+                    title="Eliminar cupón"
+                    aria-label="Eliminar cupón"
+                    onClick={()=>remove(c.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               );
             })}

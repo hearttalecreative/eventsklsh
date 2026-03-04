@@ -21,7 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocation, Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import RichMarkdownEditor from "@/components/RichMarkdownEditor";
-import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote, ChevronDown as ChevronDownIcon, Archive } from "lucide-react";
+import { Megaphone, Edit3, Ticket, Package, Users, Eye, Trash2, Copy, ChevronUp, ChevronDown, StickyNote, ChevronDown as ChevronDownIcon, Archive, Search, Check } from "lucide-react";
 import { toast } from "sonner";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -88,10 +88,15 @@ const AdminEvents = () => {
   const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | '1'..'12'
   const [filterYear, setFilterYear] = useState<string>('all');   // 'all' | '2025' etc
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [expandedMobileEventId, setExpandedMobileEventId] = useState<string | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+  const [workspaceTab, setWorkspaceTab] = useState<'create' | 'manage' | 'list'>('create');
+  const [ticketQuery, setTicketQuery] = useState("");
+  const [addonQuery, setAddonQuery] = useState("");
+  const [lastSaved, setLastSaved] = useState<{ kind: "ticket" | "addon"; id: string; at: number } | null>(null);
 
 
   // Edit event dialog state
@@ -547,6 +552,8 @@ const AdminEvents = () => {
   };
 
   const openAddons = async (eventId: string) => {
+    setTicketsOpen(false);
+    setAddonQuery("");
     setAddonsEventId(eventId);
     const { data } = await supabase
       .from("addons")
@@ -573,6 +580,7 @@ const AdminEvents = () => {
     const { error } = await supabase.from('addons').update(patch).eq('id', id);
     if (error) return alert(error.message);
     setAddons(arr => arr.map(a => a.id === id ? { ...a, ...patch } : a));
+    setLastSaved({ kind: 'addon', id, at: Date.now() });
     await logAdmin('addon_updated', 'addon', id, patch);
   };
 
@@ -603,6 +611,8 @@ const AdminEvents = () => {
 
   // Tickets
   const openTickets = async (eventId: string) => {
+    setAddonsOpen(false);
+    setTicketQuery("");
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
@@ -699,6 +709,7 @@ const AdminEvents = () => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
     if (error) return alert(error.message);
     setTickets(arr => arr.map(t => t.id === id ? { ...t, ...patch } : t).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
+    setLastSaved({ kind: 'ticket', id, at: Date.now() });
     await logAdmin('ticket_updated', 'ticket', id, patch);
   };
 
@@ -896,15 +907,26 @@ const AdminEvents = () => {
   };
   // Total pages from server count
   const totalPages = Math.ceil(totalCount / pageSize);
+  const filteredTickets = useMemo(
+    () => tickets.filter((t) => (t.name || "").toLowerCase().includes(ticketQuery.toLowerCase().trim())),
+    [tickets, ticketQuery]
+  );
+  const filteredAddons = useMemo(
+    () => addons.filter((a) => ((a.name || "") + " " + (a.description || "")).toLowerCase().includes(addonQuery.toLowerCase().trim())),
+    [addons, addonQuery]
+  );
+  const recentlySaved = (kind: "ticket" | "addon", id: string) =>
+    !!lastSaved && lastSaved.kind === kind && lastSaved.id === id && Date.now() - lastSaved.at < 4500;
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setExpandedMobileEventId(null);
   }, [activeTab, searchQuery, filterMonth, filterYear]);
   return (
     <AdminRoute>
       <AdminHeader />
-      <main className="container mx-auto py-8 space-y-8">
+      <main className="container mx-auto px-4 py-8 space-y-8">
         <Helmet>
           <title>Admin Events | Events Management</title>
           <meta name="description" content="Create and manage events from the admin panel." />
@@ -916,94 +938,155 @@ const AdminEvents = () => {
           <p className="text-muted-foreground">Create and manage your events</p>
         </header>
 
-        <section className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader><CardTitle>Create New Event</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <div className="space-y-1">
-                <Textarea
-                  placeholder="Short description (max 350 characters)"
-                  value={shortDesc}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setShortDesc(val.slice(0, 350));
-                  }}
-                />
-                <p className="text-xs text-muted-foreground text-right">
-                  {shortDesc.length}/350
-                </p>
-              </div>
-              <div className="space-y-1">
-                <Label>Long description</Label>
-                <RichMarkdownEditor value={longDesc} onChange={setLongDesc} />
-              </div>
-              <div className="space-y-1">
-                <Label>Event instructions (shown to buyers after purchase)</Label>
-                <RichMarkdownEditor value={instructions} onChange={setInstructions} />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-                <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
-              </div>
+        <section className="space-y-3">
+          <Tabs value={workspaceTab} onValueChange={(v) => setWorkspaceTab(v as 'create' | 'manage' | 'list')}>
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto rounded-xl border border-primary/20 bg-primary/10 p-1">
+              <TabsTrigger value="create" className="min-h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Create Event</TabsTrigger>
+              <TabsTrigger value="manage" className="min-h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Tickets & Add-ons</TabsTrigger>
+              <TabsTrigger value="list" className="min-h-11 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">Events List</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </section>
 
-              <div className="grid sm:grid-cols-2 gap-3">
-                <Select value={venueId} onValueChange={setVenueId as any}>
-                  <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
-                  <SelectContent>
-                    {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="secondary" onClick={createVenue}>New venue</Button>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                    <SelectItem value="sold_out">Sold Out</SelectItem>
-                    <SelectItem value="paused">Paused</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={timezone} onValueChange={setTimezone}>
-                  <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
-                    <SelectItem value="America/New_York">America/New_York</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-3">
-                <div className="grid sm:grid-cols-3 gap-3 items-center">
-                  <Input type="file" accept="image/*" onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setImageFile(file);
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = () => setImagePreview(reader.result as string);
-                      reader.readAsDataURL(file);
-                    } else {
-                      setImagePreview(null);
-                    }
-                  }} />
-                  <Button type="button" variant="secondary" onClick={uploadImage}>Upload image</Button>
-                  {imageUrl && <span className="text-xs text-muted-foreground truncate" title={imageUrl}>Uploaded ✓</span>}
-                </div>
-                {imagePreview && (
-                  <div className="w-32 h-32 rounded-md overflow-hidden bg-muted">
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+        <section className="space-y-6 min-w-0">
+          {workspaceTab === 'create' && (
+          <Card className="min-w-0 w-full">
+            <CardHeader className="space-y-2">
+              <CardTitle>Create New Event</CardTitle>
+              <p className="text-sm text-muted-foreground">A cleaner flow: complete each step, then create the event.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Tabs defaultValue="basics" className="space-y-4">
+                <TabsList className="grid grid-cols-4 w-full h-auto rounded-lg border border-border/70 bg-muted/30 p-1">
+                  <TabsTrigger value="basics" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Basics</TabsTrigger>
+                  <TabsTrigger value="content" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Content</TabsTrigger>
+                  <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Settings</TabsTrigger>
+                  <TabsTrigger value="media" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Media</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="basics" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                  <div className="space-y-1">
+                    <Label>Title</Label>
+                    <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
                   </div>
-                )}
+                  <div className="space-y-1">
+                    <Label>Short description</Label>
+                    <Textarea
+                      placeholder="Short description (max 350 characters)"
+                      value={shortDesc}
+                      disabled={false}
+                      readOnly={false}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setShortDesc(val.slice(0, 350));
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{shortDesc.length}/350</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="content" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                  <div className="space-y-1">
+                    <Label>Long description</Label>
+                    <RichMarkdownEditor value={longDesc} onChange={setLongDesc} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Event instructions (shown to buyers after purchase)</Label>
+                    <RichMarkdownEditor value={instructions} onChange={setInstructions} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="settings" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                  <div className="grid xl:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label>Start date & time</Label>
+                      <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>End date & time</Label>
+                      <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="grid xl:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label>Venue</Label>
+                      <Select value={venueId} onValueChange={setVenueId as any}>
+                        <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
+                        <SelectContent>
+                          {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="opacity-0">New venue</Label>
+                      <Button type="button" variant="secondary" className="w-full" onClick={createVenue}>New venue</Button>
+                    </div>
+                  </div>
+                  <div className="grid xl:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label>Status</Label>
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                          <SelectItem value="sold_out">Sold Out</SelectItem>
+                          <SelectItem value="paused">Paused</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Timezone</Label>
+                      <Select value={timezone} onValueChange={setTimezone}>
+                        <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                          <SelectItem value="America/New_York">America/New_York</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="media" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                  <div className="space-y-2">
+                    <Label>Event image</Label>
+                    <Input type="file" accept="image/*" onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setImageFile(file);
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => setImagePreview(reader.result as string);
+                        reader.readAsDataURL(file);
+                      } else {
+                        setImagePreview(null);
+                      }
+                    }} />
+                    <Button type="button" variant="secondary" onClick={uploadImage}>Upload image</Button>
+                    {imageUrl && <span className="text-xs text-muted-foreground truncate" title={imageUrl}>Uploaded ✓</span>}
+                  </div>
+                  {imagePreview && (
+                    <div className="w-40 h-40 rounded-md overflow-hidden bg-muted border">
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+
+              <div className="flex justify-end border-t pt-4">
+                <Button onClick={createEvent} className="min-w-40">Create event</Button>
               </div>
-              <Button onClick={createEvent}>Create event</Button>
             </CardContent>
           </Card>
+          )}
 
-          <Card>
-            <CardHeader><CardTitle>Tickets & add-ons</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+          {workspaceTab === 'manage' && (
+          <Card className="min-w-0 w-full">
+            <CardHeader>
+              <CardTitle>Tickets & add-ons</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
               <div className="space-y-1">
                 <Label htmlFor="manage-ev">Select event</Label>
                 <Select value={manageEventId} onValueChange={(v) => setManageEventId(v)}>
@@ -1021,39 +1104,79 @@ const AdminEvents = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => manageEventId && openTickets(manageEventId!)} disabled={!manageEventId}>Manage tickets</Button>
-                <Button variant="outline" onClick={() => manageEventId && openAddons(manageEventId!)} disabled={!manageEventId}>Manage add-ons</Button>
-                {(ticketsOpen || addonsOpen) && (
-                  <Button variant="ghost" onClick={() => { setTicketsOpen(false); setAddonsOpen(false); }}>Close</Button>
-                )}
+              <div className="grid grid-cols-2 gap-2">
+                <Button className="w-full" variant={ticketsOpen ? "secondary" : "outline"} onClick={() => manageEventId && openTickets(manageEventId!)} disabled={!manageEventId}>Tickets</Button>
+                <Button className="w-full" variant={addonsOpen ? "secondary" : "outline"} onClick={() => manageEventId && openAddons(manageEventId!)} disabled={!manageEventId}>Add-ons</Button>
               </div>
+              {(ticketsOpen || addonsOpen) && (
+                <div className="flex justify-end">
+                  <Button size="sm" variant="ghost" onClick={() => { setTicketsOpen(false); setAddonsOpen(false); }}>Close editor</Button>
+                </div>
+              )}
+
+              {manageEventId && (
+                <p className="text-xs text-muted-foreground">
+                  Editing: <span className="font-medium text-foreground">{events.find((e) => e.id === manageEventId)?.title || 'Selected event'}</span>
+                </p>
+              )}
+
+              {!manageEventId && (
+                <div className="rounded-lg border border-dashed border-border/70 bg-muted/10 p-4 text-sm text-muted-foreground">
+                  Select an event, then choose <span className="font-medium text-foreground">Manage tickets</span> or <span className="font-medium text-foreground">Manage add-ons</span>.
+                </div>
+              )}
 
               {/* Inline editors below – no popups */}
               {ticketsOpen && ticketsEventId === manageEventId && (
-                <div className="space-y-4 border rounded-md p-4 bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Tickets</h4>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
-                      <Button size="sm" variant="secondary" onClick={addTicketCombo}>Add combo</Button>
-                      <Button size="sm" variant="secondary" onClick={addTicketByZone}>Add by zone</Button>
+                <div className="space-y-4 border rounded-xl p-5 bg-muted/20">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="font-medium text-base">Tickets</h4>
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                      <Button size="sm" className="w-full sm:w-auto" variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
+                      <Button size="sm" className="w-full sm:w-auto" variant="secondary" onClick={addTicketCombo}>Add combo</Button>
+                      <Button size="sm" className="w-full sm:w-auto" variant="secondary" onClick={addTicketByZone}>Add by zone</Button>
                     </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      value={ticketQuery}
+                      onChange={(e) => setTicketQuery(e.target.value)}
+                      placeholder="Search tickets by name..."
+                      className="pl-9"
+                    />
                   </div>
                   {tickets.length === 0 && (
                     <p className="text-sm text-muted-foreground">No tickets yet.</p>
                   )}
-                  {tickets.map((t, index) => {
+                  {tickets.length > 0 && filteredTickets.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No tickets match your search.</p>
+                  )}
+                  {filteredTickets.map((t, index) => {
                     const earlyEnabled = Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end);
-                    const isFirst = index === 0;
-                    const isLast = index === tickets.length - 1;
+                    const absoluteIndex = tickets.findIndex((item) => item.id === t.id);
+                    const isFirst = absoluteIndex === 0;
+                    const isLast = absoluteIndex === tickets.length - 1;
                     return (
-                      <div key={t.id} className="p-4 border rounded-md bg-card space-y-3">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-muted-foreground">#{t.display_order || 0}</span>
-                            <span className="text-xs text-muted-foreground">Display order</span>
-                            <div className="flex items-center gap-1.5 ml-4">
+                      <details key={t.id} className="border rounded-xl bg-card" open={index === 0}>
+                        <summary className="list-none cursor-pointer p-4 border-b flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{t.name || 'Untitled ticket'}</p>
+                            <p className="text-xs text-muted-foreground">{(t.unit_amount_cents / 100).toFixed(2)} • cap {t.capacity_total || 0} • order #{t.display_order || 0}</p>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {t.hidden ? <span className="text-[10px] rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-destructive">Hidden</span> : <span className="text-[10px] rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-700">Visible</span>}
+                              {Boolean(t.early_bird_amount_cents && t.early_bird_start && t.early_bird_end) && <span className="text-[10px] rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-amber-700">Early Bird</span>}
+                              {(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) && <span className="text-[10px] rounded-full border border-blue-300 bg-blue-50 px-2 py-0.5 text-blue-700">Combo</span>}
+                              {recentlySaved('ticket', t.id) && <span className="text-[10px] rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-primary inline-flex items-center gap-1"><Check className="w-3 h-3" />Saved</span>}
+                            </div>
+                          </div>
+                          <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
+                        </summary>
+                        <div className="p-5 space-y-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold rounded-full bg-muted px-2 py-1">Order #{t.display_order || 0}</span>
+                            <div className="flex items-center gap-1.5">
                               <Switch
                                 checked={!t.hidden}
                                 onCheckedChange={(checked) => updateTicketField(t.id, { hidden: !checked })}
@@ -1063,7 +1186,7 @@ const AdminEvents = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <Button
                               size="sm"
                               variant="outline"
@@ -1087,12 +1210,12 @@ const AdminEvents = () => {
                             </Button>
                           </div>
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-12 items-end">
-                          <div className="sm:col-span-4 space-y-1">
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 items-end">
+                          <div className="space-y-1">
                             <Label>Name</Label>
                             <Input className="w-full" defaultValue={t.name} onBlur={(e) => updateTicketField(t.id, { name: e.currentTarget.value })} />
                           </div>
-                          <div className="sm:col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label>Price</Label>
                             {(() => {
                               let priceEl: HTMLInputElement | null = null;
@@ -1114,21 +1237,21 @@ const AdminEvents = () => {
                               );
                             })()}
                           </div>
-                          <div className="sm:col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label>Capacity</Label>
                             <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
                               className="w-full text-right"
                               onBlur={(e) => updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
-                          <div className="sm:col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label>Zone</Label>
                             <Input placeholder="e.g. General, VIP" defaultValue={t.zone || ''}
                               onBlur={(e) => updateTicketField(t.id, { zone: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
                             />
                           </div>
                           {(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) && (
-                            <div className="sm:col-span-2 space-y-1">
+                            <div className="space-y-1">
                               <Label>Participants per ticket</Label>
                               <Input
                                 type="number"
@@ -1185,20 +1308,20 @@ const AdminEvents = () => {
                             </div>
                           </div>
                           {earlyEnabled && (
-                            <div className="grid sm:grid-cols-4 gap-3">
+                            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
                               <div className="space-y-1">
                                 <Label>Early price</Label>
                                 <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents || 0) / 100).toFixed(2)}
                                   onBlur={(e) => updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0') * 100) })}
                                 />
                               </div>
-                              <div className="space-y-1 sm:col-span-2">
+                              <div className="space-y-1">
                                 <Label>Start</Label>
                                 <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0, 16) : ''}
                                   onBlur={(e) => updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
                                 />
                               </div>
-                              <div className="space-y-1 sm:col-span-2">
+                              <div className="space-y-1">
                                 <Label>End</Label>
                                 <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0, 16) : ''}
                                   onBlur={(e) => updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
@@ -1207,7 +1330,8 @@ const AdminEvents = () => {
                             </div>
                           )}
                         </div>
-                      </div>
+                        </div>
+                      </details>
                     );
                   })}
                   <div className="flex justify-end gap-2 mt-4">
@@ -1218,21 +1342,49 @@ const AdminEvents = () => {
               )}
 
               {addonsOpen && addonsEventId === manageEventId && (
-                <div className="space-y-4 border rounded-md p-4 bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Add-ons</h4>
+                <div className="space-y-4 border rounded-xl p-5 bg-muted/20">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="font-medium text-base">Add-ons</h4>
                     <Button size="sm" variant="secondary" onClick={addAddon}>Add add-on</Button>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      value={addonQuery}
+                      onChange={(e) => setAddonQuery(e.target.value)}
+                      placeholder="Search add-ons by name or description..."
+                      className="pl-9"
+                    />
                   </div>
                   {addons.length === 0 && (
                     <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
                   )}
-                  {addons.map((a) => (
-                    <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
-                      <div className="grid sm:grid-cols-4 gap-2 items-center">
+                  {addons.length > 0 && filteredAddons.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No add-ons match your search.</p>
+                  )}
+                  {filteredAddons.map((a, idx) => (
+                    <details key={a.id} className="border rounded-xl bg-card" open={idx === 0}>
+                      <summary className="list-none cursor-pointer p-4 border-b flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{a.name || 'Untitled add-on'}</p>
+                          <p className="text-xs text-muted-foreground">{(a.unit_amount_cents / 100).toFixed(2)} {a.max_quantity_per_person ? `• max ${a.max_quantity_per_person}/person` : ''}</p>
+                          {recentlySaved('addon', a.id) && (
+                            <span className="mt-1 inline-flex text-[10px] rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-primary items-center gap-1"><Check className="w-3 h-3" />Saved</span>
+                          )}
+                        </div>
+                        <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
+                      </summary>
+                      <div className="p-4 space-y-3">
+                      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 items-end">
+                        <div>
                         <Input placeholder="Name" defaultValue={a.name} onBlur={(e) => updateAddonField(a.id, { name: e.currentTarget.value })} />
+                        </div>
+                        <div>
                         <Input type="number" step="0.01" min="0" placeholder="Price" defaultValue={(a.unit_amount_cents / 100).toFixed(2)}
                           onBlur={(e) => updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0') * 100) })}
                         />
+                        </div>
+                        <div>
                         <Input
                           type="number"
                           min="1"
@@ -1240,6 +1392,7 @@ const AdminEvents = () => {
                           defaultValue={a.max_quantity_per_person || ''}
                           onBlur={(e) => updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })}
                         />
+                        </div>
                         <div className="flex justify-end">
                           <Button variant="destructive" size="icon" onClick={() => deleteAddon(a.id)} title="Delete addon" aria-label="Delete addon">
                             <Trash2 className="w-4 h-4" />
@@ -1251,7 +1404,8 @@ const AdminEvents = () => {
                         value={a.description ?? ''}
                         onChange={(e) => updateAddonDesc(a.id, e.target.value)}
                       />
-                    </div>
+                      </div>
+                    </details>
                   ))}
                   {addons.length > 0 && (
                     <div className="flex justify-end">
@@ -1264,9 +1418,11 @@ const AdminEvents = () => {
               <p className="text-xs text-muted-foreground">Use these tools to define ticket types and optional add-ons for the selected event.</p>
             </CardContent>
           </Card>
+          )}
         </section>
 
-        <section className="space-y-3">
+        {workspaceTab === 'list' && (
+        <section className="space-y-3 w-[calc(100vw-2rem)] md:w-[calc(100vw-4rem)] max-w-[1800px] mx-auto">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">All Events</h2>
             <div className="flex gap-2">
@@ -1277,10 +1433,10 @@ const AdminEvents = () => {
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'archived')} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="active">Active Events</TabsTrigger>
-              <TabsTrigger value="archived">Archived Events</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'archived')} className="w-full max-w-full min-w-0">
+            <TabsList className="!grid !w-full max-w-md grid-cols-2 h-auto rounded-lg border border-border/70 bg-muted/20 p-1">
+              <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Active Events</TabsTrigger>
+              <TabsTrigger value="archived" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Archived Events</TabsTrigger>
             </TabsList>
 
             <TabsContent value={activeTab} className="space-y-3 mt-4">
@@ -1289,7 +1445,7 @@ const AdminEvents = () => {
                   placeholder="Search events..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="max-w-xs"
+                  className="w-full sm:max-w-xs"
                 />
                 <Label className="text-sm text-muted-foreground">Month</Label>
                 <Select value={filterMonth} onValueChange={setFilterMonth}>
@@ -1326,116 +1482,266 @@ const AdminEvents = () => {
                 </div>
               )}
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-muted-foreground border-b">
-                      <th className="py-3 pr-4 w-12">
-                        <Checkbox
-                          checked={events.length > 0 && events.every(e => selectedIds.includes(e.id))}
-                          onCheckedChange={(v) => {
-                            const checked = Boolean(v);
-                            setSelectedIds(prev => {
-                              if (checked) {
-                                return Array.from(new Set([...prev, ...events.map(e => e.id)]));
-                              } else {
-                                return prev.filter(id => !events.some(e => e.id === id));
-                              }
-                            });
-                          }}
-                          aria-label="Select all on page"
-                        />
-                      </th>
-                      <th className="py-3 pr-4 min-w-48">Title</th>
-                      <th className="py-3 pr-4 min-w-40">Start</th>
-                      <th className="py-3 pr-4 min-w-36">Venue</th>
-                      <th className="py-3 pr-4 min-w-24">Status</th>
-                      <th className="py-3 pr-4 min-w-20">Visible</th>
-                      <th className="py-3 pr-4 min-w-32">Tickets Sold</th>
-                      <th className="py-3 pr-4 min-w-72">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.map(ev => {
-                      // Format date with timezone consideration
-                      const eventDate = new Date(ev.starts_at);
-                      const formattedDate = eventDate.toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                      });
-
-                      // Map status to badge variant
-                      const statusVariant =
-                        ev.status === 'published' ? 'success' as const :
-                          ev.status === 'sold_out' ? 'destructive' as const :
-                            ev.status === 'paused' ? 'warning' as const :
-                              ev.status === 'draft' ? 'muted' as const :
-                                'outline' as const;
-                      const statusLabel = ev.status === 'sold_out' ? 'Sold Out' : ev.status === 'paused' ? 'Paused' : ev.status.charAt(0).toUpperCase() + ev.status.slice(1);
-
-                      return (
-                        <tr key={ev.id} className="border-b border-border/30 transition-colors hover:bg-muted/40 group">
-                          <td className="py-3 pl-4 pr-2 w-10">
-                            <Checkbox
-                              checked={selectedIds.includes(ev.id)}
-                              onCheckedChange={(v) => {
-                                const checked = Boolean(v);
-                                setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
-                              }}
-                              aria-label={`Select ${ev.title}`}
-                            />
-                          </td>
-                          <td className="py-3 px-4 font-medium max-w-52 truncate text-foreground" title={ev.title}>
-                            {ev.title}
-                            {ev.hidden && <span className="ml-2 text-xs text-muted-foreground font-normal">(hidden)</span>}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap">{formattedDate}</td>
-                          <td className="py-3 px-4 text-sm text-muted-foreground max-w-36 truncate" title={ev.venues?.name || '-'}>{ev.venues?.name || '-'}</td>
-                          <td className="py-3 px-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide
-                              ${ev.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                ev.status === 'sold_out' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                  ev.status === 'paused' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
-                                    ev.status === 'draft' ? 'bg-muted text-muted-foreground' :
-                                      'bg-muted text-muted-foreground'}`}>
-                              {statusLabel}
-                            </span>
-                          </td>
-                          <td className="py-3 pr-4">
-                            <Switch
-                              checked={!ev.hidden}
-                              onCheckedChange={async (checked) => {
-                                const { error } = await supabase.from('events').update({ hidden: !checked }).eq('id', ev.id);
-                                if (!error) {
-                                  await logAdmin('event_visibility_changed', 'event', ev.id, { hidden: !checked });
-                                  await loadEvents(currentPage, {
-                                    tab: activeTab,
-                                    search: searchQuery,
-                                    month: filterMonth,
-                                    year: filterYear
-                                  });
+              {!isMobile ? (
+                <div className="max-w-full overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-muted-foreground border-b">
+                        <th className="py-3 pr-4 w-12">
+                          <Checkbox
+                            checked={events.length > 0 && events.every(e => selectedIds.includes(e.id))}
+                            onCheckedChange={(v) => {
+                              const checked = Boolean(v);
+                              setSelectedIds(prev => {
+                                if (checked) {
+                                  return Array.from(new Set([...prev, ...events.map(e => e.id)]));
+                                } else {
+                                  return prev.filter(id => !events.some(e => e.id === id));
                                 }
-                              }}
-                              aria-label={ev.hidden ? 'Show event' : 'Hide event'}
-                            />
-                          </td>
-                          <td className="py-3 pr-4 text-sm font-medium">
-                            {(() => {
-                              const stats = eventStats[ev.id];
-                              if (!stats) return '-';
-                              return `${stats.ticketsSold}/${stats.totalCapacity}`;
-                            })()}
-                          </td>
-                          <td className="py-3 pr-4">
-                            <div className="flex gap-1">
+                              });
+                            }}
+                            aria-label="Select all on page"
+                          />
+                        </th>
+                        <th className="py-3 pr-4 min-w-80">Title</th>
+                        <th className="py-3 pr-4 min-w-40">Start</th>
+                        <th className="py-3 pr-4 min-w-56">Venue</th>
+                        <th className="py-3 pr-4 min-w-24">Status</th>
+                        <th className="py-3 pr-4 min-w-20">Visible</th>
+                        <th className="py-3 pr-4 min-w-72">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {events.map(ev => {
+                        const eventDate = new Date(ev.starts_at);
+                        const formattedDate = eventDate.toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        });
+                        const statusLabel = ev.status === 'sold_out' ? 'Sold Out' : ev.status === 'paused' ? 'Paused' : ev.status.charAt(0).toUpperCase() + ev.status.slice(1);
+
+                        return (
+                          <tr key={ev.id} className="border-b border-border/30 transition-colors hover:bg-muted/40 group">
+                            <td className="py-3 pl-4 pr-2 w-10">
+                              <Checkbox
+                                checked={selectedIds.includes(ev.id)}
+                                onCheckedChange={(v) => {
+                                  const checked = Boolean(v);
+                                  setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
+                                }}
+                                aria-label={`Select ${ev.title}`}
+                              />
+                            </td>
+                            <td className="py-3 px-4 font-medium max-w-[28rem] text-foreground break-words" title={ev.title}>
+                              {ev.title}
+                              {ev.hidden && <span className="ml-2 text-xs text-muted-foreground font-normal">(hidden)</span>}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap">{formattedDate}</td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground max-w-72 break-words" title={ev.venues?.name || '-'}>{ev.venues?.name || '-'}</td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide
+                                ${ev.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                  ev.status === 'sold_out' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                    ev.status === 'paused' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                                      'bg-muted text-muted-foreground'}`}>
+                                {statusLabel}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4">
+                              <Switch
+                                checked={!ev.hidden}
+                                onCheckedChange={async (checked) => {
+                                  const { error } = await supabase.from('events').update({ hidden: !checked }).eq('id', ev.id);
+                                  if (!error) {
+                                    await logAdmin('event_visibility_changed', 'event', ev.id, { hidden: !checked });
+                                    await loadEvents(currentPage, {
+                                      tab: activeTab,
+                                      search: searchQuery,
+                                      month: filterMonth,
+                                      year: filterYear
+                                    });
+                                  }
+                                }}
+                                aria-label={ev.hidden ? 'Show event' : 'Hide event'}
+                              />
+                            </td>
+                            <td className="py-3 pr-4">
+                              <div className="flex gap-1">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="icon" variant="outline" title="Change status" aria-label="Change status" className="h-8 w-8">
+                                      <Megaphone className="w-3 h-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="z-50 bg-popover">
+                                    <DropdownMenuItem onClick={async () => {
+                                      const next = 'published';
+                                      const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                      if (!error) {
+                                        await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                        await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
+                                      }
+                                    }}>Published</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      const next = 'sold_out';
+                                      const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                      if (!error) {
+                                        await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                        await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
+                                      }
+                                    }}>Sold Out</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      const next = 'paused';
+                                      const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                      if (!error) {
+                                        await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                        await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
+                                      }
+                                    }}>Paused</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      const next = 'draft';
+                                      const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                      if (!error) {
+                                        await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                        await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
+                                      }
+                                    }}>Draft</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      const next = 'archived';
+                                      const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                      if (!error) {
+                                        await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                        await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
+                                      }
+                                    }}>Archived</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={() => openEdit(ev)} disabled={ev.status === 'archived'}>
+                                  <Edit3 className="w-3 h-3" />
+                                </Button>
+                                <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-8 w-8" onClick={() => openDuplicate(ev)}>
+                                  <Copy className="w-3 h-3" />
+                                </Button>
+                                <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-8 w-8" asChild>
+                                  <Link to={`/admin/events/${ev.id}/attendees`}>
+                                    <Users className="w-3 h-3" />
+                                  </Link>
+                                </Button>
+                                <Button size="icon" variant="outline" title="View" aria-label="View" className="h-8 w-8" asChild>
+                                  <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
+                                    <Eye className="w-3 h-3" />
+                                  </a>
+                                </Button>
+                                <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" className="h-8 w-8" onClick={() => confirmDeleteEvent(ev)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <Checkbox
+                      checked={events.length > 0 && events.every(e => selectedIds.includes(e.id))}
+                      onCheckedChange={(v) => {
+                        const checked = Boolean(v);
+                        setSelectedIds(prev => {
+                          if (checked) return Array.from(new Set([...prev, ...events.map(e => e.id)]));
+                          return prev.filter(id => !events.some(e => e.id === id));
+                        });
+                      }}
+                      aria-label="Select all events on page"
+                    />
+                    <span className="text-sm text-muted-foreground">Select all on this page</span>
+                  </div>
+
+                  {events.map(ev => {
+                    const eventDate = new Date(ev.starts_at);
+                    const formattedDate = eventDate.toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    });
+                    const statusLabel = ev.status === 'sold_out' ? 'Sold Out' : ev.status === 'paused' ? 'Paused' : ev.status.charAt(0).toUpperCase() + ev.status.slice(1);
+                    const isExpanded = expandedMobileEventId === ev.id;
+
+                    return (
+                      <article key={ev.id} className="rounded-xl border border-border/70 bg-card/80 overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedMobileEventId((prev) => prev === ev.id ? null : ev.id)}
+                          className="w-full flex items-center justify-between gap-3 px-3 py-3 text-left"
+                          aria-expanded={isExpanded}
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{ev.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{formattedDate}</p>
+                          </div>
+                          <ChevronDownIcon className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {isExpanded && (
+                          <div className="border-t border-border/60 px-3 py-3 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={selectedIds.includes(ev.id)}
+                                  onCheckedChange={(v) => {
+                                    const checked = Boolean(v);
+                                    setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
+                                  }}
+                                  aria-label={`Select ${ev.title}`}
+                                />
+                                <span className="text-xs text-muted-foreground">Selected</span>
+                              </div>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide
+                                ${ev.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                  ev.status === 'sold_out' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                    ev.status === 'paused' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                                      'bg-muted text-muted-foreground'}`}>
+                                {statusLabel}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2 text-xs">
+                              <div>
+                                <p className="text-muted-foreground">Venue</p>
+                                <p className="font-medium truncate" title={ev.venues?.name || '-'}>{ev.venues?.name || '-'}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between rounded-lg border border-border/60 px-2.5 py-2">
+                              <span className="text-xs text-muted-foreground">Visible on site</span>
+                              <Switch
+                                checked={!ev.hidden}
+                                onCheckedChange={async (checked) => {
+                                  const { error } = await supabase.from('events').update({ hidden: !checked }).eq('id', ev.id);
+                                  if (!error) {
+                                    await logAdmin('event_visibility_changed', 'event', ev.id, { hidden: !checked });
+                                    await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
+                                  }
+                                }}
+                                aria-label={ev.hidden ? 'Show event' : 'Hide event'}
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button size="icon" variant="outline" title="Change status" aria-label="Change status" className="h-8 w-8">
-                                    <Megaphone className="w-3 h-3" />
+                                  <Button size="icon" variant="outline" title="Change status" aria-label="Change status" className="h-9 w-9">
+                                    <Megaphone className="w-3.5 h-3.5" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="z-50 bg-popover">
@@ -1444,12 +1750,7 @@ const AdminEvents = () => {
                                     const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                     if (!error) {
                                       await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
-                                      await loadEvents(currentPage, {
-                                        tab: activeTab,
-                                        search: searchQuery,
-                                        month: filterMonth,
-                                        year: filterYear
-                                      });
+                                      await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
                                     }
                                   }}>Published</DropdownMenuItem>
                                   <DropdownMenuItem onClick={async () => {
@@ -1457,12 +1758,7 @@ const AdminEvents = () => {
                                     const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                     if (!error) {
                                       await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
-                                      await loadEvents(currentPage, {
-                                        tab: activeTab,
-                                        search: searchQuery,
-                                        month: filterMonth,
-                                        year: filterYear
-                                      });
+                                      await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
                                     }
                                   }}>Sold Out</DropdownMenuItem>
                                   <DropdownMenuItem onClick={async () => {
@@ -1470,12 +1766,7 @@ const AdminEvents = () => {
                                     const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                     if (!error) {
                                       await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
-                                      await loadEvents(currentPage, {
-                                        tab: activeTab,
-                                        search: searchQuery,
-                                        month: filterMonth,
-                                        year: filterYear
-                                      });
+                                      await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
                                     }
                                   }}>Paused</DropdownMenuItem>
                                   <DropdownMenuItem onClick={async () => {
@@ -1483,12 +1774,7 @@ const AdminEvents = () => {
                                     const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                     if (!error) {
                                       await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
-                                      await loadEvents(currentPage, {
-                                        tab: activeTab,
-                                        search: searchQuery,
-                                        month: filterMonth,
-                                        year: filterYear
-                                      });
+                                      await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
                                     }
                                   }}>Draft</DropdownMenuItem>
                                   <DropdownMenuItem onClick={async () => {
@@ -1496,49 +1782,45 @@ const AdminEvents = () => {
                                     const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
                                     if (!error) {
                                       await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
-                                      await loadEvents(currentPage, {
-                                        tab: activeTab,
-                                        search: searchQuery,
-                                        month: filterMonth,
-                                        year: filterYear
-                                      });
+                                      await loadEvents(currentPage, { tab: activeTab, search: searchQuery, month: filterMonth, year: filterYear });
                                     }
                                   }}>Archived</DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
-                              <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={() => openEdit(ev)} disabled={ev.status === 'archived'}>
-                                <Edit3 className="w-3 h-3" />
+
+                              <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-9 w-9" onClick={() => openEdit(ev)} disabled={ev.status === 'archived'}>
+                                <Edit3 className="w-3.5 h-3.5" />
                               </Button>
-                              <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-8 w-8" onClick={() => openDuplicate(ev)}>
-                                <Copy className="w-3 h-3" />
+                              <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-9 w-9" onClick={() => openDuplicate(ev)}>
+                                <Copy className="w-3.5 h-3.5" />
                               </Button>
-                              <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-8 w-8" asChild>
+                              <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-9 w-9" asChild>
                                 <Link to={`/admin/events/${ev.id}/attendees`}>
-                                  <Users className="w-3 h-3" />
+                                  <Users className="w-3.5 h-3.5" />
                                 </Link>
                               </Button>
-                              <Button size="icon" variant="outline" title="View" aria-label="View" className="h-8 w-8" asChild>
+                              <Button size="icon" variant="outline" title="View" aria-label="View" className="h-9 w-9" asChild>
                                 <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
-                                  <Eye className="w-3 h-3" />
+                                  <Eye className="w-3.5 h-3.5" />
                                 </a>
                               </Button>
-                              <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" className="h-8 w-8" onClick={() => confirmDeleteEvent(ev)}>
-                                <Trash2 className="w-3 h-3" />
+                              <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" className="h-9 w-9" onClick={() => confirmDeleteEvent(ev)}>
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center mt-8 pb-4">
+                <div className="flex justify-center mt-8 pb-4 w-full overflow-x-auto">
                   <Pagination>
-                    <PaginationContent>
+                    <PaginationContent className="flex-wrap sm:flex-nowrap">
                       <PaginationItem>
                         <PaginationPrevious
                           onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -1619,6 +1901,7 @@ const AdminEvents = () => {
             </TabsContent>
           </Tabs>
         </section>
+        )}
 
         <Dialog open={false} onOpenChange={setAddonsOpen}>
           <DialogContent>
@@ -1775,10 +2058,10 @@ const AdminEvents = () => {
               })}
             </div>
             <DialogFooter className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
-              <Button variant="secondary" onClick={addTicketCombo}>Add combo (multi-participant)</Button>
-              <Button variant="secondary" onClick={addTicketByZone}>Add ticket by zone</Button>
-              <Button variant="secondary" onClick={() => setTicketsOpen(false)} className="ml-auto">Close</Button>
+              <Button className="w-full sm:w-auto" variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
+              <Button className="w-full sm:w-auto" variant="secondary" onClick={addTicketCombo}>Add combo (multi-participant)</Button>
+              <Button className="w-full sm:w-auto" variant="secondary" onClick={addTicketByZone}>Add ticket by zone</Button>
+              <Button variant="secondary" onClick={() => setTicketsOpen(false)} className="w-full sm:w-auto sm:ml-auto">Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1796,6 +2079,8 @@ const AdminEvents = () => {
                   <Textarea
                     placeholder="Short description (max 350 characters)"
                     value={eShort}
+                    disabled={false}
+                    readOnly={false}
                     onChange={(e) => {
                       const val = e.target.value;
                       setEShort(val.slice(0, 350));
@@ -1880,91 +2165,130 @@ const AdminEvents = () => {
           </Sheet>
         ) : (
           <Dialog open={editOpen} onOpenChange={setEditOpen}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit event</DialogTitle>
               </DialogHeader>
-              <div className="space-y-3">
-                <Input placeholder="Title" value={eTitle} onChange={(e) => setETitle(e.target.value)} />
-                <div className="space-y-1">
-                  <Textarea
-                    placeholder="Short description (max 350 characters)"
-                    value={eShort}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setEShort(val.slice(0, 350));
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {eShort.length}/350
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label>Long description</Label>
-                  <RichMarkdownEditor value={eLong} onChange={setELong} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Event instructions (shown to buyers after purchase)</Label>
-                  <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
-                </div>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Input type="datetime-local" value={eStarts} onChange={(e) => setEStarts(e.target.value)} />
-                  <Input type="datetime-local" value={eEnds} onChange={(e) => setEEnds(e.target.value)} />
-                </div>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <Select value={eVenueId} onValueChange={setEVenueId as any}>
-                    <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
-                    <SelectContent>
-                      {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={eStatus} onValueChange={setEStatus}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="sold_out">Sold Out</SelectItem>
-                      <SelectItem value="paused">Paused</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={eTimezone} onValueChange={setETimezone}>
-                    <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
-                      <SelectItem value="America/New_York">America/New_York</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
-                  <div>
-                    <Label>Visible on frontend</Label>
-                    <p className="text-xs text-muted-foreground">When off, event is hidden from public listings</p>
-                  </div>
-                  <Switch checked={!eHidden} onCheckedChange={(checked) => setEHidden(!checked)} />
-                </div>
-                <div className="space-y-3">
-                  <div className="grid sm:grid-cols-3 gap-3 items-center">
-                    <Input type="file" accept="image/*" onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setEImageFile(file);
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = () => setEImagePreview(reader.result as string);
-                        reader.readAsDataURL(file);
-                      } else {
-                        setEImagePreview(null);
-                      }
-                    }} />
-                    <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
-                    {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
-                  </div>
-                  {(eImagePreview || eImageUrl) && (
-                    <div className="w-32 h-32 rounded-md overflow-hidden bg-muted">
-                      <img src={eImagePreview || eImageUrl} alt="Preview" className="w-full h-full object-cover" />
+              <div className="space-y-4">
+                <Tabs defaultValue="basics" className="space-y-4">
+                  <TabsList className="grid grid-cols-4 w-full h-auto rounded-lg border border-border/70 bg-muted/30 p-1">
+                    <TabsTrigger value="basics" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Basics</TabsTrigger>
+                    <TabsTrigger value="content" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Content</TabsTrigger>
+                    <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Settings</TabsTrigger>
+                    <TabsTrigger value="media" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm">Media</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="basics" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                    <div className="space-y-1">
+                      <Label>Title</Label>
+                      <Input placeholder="Title" value={eTitle} onChange={(e) => setETitle(e.target.value)} />
                     </div>
-                  )}
-                </div>
+                    <div className="space-y-1">
+                      <Label>Short description</Label>
+                      <Textarea
+                        placeholder="Short description (max 350 characters)"
+                        value={eShort}
+                        disabled={false}
+                        readOnly={false}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEShort(val.slice(0, 350));
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground text-right">{eShort.length}/350</p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="content" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                    <div className="space-y-1">
+                      <Label>Long description</Label>
+                      <RichMarkdownEditor value={eLong} onChange={setELong} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Event instructions (shown to buyers after purchase)</Label>
+                      <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="settings" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                    <div className="grid xl:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label>Start date & time</Label>
+                        <Input type="datetime-local" value={eStarts} onChange={(e) => setEStarts(e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>End date & time</Label>
+                        <Input type="datetime-local" value={eEnds} onChange={(e) => setEEnds(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="grid xl:grid-cols-3 gap-4">
+                      <div className="space-y-1 xl:col-span-2">
+                        <Label>Venue</Label>
+                        <Select value={eVenueId} onValueChange={setEVenueId as any}>
+                          <SelectTrigger><SelectValue placeholder="Select venue" /></SelectTrigger>
+                          <SelectContent>
+                            {venues.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Status</Label>
+                        <Select value={eStatus} onValueChange={setEStatus}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="published">Published</SelectItem>
+                            <SelectItem value="sold_out">Sold Out</SelectItem>
+                            <SelectItem value="paused">Paused</SelectItem>
+                            <SelectItem value="archived">Archived</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid xl:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label>Timezone</Label>
+                        <Select value={eTimezone} onValueChange={setETimezone}>
+                          <SelectTrigger><SelectValue placeholder="Timezone" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                            <SelectItem value="America/New_York">America/New_York</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30 mt-6">
+                        <div>
+                          <Label>Visible on frontend</Label>
+                        </div>
+                        <Switch checked={!eHidden} onCheckedChange={(checked) => setEHidden(!checked)} />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="media" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
+                    <div className="space-y-2">
+                      <Label>Event image</Label>
+                      <Input type="file" accept="image/*" onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setEImageFile(file);
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => setEImagePreview(reader.result as string);
+                          reader.readAsDataURL(file);
+                        } else {
+                          setEImagePreview(null);
+                        }
+                      }} />
+                      <Button type="button" variant="secondary" onClick={uploadEditImage}>Upload image</Button>
+                      {eImageUrl && <span className="text-xs text-muted-foreground truncate" title={eImageUrl}>Uploaded ✓</span>}
+                    </div>
+                    {(eImagePreview || eImageUrl) && (
+                      <div className="w-40 h-40 rounded-md overflow-hidden bg-muted border">
+                        <img src={eImagePreview || eImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </div>
               <DialogFooter>
                 <Button variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>

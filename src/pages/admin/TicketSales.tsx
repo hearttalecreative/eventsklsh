@@ -271,6 +271,16 @@ const TicketSales = () => {
   });
 
   const eventsToDisplay = showPastEvents ? pastEvents : currentEvents;
+  const viewTotals = eventsToDisplay.reduce(
+    (acc, event) => {
+      acc.capacity += event.event_capacity;
+      acc.sold += event.total_tickets_sold;
+      acc.revenue += event.total_revenue_cents;
+      return acc;
+    },
+    { capacity: 0, sold: 0, revenue: 0 }
+  );
+  const fillRate = viewTotals.capacity > 0 ? Math.round((viewTotals.sold / viewTotals.capacity) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -298,43 +308,68 @@ const TicketSales = () => {
   return (
     <AdminRoute>
       <AdminHeader />
-      <main className="container mx-auto py-8 space-y-8">
+      <main className="container mx-auto px-4 py-8 space-y-6 md:space-y-8 overflow-x-clip">
         <Helmet>
           <title>Ticket Sales Analytics | Admin Dashboard</title>
           <meta name="description" content="Monitor ticket sales performance by event and ticket type with detailed analytics" />
           <link rel="canonical" href={`${baseUrl}/admin/ticket-sales`} />
         </Helmet>
 
-        <header className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
-                <p className="text-muted-foreground">
-                  Monitor ticket sales performance by event and ticket type
-                </p>
-              </div>
-              <Button
-                variant={showPastEvents ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowPastEvents(!showPastEvents)}
-                className="ml-4"
-              >
-                {showPastEvents ? (
-                  <>
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Current Events ({currentEvents.length})
-                  </>
-                ) : (
-                  <>
-                    <History className="h-4 w-4 mr-2" />
-                    Past Events ({pastEvents.length})
-                  </>
-                )}
-              </Button>
+        <header className="space-y-3 rounded-2xl border border-primary/15 bg-gradient-to-br from-white via-[hsl(35_50%_97%)] to-[hsl(30_45%_94%)] p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Monitor ticket sales performance by event and ticket type
+              </p>
             </div>
+            <Button
+              variant={showPastEvents ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowPastEvents(!showPastEvents)}
+              className="w-full md:w-auto min-h-10"
+            >
+              {showPastEvents ? (
+                <>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Current Events ({currentEvents.length})
+                </>
+              ) : (
+                <>
+                  <History className="h-4 w-4 mr-2" />
+                  Past Events ({pastEvents.length})
+                </>
+              )}
+            </Button>
           </div>
         </header>
+
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="bg-white/80 border-primary/10">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Events in View</p>
+              <p className="text-xl md:text-2xl font-bold">{eventsToDisplay.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/80 border-primary/10">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Seats Sold</p>
+              <p className="text-xl md:text-2xl font-bold">{viewTotals.sold}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/80 border-primary/10">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Fill Rate</p>
+              <p className="text-xl md:text-2xl font-bold">{fillRate}%</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/80 border-primary/10 col-span-2 md:col-span-1">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground">Total Revenue</p>
+              <p className="text-xl md:text-2xl font-bold text-primary">{formatCurrency(viewTotals.revenue)}</p>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Events Grid */}
         <div className="grid gap-6">
@@ -359,14 +394,14 @@ const TicketSales = () => {
               const overallPercentage = (event.total_tickets_sold / event.event_capacity) * 100;
               
               return (
-                <Card key={event.event_id} className="overflow-hidden">
+                <Card key={event.event_id} className="overflow-hidden border-primary/10 bg-white/85">
                   <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-xl mb-2 truncate">
+                        <CardTitle className="text-lg md:text-xl mb-2 break-words">
                           {event.event_title}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="text-xs md:text-sm text-muted-foreground mb-2">
                           {new Date(event.event_starts_at).toLocaleDateString('en-US', { 
                             weekday: 'short',
                             month: 'short', 
@@ -376,19 +411,19 @@ const TicketSales = () => {
                             minute: '2-digit'
                           })}
                         </p>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
+                        <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1 rounded-full border border-border/70 bg-white/70 px-2.5 py-1">
                             <Users className="h-4 w-4" />
                             <span>
                               {event.total_tickets_sold} seat{event.total_tickets_sold !== 1 ? 's' : ''} / {event.event_capacity}
                             </span>
                           </div>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="bg-white/70">
                             {formatPercentage(event.total_tickets_sold, event.event_capacity)} filled
                           </Badge>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" asChild>
+                      <Button variant="outline" size="sm" asChild className="w-full md:w-auto min-h-10">
                         <Link to={`/admin/events/${event.event_id}/purchases`}>
                           <FileText className="h-4 w-4 mr-2" />
                           View Purchase Details
@@ -398,7 +433,7 @@ const TicketSales = () => {
                     
                     {/* Overall Progress */}
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs md:text-sm">
                         <span>Overall Progress</span>
                         <span className="font-medium">
                           {event.total_tickets_sold} / {event.event_capacity}
@@ -412,8 +447,8 @@ const TicketSales = () => {
                   </CardHeader>
 
                   <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                      <h4 className="font-medium flex items-center gap-2 text-sm md:text-base">
                         <Ticket className="h-4 w-4" />
                         Sales by Ticket Type
                       </h4>
@@ -432,15 +467,15 @@ const TicketSales = () => {
                           : 0;
                         
                         return (
-                          <div key={ticket.ticket_id} className="space-y-2">
-                            <div className="flex justify-between items-start gap-2">
+                          <div key={ticket.ticket_id} className="space-y-2 rounded-lg border border-border/60 bg-white/70 p-3">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">
+                                <p className="font-medium break-words text-sm md:text-base">
                                   {!isUnassignedComped 
                                     ? `${Math.floor(ticket.tickets_sold / ticket.participants_per_ticket)} x ${ticket.ticket_name}`
                                     : ticket.ticket_name}
                                 </p>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                                <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm text-muted-foreground mt-0.5">
                                   <span className="font-mono">
                                     {ticket.tickets_sold} seat{ticket.tickets_sold !== 1 ? 's' : ''}{!isUnassignedComped && ` / ${attendeeCapacity}`}
                                   </span>
@@ -452,8 +487,8 @@ const TicketSales = () => {
                                   )}
                                 </div>
                               </div>
-                              <div className="flex flex-col items-end gap-1">
-                                <Badge variant="default" className="font-semibold">
+                              <div className="flex flex-row sm:flex-col items-center sm:items-end gap-1.5">
+                                <Badge variant="default" className="font-semibold text-xs md:text-sm">
                                   {formatCurrency(ticket.total_revenue_cents)}
                                 </Badge>
                                 {!isUnassignedComped && (
@@ -477,7 +512,7 @@ const TicketSales = () => {
                       {/* Attendees with Internal Notes */}
                       {event.attendees_with_notes.length > 0 && (
                         <div className="mt-6 pt-6 border-t space-y-3">
-                          <h4 className="font-medium flex items-center gap-2">
+                          <h4 className="font-medium flex items-center gap-2 text-sm md:text-base">
                             <StickyNote className="h-4 w-4" />
                             Attendees with Internal Notes ({event.attendees_with_notes.length})
                           </h4>
@@ -486,8 +521,8 @@ const TicketSales = () => {
                               <div key={attendee.id} className="p-3 rounded-lg bg-muted/50 space-y-1">
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{attendee.name || 'No name'}</p>
-                                    <p className="text-sm text-muted-foreground truncate">{attendee.email}</p>
+                                    <p className="font-medium break-words text-sm">{attendee.name || 'No name'}</p>
+                                    <p className="text-xs text-muted-foreground break-all">{attendee.email}</p>
                                     {attendee.ticket_label && (
                                       <Badge variant="outline" className="mt-1 text-xs">
                                         {attendee.ticket_label}
@@ -496,7 +531,7 @@ const TicketSales = () => {
                                   </div>
                                 </div>
                                 {attendee.internal_notes && (
-                                  <p className="text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-2">
+                                  <p className="text-xs md:text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-2 break-words">
                                     {attendee.internal_notes}
                                   </p>
                                 )}

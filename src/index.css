@@ -40,7 +40,7 @@ All colors MUST be HSL.
     --input: 35 18% 88%;
     --ring: 30 60% 42%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     --sidebar-background: 35 40% 98%;
     --sidebar-foreground: 24 30% 15%;
@@ -172,4 +172,99 @@ All colors MUST be HSL.
   video {
     @apply max-w-full;
   }
+}
+
+/* ============================================================
+   HORIZON UI — Utility Layer
+   Glass morphism, elevation shadows, gradient accents
+   ============================================================ */
+
+@layer utilities {
+
+  /* Glass card — Horizon-style translucent surface */
+  .glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+
+  .dark .glass {
+    background: rgba(30, 20, 14, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Horizon-style floating shadow — soft, multi-layered */
+  .shadow-horizon {
+    box-shadow:
+      0 4px 6px -1px rgba(112, 80, 40, 0.06),
+      0 10px 25px -5px rgba(112, 80, 40, 0.10),
+      0 20px 60px -10px rgba(112, 80, 40, 0.08);
+  }
+
+  .shadow-horizon-lg {
+    box-shadow:
+      0 8px 12px -2px rgba(112, 80, 40, 0.08),
+      0 20px 40px -8px rgba(112, 80, 40, 0.14),
+      0 40px 80px -16px rgba(112, 80, 40, 0.10);
+  }
+
+  /* Gradient text — Horizon accent style */
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(30 70% 58%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Gradient button fill */
+  .btn-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(30 70% 52%));
+  }
+
+  .btn-gradient:hover {
+    background: linear-gradient(135deg, hsl(30 60% 38%), hsl(30 70% 48%));
+  }
+}
+
+/* Horizon-style page background — very subtle warm radial gradient */
+body {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 0% 0%, hsl(35 60% 96%) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, hsl(30 50% 95%) 0%, transparent 60%);
+  background-attachment: fixed;
+  overflow-x: clip;
+}
+
+html,
+#root {
+  overflow-x: clip;
+}
+
+/* Markdown editor mobile safety */
+.w-md-editor,
+.w-md-editor-content,
+.w-md-editor-text,
+.w-md-editor-input,
+.w-md-editor-text-pre,
+.w-md-editor-preview {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.w-md-editor-toolbar {
+  flex-wrap: wrap;
+}
+
+.w-md-editor-text-pre,
+.w-md-editor-text-input,
+.wmde-markdown {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.w-md-editor-text-pre > code,
+.wmde-markdown code {
+  white-space: pre-wrap;
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -19,6 +20,7 @@ interface Admin {
 
 const ManageAdmins = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPrimaryAdmin, setIsPrimaryAdmin] = useState(false);
@@ -197,23 +199,23 @@ const ManageAdmins = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdminHeader />
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+      <main className="container mx-auto px-4 py-6 md:py-8 space-y-6 overflow-x-clip">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Manage Administrators</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold">Manage Administrators</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               Create, update, and manage administrator accounts
             </p>
           </div>
           {isPrimaryAdmin && (
             <Dialog open={newAdminOpen} onOpenChange={setNewAdminOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto min-h-10">
                   <UserPlus className="mr-2 h-4 w-4" />
                   New Admin
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Create New Administrator</DialogTitle>
                   <DialogDescription>
@@ -242,11 +244,11 @@ const ManageAdmins = () => {
                     />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setNewAdminOpen(false)}>
+                <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                  <Button className="w-full sm:w-auto" variant="outline" onClick={() => setNewAdminOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateAdmin} disabled={creating}>
+                  <Button className="w-full sm:w-auto" onClick={handleCreateAdmin} disabled={creating}>
                     {creating ? "Creating..." : "Create Admin"}
                   </Button>
                 </DialogFooter>
@@ -262,9 +264,9 @@ const ManageAdmins = () => {
             {admins.map((admin) => (
               <Card key={admin.id}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-xl">{admin.email}</CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
+                      <CardTitle className="text-base sm:text-xl break-all">{admin.email}</CardTitle>
                       {admin.is_primary && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                           <Shield className="h-3 w-3" />
@@ -277,19 +279,19 @@ const ManageAdmins = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex w-full sm:w-auto gap-2 justify-end">
                       <Dialog open={updatePasswordOpen && selectedAdminId === admin.id} onOpenChange={(open) => {
                         setUpdatePasswordOpen(open);
                         if (open) setSelectedAdminId(admin.id);
                         else setSelectedAdminId(null);
                       }}>
                         <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Key className="mr-2 h-4 w-4" />
-                            Change Password
+                          <Button variant="outline" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : ""} aria-label="Change Password" title="Change Password">
+                            <Key className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                            {!isMobile && "Change Password"}
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-md">
                           <DialogHeader>
                             <DialogTitle>Update Password</DialogTitle>
                             <DialogDescription>
@@ -308,14 +310,14 @@ const ManageAdmins = () => {
                               />
                             </div>
                           </div>
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => {
+                          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                            <Button className="w-full sm:w-auto" variant="outline" onClick={() => {
                               setUpdatePasswordOpen(false);
                               setSelectedAdminId(null);
                             }}>
                               Cancel
                             </Button>
-                            <Button onClick={handleUpdatePassword} disabled={updating}>
+                            <Button className="w-full sm:w-auto" onClick={handleUpdatePassword} disabled={updating}>
                               {updating ? "Updating..." : "Update Password"}
                             </Button>
                           </DialogFooter>
@@ -325,9 +327,9 @@ const ManageAdmins = () => {
                       {isPrimaryAdmin && !admin.is_primary && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                            <Button variant="destructive" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : ""} aria-label="Delete" title="Delete">
+                              <Trash2 className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                              {!isMobile && "Delete"}
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -352,7 +354,7 @@ const ManageAdmins = () => {
                       )}
                     </div>
                   </div>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
                     Administrator since {new Date(admin.created_at).toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>

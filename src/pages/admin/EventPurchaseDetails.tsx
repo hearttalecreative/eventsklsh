@@ -532,7 +532,7 @@ const EventPurchaseDetails = () => {
   return (
     <AdminRoute>
       <AdminHeader />
-      <main className="container mx-auto py-8 space-y-6 px-4">
+      <main className="container mx-auto py-8 space-y-6 px-4 overflow-x-clip">
         <Helmet>
           <title>Purchase Details - {eventTitle} | Admin Dashboard</title>
           <meta name="description" content="View detailed purchase information for event attendees" />
@@ -548,16 +548,16 @@ const EventPurchaseDetails = () => {
           </Button>
         </div>
 
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-primary/15 bg-gradient-to-br from-white via-[hsl(35_50%_97%)] to-[hsl(30_45%_94%)] p-4 md:p-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Purchase Details</h1>
-            <p className="text-muted-foreground">{eventTitle}</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Purchase Details</h1>
+            <p className="text-sm md:text-base text-muted-foreground break-words">{eventTitle}</p>
           </div>
           
           <Button 
             onClick={handleBulkEmail}
             disabled={purchases.filter(p => p.attendee_email).length === 0}
-            className="self-start sm:self-auto"
+            className="self-start sm:self-auto w-full sm:w-auto min-h-10"
           >
             <Send className="h-4 w-4 mr-2" />
             Email All Attendees
@@ -565,92 +565,92 @@ const EventPurchaseDetails = () => {
         </header>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-          <Card>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4">
+          <Card className="bg-white/85 border-primary/10 col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-primary/10">
                   <ShoppingCart className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{purchases.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Attendees</p>
+                  <p className="text-xl md:text-2xl font-bold">{purchases.length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total Attendees</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/85 border-primary/10 col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-blue-500/10">
                   <ShoppingCart className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{purchases.filter(p => !p.is_comped).length}</p>
-                  <p className="text-sm text-muted-foreground">Paid Tickets</p>
+                  <p className="text-xl md:text-2xl font-bold">{purchases.filter(p => !p.is_comped).length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Paid Tickets</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/85 border-primary/10 col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-green-500/10">
                   <ShoppingCart className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{purchases.filter(p => p.is_comped).length}</p>
-                  <p className="text-sm text-muted-foreground">Comped Tickets</p>
+                  <p className="text-xl md:text-2xl font-bold">{purchases.filter(p => p.is_comped).length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Comped Tickets</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/85 border-primary/10 col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-emerald-500/10">
                   <DollarSign className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl md:text-2xl font-bold">
                     {formatCurrency(purchases.reduce((sum, p) => sum + p.ticket_amount_cents, 0))}
                   </p>
-                  <p className="text-sm text-muted-foreground">Tickets Revenue</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Tickets Revenue</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/85 border-primary/10 col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-purple-500/10">
                   <DollarSign className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl md:text-2xl font-bold">
                     {formatCurrency(purchases.reduce((sum, p) => sum + p.addons_amount_cents, 0))}
                   </p>
-                  <p className="text-sm text-muted-foreground">Add-ons Revenue</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Add-ons Revenue</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/85 border-primary/10 col-span-2 lg:col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-full bg-orange-500/10">
                   <DollarSign className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl md:text-2xl font-bold text-primary">
                     {formatCurrency(purchases.reduce((sum, p) => sum + p.total_amount_cents, 0))}
                   </p>
-                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total Revenue</p>
                 </div>
               </div>
             </CardContent>
@@ -660,7 +660,7 @@ const EventPurchaseDetails = () => {
         {/* Tickets and Add-ons Breakdown */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Tickets Breakdown */}
-          <Card>
+          <Card className="bg-white/85 border-primary/10">
             <CardHeader>
               <CardTitle className="text-lg">Tickets Breakdown</CardTitle>
             </CardHeader>
@@ -671,7 +671,7 @@ const EventPurchaseDetails = () => {
                 <div className="space-y-3">
                   {ticketBreakdown.map((ticket, idx) => (
                     <div key={idx} className="flex justify-between items-start gap-2">
-                      <span className="text-sm font-medium">{ticket.name}</span>
+                      <span className="text-sm font-medium break-words">{ticket.name}</span>
                       <div className="flex flex-col items-end gap-1">
                         <Badge variant="secondary">{ticket.ticketsSold} sold</Badge>
                         <span className="text-xs text-muted-foreground">({ticket.attendeeCount} attendee{ticket.attendeeCount !== 1 ? 's' : ''})</span>
@@ -695,7 +695,7 @@ const EventPurchaseDetails = () => {
           </Card>
 
           {/* Add-ons Breakdown */}
-          <Card>
+          <Card className="bg-white/85 border-primary/10">
             <CardHeader>
               <CardTitle className="text-lg">Add-ons Breakdown</CardTitle>
             </CardHeader>
@@ -706,7 +706,7 @@ const EventPurchaseDetails = () => {
                 <div className="space-y-3">
                   {addonBreakdown.map((addon, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{addon.name}</span>
+                      <span className="text-sm font-medium break-words">{addon.name}</span>
                       <Badge variant="secondary">{addon.count} sold</Badge>
                     </div>
                   ))}
@@ -723,7 +723,7 @@ const EventPurchaseDetails = () => {
         </div>
 
         {/* Search */}
-        <Card>
+        <Card className="bg-white/85 border-primary/10">
           <CardContent className="pt-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -738,7 +738,7 @@ const EventPurchaseDetails = () => {
         </Card>
 
         {/* Purchase Details Table/Cards */}
-        <Card>
+        <Card className="bg-white/85 border-primary/10">
           <CardHeader>
             <CardTitle>Purchase Details ({filteredPurchases.length})</CardTitle>
           </CardHeader>
@@ -750,14 +750,14 @@ const EventPurchaseDetails = () => {
             ) : isMobile ? (
               // Mobile Card Layout
               <div className="space-y-4">
-                  {filteredPurchases.map((purchase) => (
-                  <div key={purchase.attendee_id} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">{purchase.attendee_name || 'No name'}</h3>
+                {filteredPurchases.map((purchase) => (
+                  <div key={purchase.attendee_id} className="border rounded-xl p-4 space-y-3 bg-card/70">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-base leading-tight">{purchase.attendee_name || 'No name'}</h3>
                           {purchase.is_comped && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-[11px]">
                               Comped
                             </Badge>
                           )}
@@ -765,40 +765,34 @@ const EventPurchaseDetails = () => {
                         {purchase.attendee_email ? (
                           <button
                             onClick={() => handleEmailClick(purchase.attendee_email!, purchase.attendee_name)}
-                            className="text-sm text-primary hover:underline flex items-center gap-1"
+                            className="text-xs text-primary hover:underline flex items-center gap-1 break-all mt-1"
                           >
                             <Mail className="h-3 w-3" />
                             {purchase.attendee_email}
                           </button>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No email</p>
+                          <p className="text-xs text-muted-foreground mt-1">No email</p>
                         )}
+                        <p className="text-xs text-muted-foreground mt-0.5">{purchase.attendee_phone || 'No phone'}</p>
                       </div>
-                      <Badge variant="secondary" className="font-mono">
+                      <Badge variant="secondary" className="font-mono shrink-0 text-xs">
                         {purchase.is_comped ? 'Free' : formatCurrency(purchase.total_amount_cents)}
                       </Badge>
                     </div>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-medium">Phone:</span> {purchase.attendee_phone || '-'}
-                      </div>
-                      <div>
-                        <span className="font-medium">Ticket:</span> {purchase.ticket_name} (x{purchase.ticket_quantity})
+
+                    <div className="space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2">
+                      <div className="break-words">
+                        <span className="font-medium text-foreground/90">Ticket:</span> {purchase.ticket_name} (x{purchase.ticket_quantity})
                       </div>
                       {purchase.addons.length > 0 && (
-                        <div>
-                          <span className="font-medium">Add-ons:</span>
-                          <ul className="ml-4 mt-1">
-                            {purchase.addons.map((addon, idx) => (
-                              <li key={idx}>• {addon.name} (x{addon.quantity})</li>
-                            ))}
-                              </ul>
-                            </div>
-                          )}
-                          <div>
-                            <span className="font-medium">Purchase Date:</span> {purchase.is_comped ? '-' : formatDate(purchase.purchase_date)}
-                          </div>
+                        <div className="break-words">
+                          <span className="font-medium text-foreground/90">Add-ons:</span> {purchase.addons.map((addon) => `${addon.name} (x${addon.quantity})`).join(', ')}
                         </div>
+                      )}
+                      <div>
+                        <span className="font-medium text-foreground/90">Purchase Date:</span> {purchase.is_comped ? '-' : formatDate(purchase.purchase_date)}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -820,9 +814,9 @@ const EventPurchaseDetails = () => {
                   <tbody>
                     {filteredPurchases.map((purchase) => (
                       <tr key={purchase.attendee_id} className="border-b">
-                         <td className="py-3">
+                        <td className="py-3">
                           <div className="flex items-center gap-2">
-                            <span>{purchase.attendee_name || '-'}</span>
+                            <span className="font-semibold text-sm md:text-base">{purchase.attendee_name || '-'}</span>
                             {purchase.is_comped && (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
                                 Comped
@@ -830,7 +824,7 @@ const EventPurchaseDetails = () => {
                             )}
                           </div>
                         </td>
-                        <td className="py-3 text-sm">
+                        <td className="py-3 text-xs text-muted-foreground">
                           {purchase.attendee_email ? (
                             <button
                               onClick={() => handleEmailClick(purchase.attendee_email!, purchase.attendee_name)}
@@ -843,7 +837,7 @@ const EventPurchaseDetails = () => {
                             '-'
                           )}
                         </td>
-                        <td className="py-3 text-sm">{purchase.attendee_phone || '-'}</td>
+                        <td className="py-3 text-xs text-muted-foreground">{purchase.attendee_phone || '-'}</td>
                         <td className="py-3">
                           <Badge variant="outline">
                             {purchase.ticket_name} (x{purchase.ticket_quantity})

@@ -1,148 +1,133 @@
-import React, { useState } from "react";
-import MDEditor from '@uiw/react-md-editor';
-import '@uiw/react-md-editor/markdown-editor.css';
+import { useEffect, useMemo } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import showdown from "showdown";
 import { Button } from "@/components/ui/button";
-import { Bold, Italic, List, ListOrdered, Quote, Code, Link, Eye, EyeOff } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Quote, Code, Link as LinkIcon, Heading2, Undo2, Redo2 } from "lucide-react";
 
 interface Props {
   value: string;
   onChange: (v: string) => void;
 }
 
+function looksLikeHtml(input: string) {
+  return /<\/?[a-z][\s\S]*>/i.test(input);
+}
+
+function normalizeHtml(input: string) {
+  return (input || "")
+    .replace(/\s+/g, " ")
+    .replace(/<p><\/p>/g, "")
+    .trim();
+}
+
 export default function RichMarkdownEditor({ value, onChange }: Props) {
-  const [showPreview, setShowPreview] = useState(true);
+  const markdownConverter = useMemo(
+    () =>
+      new showdown.Converter({
+        tables: true,
+        simplifiedAutoLink: true,
+        strikethrough: true,
+        tasklists: true,
+      }),
+    [],
+  );
 
-  const insertMarkdown = (before: string, after: string = '') => {
-    const textarea = document.querySelector('.w-md-editor-text-input') as HTMLTextAreaElement;
-    if (!textarea) return;
+  const contentAsHtml = useMemo(() => {
+    if (!value) return "";
+    return looksLikeHtml(value) ? value : markdownConverter.makeHtml(value);
+  }, [value, markdownConverter]);
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = value.substring(start, end);
-    const newValue = value.substring(0, start) + before + selectedText + after + value.substring(end);
-    
-    onChange(newValue);
-    
-    // Restore focus and selection
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + before.length, start + before.length + selectedText.length);
-    }, 10);
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        protocols: ["http", "https", "mailto"],
+      }),
+      Placeholder.configure({
+        placeholder: "Write event content here...",
+      }),
+    ],
+    content: contentAsHtml,
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class:
+          "min-h-[220px] md:min-h-[300px] w-full rounded-b-md border-0 bg-background px-3 py-3 text-sm leading-relaxed focus-visible:outline-none [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_h2]:text-xl [&_h2]:font-semibold [&_blockquote]:border-l-4 [&_blockquote]:pl-3 [&_blockquote]:italic",
+      },
+    },
+    onUpdate({ editor: current }) {
+      onChange(current.getHTML());
+    },
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    if (!editor.isEditable) {
+      editor.setEditable(true);
+    }
+    const current = normalizeHtml(editor.getHTML());
+    const incoming = normalizeHtml(contentAsHtml);
+    if (current !== incoming) {
+      editor.commands.setContent(contentAsHtml || "", { emitUpdate: false });
+    }
+  }, [editor, contentAsHtml]);
+
+  const setLink = () => {
+    if (!editor) return;
+    const previous = editor.getAttributes("link").href || "";
+    const url = window.prompt("Enter URL", previous);
+    if (url === null) return;
+    if (url === "") {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
   return (
-    <div className="border rounded-md bg-background overflow-hidden">
-      {/* Custom toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b bg-muted/50">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertMarkdown('**', '**')}
-          title="Bold"
-        >
+    <div className="border rounded-md bg-background overflow-hidden max-w-full min-w-0">
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-muted/50">
+        <Button type="button" variant={editor?.isActive("bold") ? "secondary" : "ghost"} size="sm" onClick={() => editor?.chain().focus().toggleBold().run()} title="Bold">
           <Bold className="w-4 h-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertMarkdown('*', '*')}
-          title="Italic"
-        >
+        <Button type="button" variant={editor?.isActive("italic") ? "secondary" : "ghost"} size="sm" onClick={() => editor?.chain().focus().toggleItalic().run()} title="Italic">
           <Italic className="w-4 h-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertMarkdown('\n- ', '')}
-          title="List"
-        >
+        <Button type="button" variant={editor?.isActive("heading", { level: 2 }) ? "secondary" : "ghost"} size="sm" onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading">
+          <Heading2 className="w-4 h-4" />
+        </Button>
+        <Button type="button" variant={editor?.isActive("bulletList") ? "secondary" : "ghost"} size="sm" onClick={() => editor?.chain().focus().toggleBulletList().run()} title="Bullet list">
           <List className="w-4 h-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertMarkdown('\n1. ', '')}
-          title="Numbered List"
-        >
+        <Button type="button" variant={editor?.isActive("orderedList") ? "secondary" : "ghost"} size="sm" onClick={() => editor?.chain().focus().toggleOrderedList().run()} title="Numbered list">
           <ListOrdered className="w-4 h-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertMarkdown('\n> ', '')}
-          title="Quote"
-        >
+        <Button type="button" variant={editor?.isActive("blockquote") ? "secondary" : "ghost"} size="sm" onClick={() => editor?.chain().focus().toggleBlockquote().run()} title="Quote">
           <Quote className="w-4 h-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertMarkdown('`', '`')}
-          title="Code"
-        >
+        <Button type="button" variant={editor?.isActive("code") ? "secondary" : "ghost"} size="sm" onClick={() => editor?.chain().focus().toggleCode().run()} title="Inline code">
           <Code className="w-4 h-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => insertMarkdown('[', '](url)')}
-          title="Link"
-        >
-          <Link className="w-4 h-4" />
+        <Button type="button" variant={editor?.isActive("link") ? "secondary" : "ghost"} size="sm" onClick={setLink} title="Link">
+          <LinkIcon className="w-4 h-4" />
         </Button>
-        <div className="mx-2 h-4 w-px bg-border" />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowPreview(!showPreview)}
-          title={showPreview ? "Hide preview" : "Show preview"}
-        >
-          {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        <div className="mx-1 h-4 w-px bg-border" />
+        <Button type="button" variant="ghost" size="sm" onClick={() => editor?.chain().focus().undo().run()} title="Undo">
+          <Undo2 className="w-4 h-4" />
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => editor?.chain().focus().redo().run()} title="Redo">
+          <Redo2 className="w-4 h-4" />
         </Button>
       </div>
 
-      <MDEditor
-        value={value}
-        onChange={(val) => onChange(val || '')}
-        preview={showPreview ? "live" : "edit"}
-        hideToolbar
-        visibleDragbar={false}
-        textareaProps={{
-          placeholder: "Write here...\n\nUse **bold**, *italic*, lists:\n- Item 1\n- Item 2\n\nPress Enter twice for new paragraphs.",
-          style: { 
-            fontSize: '14px', 
-            fontFamily: 'inherit',
-            lineHeight: '1.6',
-            padding: '12px',
-            border: 'none',
-            outline: 'none',
-            resize: 'none'
-          }
-        }}
-        height={400}
-        previewOptions={{
-          components: {
-            p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
-            ul: ({ children }) => <ul className="mb-4 list-disc pl-6 space-y-1">{children}</ul>,
-            ol: ({ children }) => <ol className="mb-4 list-decimal pl-6 space-y-1">{children}</ol>,
-            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-            blockquote: ({ children }) => <blockquote className="mb-4 pl-4 border-l-4 border-muted italic text-muted-foreground">{children}</blockquote>,
-            code: ({ children }) => <code className="px-1 py-0.5 bg-muted rounded text-sm font-mono">{children}</code>,
-            pre: ({ children }) => <pre className="mb-4 p-3 bg-muted rounded overflow-x-auto">{children}</pre>,
-            h1: ({ children }) => <h1 className="mb-4 text-2xl font-bold">{children}</h1>,
-            h2: ({ children }) => <h2 className="mb-3 text-xl font-semibold">{children}</h2>,
-            h3: ({ children }) => <h3 className="mb-2 text-lg font-medium">{children}</h3>,
-          }
-        }}
-      />
+      <div className="cursor-text">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

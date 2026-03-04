@@ -34,20 +34,25 @@ import AdminTrainingPrograms from "./pages/admin/TrainingPrograms";
 const queryClient = new QueryClient();
 
 const HIDE_HEADER_PATHS = ['/trainings', '/training-success'];
-const HIDE_FOOTER_PATHS = ['/', '/trainings', '/training-success'];
+const HIDE_FOOTER_PATHS = ['/trainings', '/training-success', '/admin', '/admin/login', '/dashboard'];
 
 const shouldHide = (pathname: string, paths: string[]) =>
-  paths.some(p => pathname === p || (p === '/trainings' && pathname.startsWith('/trainings/')));
+  paths.some(p =>
+    pathname === p ||
+    (p === '/trainings' && pathname.startsWith('/trainings/')) ||
+    (p === '/admin' && pathname.startsWith('/admin')) ||
+    (p === '/dashboard' && pathname.startsWith('/dashboard'))
+  );
 
 const AppHeader = () => {
   const { pathname } = useLocation();
   if (shouldHide(pathname, HIDE_HEADER_PATHS)) return null;
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm transition-all duration-200">
+    <header className="sticky top-0 z-50 shadow-horizon bg-white/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/50 transition-all duration-200">
       <div className="container mx-auto h-16 md:h-20 flex items-center justify-center lg:justify-start px-4">
-        <Link to="/" className="flex items-center gap-3 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md p-1 transition-transform hover:scale-105" aria-label="Home">
-          <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Logo" className="h-8 md:h-10 w-auto dark:hidden" loading="lazy" />
-          <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Logo (dark)" className="h-8 md:h-10 w-auto hidden dark:block" loading="lazy" />
+        <Link to="/" className="flex items-center gap-3 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-1.5 transition-transform hover:scale-105" aria-label="Home">
+          <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg" alt="Logo" className="h-8 md:h-11 w-auto dark:hidden" loading="lazy" />
+          <img src="https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg" alt="Logo (dark)" className="h-8 md:h-11 w-auto hidden dark:block" loading="lazy" />
           <span className="sr-only">Home</span>
         </Link>
       </div>
@@ -59,15 +64,15 @@ const AppFooter = () => {
   const { pathname } = useLocation();
   if (shouldHide(pathname, HIDE_FOOTER_PATHS)) return null;
   return (
-    <footer className="w-full bg-secondary/30 border-t mt-auto">
-      <div className="container mx-auto max-w-5xl px-4 py-8 lg:py-12 text-center text-sm text-muted-foreground/80">
+    <footer className="w-full mt-auto border-t border-white/50 bg-white/50 backdrop-blur-sm">
+      <div className="container mx-auto max-w-5xl px-4 py-8 lg:py-12 text-center text-sm text-muted-foreground/70">
         <p>
           © Copyright {new Date().getFullYear()} Kyle Lam Sound Healing. All Rights Reserved. | Developed with ❤️ by{' '}
           <a
             href="https://hearttalecreative.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary hover:text-primary/80 font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-sm p-0.5 outline-none"
+            className="text-primary hover:text-primary/80 font-medium transition-colors rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Hearttale Creative
           </a>

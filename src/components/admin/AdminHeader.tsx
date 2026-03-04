@@ -59,8 +59,6 @@ const AdminHeader = () => {
     { path: "/admin/manage-admins", label: "Admins", icon: Shield },
   ];
 
-  const allNavItems = [...mainNavItems, ...peopleNavItems, ...systemNavItems];
-
   if (isMobile) {
     return (
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-sm">
@@ -73,20 +71,21 @@ const AdminHeader = () => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72">
-              <SheetHeader className="pb-4 border-b">
+            <SheetContent side="left" className="w-72 p-0 flex h-full flex-col">
+              <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
                 <SheetTitle className="text-left">Navigation</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col gap-1 mt-5 flex-1">
+              <nav className="flex flex-col gap-1 mt-5 px-4 pb-8 flex-1 min-h-0 overflow-y-auto">
                 {/* Main */}
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">Main</p>
                 {mainNavItems.map((item) => {
                   const Icon = item.icon;
+                  const active = isActive(item.path);
                   return (
                     <Button
                       key={item.path}
-                      variant={isActive(item.path) ? "secondary" : "ghost"}
-                      className={`justify-start h-10 font-normal ${isActive(item.path) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                      variant={active ? "secondary" : "ghost"}
+                      className={`justify-start h-10 font-normal border ${active ? 'text-primary border-primary/30 bg-primary/10 font-medium' : 'text-muted-foreground border-transparent'}`}
                       asChild
                       onClick={closeSheet}
                     >
@@ -102,11 +101,12 @@ const AdminHeader = () => {
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mt-4 mb-1">People</p>
                 {peopleNavItems.map((item) => {
                   const Icon = item.icon;
+                  const active = isActive(item.path);
                   return (
                     <Button
                       key={item.path}
-                      variant={isActive(item.path) ? "secondary" : "ghost"}
-                      className={`justify-start h-10 font-normal ${isActive(item.path) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                      variant={active ? "secondary" : "ghost"}
+                      className={`justify-start h-10 font-normal border ${active ? 'text-primary border-primary/30 bg-primary/10 font-medium' : 'text-muted-foreground border-transparent'}`}
                       asChild
                       onClick={closeSheet}
                     >
@@ -122,11 +122,12 @@ const AdminHeader = () => {
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mt-4 mb-1">System</p>
                 {systemNavItems.map((item) => {
                   const Icon = item.icon;
+                  const active = isActive(item.path);
                   return (
                     <Button
                       key={item.path}
-                      variant={isActive(item.path) ? "secondary" : "ghost"}
-                      className={`justify-start h-10 font-normal ${isActive(item.path) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                      variant={active ? "secondary" : "ghost"}
+                      className={`justify-start h-10 font-normal border ${active ? 'text-primary border-primary/30 bg-primary/10 font-medium' : 'text-muted-foreground border-transparent'}`}
                       asChild
                       onClick={closeSheet}
                     >
@@ -138,7 +139,7 @@ const AdminHeader = () => {
                   );
                 })}
 
-                <div className="border-t mt-auto pt-4 mt-6">
+                <div className="border-t pt-4 mt-6 mb-1">
                   <Button
                     variant="ghost"
                     className="justify-start w-full h-10 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -161,43 +162,9 @@ const AdminHeader = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-sm">
-      <div className="container mx-auto h-14 flex items-center justify-between px-4 gap-4">
-        <span className="text-sm font-semibold tracking-tight text-foreground/80 shrink-0">Admin</span>
-
-        <nav className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
-          {allNavItems.map((item, index) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-            // Add visual separator before people and system groups
-            const addSeparator =
-              index === mainNavItems.length ||
-              index === mainNavItems.length + peopleNavItems.length;
-
-            return (
-              <div key={item.path} className="flex items-center">
-                {addSeparator && (
-                  <div className="w-px h-4 bg-border mx-1 shrink-0" />
-                )}
-                <Button
-                  variant={active ? "secondary" : "ghost"}
-                  size="sm"
-                  className={`h-8 px-3 text-xs font-medium transition-all ${active
-                      ? 'text-foreground bg-secondary'
-                      : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  asChild
-                  title={item.label}
-                >
-                  <Link to={item.path}>
-                    <Icon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                </Button>
-              </div>
-            );
-          })}
-
-          <div className="w-px h-4 bg-border mx-1 shrink-0" />
+      <div className="container mx-auto px-4 py-2.5 space-y-2">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm font-semibold tracking-tight text-foreground/80 shrink-0">Admin</span>
           <Button
             variant="ghost"
             size="sm"
@@ -208,6 +175,74 @@ const AdminHeader = () => {
             <LogOut className="w-3.5 h-3.5 mr-1.5" />
             <span>Sign Out</span>
           </Button>
+        </div>
+
+        <nav className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
+          <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-muted/20 p-1 shrink-0">
+            {mainNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <Button
+                  key={item.path}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 px-3 text-xs font-medium transition-all ${active ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'text-muted-foreground hover:text-foreground'}`}
+                  asChild
+                  title={item.label}
+                >
+                  <Link to={item.path}>
+                    <Icon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-muted/20 p-1 shrink-0">
+            {peopleNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <Button
+                  key={item.path}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 px-3 text-xs font-medium transition-all ${active ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'text-muted-foreground hover:text-foreground'}`}
+                  asChild
+                  title={item.label}
+                >
+                  <Link to={item.path}>
+                    <Icon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-muted/20 p-1 shrink-0">
+            {systemNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <Button
+                  key={item.path}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 px-3 text-xs font-medium transition-all ${active ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'text-muted-foreground hover:text-foreground'}`}
+                  asChild
+                  title={item.label}
+                >
+                  <Link to={item.path}>
+                    <Icon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              );
+            })}
+          </div>
         </nav>
       </div>
     </header>

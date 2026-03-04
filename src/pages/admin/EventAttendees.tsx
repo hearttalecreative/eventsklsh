@@ -410,64 +410,77 @@ const EventAttendeesPage = () => {
                     {isMobile ? (
                       // Mobile view - card layout
                       filteredAttendees.map((attendee) => (
-                        <div key={attendee.id} className="border rounded-lg p-4 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-medium">{attendee.name || "No name"}</h3>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`checkin-mobile-${attendee.id}`}
-                                  checked={!!attendee.checked_in_at}
-                                  onCheckedChange={(checked) => handleManualCheckIn(attendee.id, !!checked)}
-                                  disabled={processingCheckIn[attendee.id]}
-                                />
-                                <label 
-                                  htmlFor={`checkin-mobile-${attendee.id}`}
-                                  className="text-sm font-medium cursor-pointer"
-                                >
-                                  Check-in
-                                </label>
-                              </div>
-                              <Badge variant={attendee.checked_in_at ? "default" : "secondary"} className="flex items-center gap-1">
-                                {attendee.checked_in_at ? (
-                                  <>
-                                    <CheckCircle className="h-3 w-3" />
-                                    Checked In
-                                  </>
-                                ) : (
-                                  <>
-                                    <XCircle className="h-3 w-3" />
-                                    Pending
-                                  </>
-                                )}
-                              </Badge>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteClick(attendee)}
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                        <div key={attendee.id} className="border rounded-xl p-4 space-y-3 bg-card/70">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="text-base font-semibold leading-tight truncate">{attendee.name || "No name"}</h3>
+                              <p className="text-xs text-muted-foreground mt-1 break-all">{attendee.email || "No email"}</p>
+                              <p className="text-xs text-muted-foreground break-all">{attendee.phone || "No phone"}</p>
                             </div>
+                            <Badge
+                              variant="secondary"
+                              className={`flex items-center gap-1 shrink-0 text-[11px] ${attendee.checked_in_at ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}
+                            >
+                              {attendee.checked_in_at ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3" />
+                                  Checked In
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-3 w-3" />
+                                  Pending
+                                </>
+                              )}
+                            </Badge>
                           </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            <div className="font-mono">{attendee.confirmation_code}</div>
-                            {attendee.ticket && (
-                              <div className="font-medium text-foreground">
-                                🎫 {attendee.ticket.name}
-                              </div>
-                            )}
+
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <div>
+                              <span className="font-medium text-foreground/90">Code:</span>{" "}
+                              <span className="font-mono">{attendee.confirmation_code}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-foreground/90">Ticket:</span>{" "}
+                              <span>{attendee.ticket?.name || "-"}</span>
+                            </div>
                             {attendee.addons && attendee.addons.length > 0 && (
-                              <div className="text-foreground">
-                                ➕ {attendee.addons.map(a => `${a.name} (x${a.quantity})`).join(", ")}
+                              <div className="break-words">
+                                <span className="font-medium text-foreground/90">Add-ons:</span>{" "}
+                                {attendee.addons.map(a => `${a.name} (x${a.quantity})`).join(", ")}
                               </div>
                             )}
                             {attendee.checked_in_at && (
-                              <div className="text-xs">
-                                Checked in: {new Date(attendee.checked_in_at).toLocaleString()}
+                              <div>
+                                <span className="font-medium text-foreground/90">Checked in:</span>{" "}
+                                {new Date(attendee.checked_in_at).toLocaleString()}
                               </div>
                             )}
+                          </div>
+
+                          <div className="flex items-center justify-between gap-3 pt-1 border-t border-border/60">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`checkin-mobile-${attendee.id}`}
+                                checked={!!attendee.checked_in_at}
+                                onCheckedChange={(checked) => handleManualCheckIn(attendee.id, !!checked)}
+                                disabled={processingCheckIn[attendee.id]}
+                              />
+                              <label
+                                htmlFor={`checkin-mobile-${attendee.id}`}
+                                className="text-sm font-medium cursor-pointer"
+                              >
+                                {processingCheckIn[attendee.id] ? 'Processing...' : 'Check-in'}
+                              </label>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteClick(attendee)}
+                              className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       ))
@@ -509,7 +522,10 @@ const EventAttendeesPage = () => {
                                   </div>
                                 </td>
                                 <td className="py-3">
-                                  <Badge variant={attendee.checked_in_at ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                                  <Badge
+                                    variant="secondary"
+                                    className={`flex items-center gap-1 w-fit ${attendee.checked_in_at ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}
+                                  >
                                     {attendee.checked_in_at ? (
                                       <>
                                         <CheckCircle className="h-3 w-3" />
@@ -523,9 +539,11 @@ const EventAttendeesPage = () => {
                                     )}
                                   </Badge>
                                 </td>
-                                <td className="py-3">{attendee.name || "-"}</td>
-                                <td className="py-3 text-sm">{attendee.email || "-"}</td>
-                                <td className="py-3 text-sm">{attendee.phone || "-"}</td>
+                                <td className="py-3">
+                                  <span className="font-semibold text-sm md:text-base">{attendee.name || "-"}</span>
+                                </td>
+                                <td className="py-3 text-xs text-muted-foreground">{attendee.email || "-"}</td>
+                                <td className="py-3 text-xs text-muted-foreground">{attendee.phone || "-"}</td>
                                 <td className="py-3">
                                   {attendee.ticket ? (
                                     <Badge variant="outline" className="text-sm">
