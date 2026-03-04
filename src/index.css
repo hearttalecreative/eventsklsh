@@ -97,10 +97,79 @@ All colors MUST be HSL.
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border box-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    line-height: 1.6;
+  }
+
+  /* Premium selection color */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+
+  /* Refined scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+
+  /* Standard focus states for accessibility — overriding global :focus-visible */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background;
+  }
+
+  /* Global subtle transitions respecting reduced motion */
+  @media (prefers-reduced-motion: no-preference) {
+
+    a,
+    button,
+    input,
+    textarea,
+    select,
+    [role="button"] {
+      transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      transition-duration: 180ms;
+    }
+  }
+
+  /* Better heading defaults */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply tracking-tight;
+    line-height: 1.25;
+  }
+
+  /* Smooth image rendering */
+  img,
+  video {
+    @apply max-w-full;
   }
 }

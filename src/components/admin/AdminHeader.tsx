@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  BarChart3, 
-  CalendarPlus, 
-  MapPin, 
-  Tag, 
-  LogOut, 
+import {
+  BarChart3,
+  CalendarPlus,
+  MapPin,
+  Tag,
+  LogOut,
   Menu,
   Users,
   UserPlus,
@@ -39,114 +39,116 @@ const AdminHeader = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navigationItems = [
-    {
-      path: "/dashboard",
-      label: "Dashboard",
-      icon: Home,
-      iconOnly: true, // Solo ícono en desktop
-    },
-    {
-      path: "/admin/events",
-      label: "Events",
-      icon: CalendarPlus,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/venues",
-      label: "Venues",
-      icon: MapPin,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/coupons",
-      label: "Coupons",
-      icon: Tag,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/attendees",
-      label: "Attendees",
-      icon: Users,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/attendees/add",
-      label: "Add Attendee",
-      icon: UserPlus,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/ticket-sales",
-      label: "Sales",
-      icon: BarChart3,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/system-logs",
-      label: "Logs",
-      icon: FileWarning,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/training-programs",
-      label: "Trainings",
-      icon: GraduationCap,
-      iconOnly: false,
-    },
-    {
-      path: "/admin/manage-admins",
-      label: "Admins",
-      icon: Shield,
-      iconOnly: true, // Solo ícono en desktop
-    },
+  // Navigation items grouped logically
+  const mainNavItems = [
+    { path: "/dashboard", label: "Dashboard", icon: Home },
+    { path: "/admin/events", label: "Events", icon: CalendarPlus },
+    { path: "/admin/venues", label: "Venues", icon: MapPin },
+    { path: "/admin/coupons", label: "Coupons", icon: Tag },
   ];
+
+  const peopleNavItems = [
+    { path: "/admin/attendees", label: "Attendees", icon: Users },
+    { path: "/admin/attendees/add", label: "Add Attendee", icon: UserPlus },
+  ];
+
+  const systemNavItems = [
+    { path: "/admin/ticket-sales", label: "Sales", icon: BarChart3 },
+    { path: "/admin/system-logs", label: "Logs", icon: FileWarning },
+    { path: "/admin/training-programs", label: "Trainings", icon: GraduationCap },
+    { path: "/admin/manage-admins", label: "Admins", icon: Shield },
+  ];
+
+  const allNavItems = [...mainNavItems, ...peopleNavItems, ...systemNavItems];
 
   if (isMobile) {
     return (
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-sm">
         <div className="container mx-auto h-14 flex items-center justify-between px-4">
-          <h1 className="text-lg font-semibold">Admin Panel</h1>
-          
+          <span className="text-base font-semibold tracking-tight">Admin Panel</span>
+
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="icon" aria-label="Open navigation menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Admin Menu</SheetTitle>
+            <SheetContent side="left" className="w-72">
+              <SheetHeader className="pb-4 border-b">
+                <SheetTitle className="text-left">Navigation</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col gap-2 mt-6">
-                {navigationItems.map((item) => {
+              <nav className="flex flex-col gap-1 mt-5 flex-1">
+                {/* Main */}
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">Main</p>
+                {mainNavItems.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Button
                       key={item.path}
-                      variant={isActive(item.path) ? "default" : "ghost"}
-                      className="justify-start"
+                      variant={isActive(item.path) ? "secondary" : "ghost"}
+                      className={`justify-start h-10 font-normal ${isActive(item.path) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
                       asChild
                       onClick={closeSheet}
                     >
                       <Link to={item.path}>
-                        <Icon className="w-4 h-4 mr-2" />
+                        <Icon className="w-4 h-4 mr-3 shrink-0" />
                         {item.label}
                       </Link>
                     </Button>
                   );
                 })}
-                <div className="border-t pt-2 mt-4">
+
+                {/* People */}
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mt-4 mb-1">People</p>
+                {peopleNavItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.path}
+                      variant={isActive(item.path) ? "secondary" : "ghost"}
+                      className={`justify-start h-10 font-normal ${isActive(item.path) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                      asChild
+                      onClick={closeSheet}
+                    >
+                      <Link to={item.path}>
+                        <Icon className="w-4 h-4 mr-3 shrink-0" />
+                        {item.label}
+                      </Link>
+                    </Button>
+                  );
+                })}
+
+                {/* System */}
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mt-4 mb-1">System</p>
+                {systemNavItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.path}
+                      variant={isActive(item.path) ? "secondary" : "ghost"}
+                      className={`justify-start h-10 font-normal ${isActive(item.path) ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                      asChild
+                      onClick={closeSheet}
+                    >
+                      <Link to={item.path}>
+                        <Icon className="w-4 h-4 mr-3 shrink-0" />
+                        {item.label}
+                      </Link>
+                    </Button>
+                  );
+                })}
+
+                <div className="border-t mt-auto pt-4 mt-6">
                   <Button
-                    variant="destructive"
-                    className="justify-start w-full"
+                    variant="ghost"
+                    className="justify-start w-full h-10 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => {
                       closeSheet();
                       logout();
                     }}
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
+                    <LogOut className="w-4 h-4 mr-3 shrink-0" />
+                    Sign Out
                   </Button>
                 </div>
               </nav>
@@ -158,42 +160,53 @@ const AdminHeader = () => {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto h-14 flex items-center justify-between px-4">
-        <div>
-          <h1 className="text-lg font-semibold">Admin</h1>
-        </div>
-        
-        <nav className="flex items-center gap-1.5">
-          {navigationItems.map((item) => {
+    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-sm">
+      <div className="container mx-auto h-14 flex items-center justify-between px-4 gap-4">
+        <span className="text-sm font-semibold tracking-tight text-foreground/80 shrink-0">Admin</span>
+
+        <nav className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
+          {allNavItems.map((item, index) => {
             const Icon = item.icon;
-            const showLabel = !item.iconOnly;
-            
+            const active = isActive(item.path);
+            // Add visual separator before people and system groups
+            const addSeparator =
+              index === mainNavItems.length ||
+              index === mainNavItems.length + peopleNavItems.length;
+
             return (
-              <Button
-                key={item.path}
-                variant={isActive(item.path) ? "default" : "ghost"}
-                size="sm"
-                className="h-8"
-                asChild
-                title={item.label}
-              >
-                <Link to={item.path}>
-                  <Icon className={showLabel ? "w-4 h-4 mr-1.5" : "w-4 h-4"} />
-                  {showLabel && <span className="text-xs">{item.label}</span>}
-                </Link>
-              </Button>
+              <div key={item.path} className="flex items-center">
+                {addSeparator && (
+                  <div className="w-px h-4 bg-border mx-1 shrink-0" />
+                )}
+                <Button
+                  variant={active ? "secondary" : "ghost"}
+                  size="sm"
+                  className={`h-8 px-3 text-xs font-medium transition-all ${active
+                      ? 'text-foreground bg-secondary'
+                      : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  asChild
+                  title={item.label}
+                >
+                  <Link to={item.path}>
+                    <Icon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </Button>
+              </div>
             );
           })}
-          
-          <Button 
-            variant="ghost" 
+
+          <div className="w-px h-4 bg-border mx-1 shrink-0" />
+          <Button
+            variant="ghost"
             size="sm"
-            className="h-8"
+            className="h-8 px-3 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             onClick={logout}
-            title="Logout"
+            title="Sign Out"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5 mr-1.5" />
+            <span>Sign Out</span>
           </Button>
         </nav>
       </div>

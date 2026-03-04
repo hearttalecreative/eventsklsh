@@ -68,7 +68,7 @@ const AdminEvents = () => {
   const [venueId, setVenueId] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState("draft");
   const [timezone, setTimezone] = useState('America/Los_Angeles');
-  
+
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -88,7 +88,7 @@ const AdminEvents = () => {
   const [filterMonth, setFilterMonth] = useState<string>('all'); // 'all' | '1'..'12'
   const [filterYear, setFilterYear] = useState<string>('all');   // 'all' | '2025' etc
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
@@ -96,7 +96,7 @@ const AdminEvents = () => {
 
   // Edit event dialog state
   const [editOpen, setEditOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<any|null>(null);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [eTitle, setETitle] = useState('');
   const [eShort, setEShort] = useState('');
   const [eLong, setELong] = useState('');
@@ -127,88 +127,88 @@ const AdminEvents = () => {
   const handleVenueCreated = (venue: Venue) => {
     setVenues((arr) => [...arr, venue]);
     setVenueId(venue.id);
-    logAdmin('venue_created','venue', venue.id, { name: venue.name });
+    logAdmin('venue_created', 'venue', venue.id, { name: venue.name });
   };
 
   // Load events with server-side pagination
   const loadEvents = async (page: number, filters: { tab: string; search: string; month: string; year: string }) => {
     setLoading(true);
-    
+
     // Build query
     let query = supabase
       .from("events")
       .select("*, venues:venue_id(name)", { count: 'exact' });
-    
+
     // Apply status filter
     if (filters.tab === 'archived') {
       query = query.eq('status', 'archived');
     } else {
       query = query.neq('status', 'archived');
     }
-    
+
     // Apply search filter
     if (filters.search.trim()) {
       const searchTerm = filters.search.toLowerCase();
       query = query.or(`title.ilike.%${searchTerm}%`);
     }
-    
+
     // Apply month/year filters
     if (filters.month !== 'all') {
       const monthNum = parseInt(filters.month);
       query = query.gte('starts_at', `${filters.year !== 'all' ? filters.year : new Date().getFullYear()}-${String(monthNum).padStart(2, '0')}-01`)
-                   .lt('starts_at', `${filters.year !== 'all' ? filters.year : new Date().getFullYear()}-${String(monthNum + 1).padStart(2, '0')}-01`);
+        .lt('starts_at', `${filters.year !== 'all' ? filters.year : new Date().getFullYear()}-${String(monthNum + 1).padStart(2, '0')}-01`);
     } else if (filters.year !== 'all') {
       query = query.gte('starts_at', `${filters.year}-01-01`)
-                   .lt('starts_at', `${parseInt(filters.year) + 1}-01-01`);
+        .lt('starts_at', `${parseInt(filters.year) + 1}-01-01`);
     }
-    
+
     // Order by starts_at ascending (upcoming events first)
     query = query.order('starts_at', { ascending: true });
-    
+
     // Apply pagination
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     query = query.range(from, to);
-    
+
     const { data: ev, error, count } = await query;
-    
+
     if (error) {
       console.error('Error loading events:', error);
       setLoading(false);
       return;
     }
-    
+
     setEvents(ev || []);
     setTotalCount(count || 0);
     setManageEventId(ev && ev.length ? ev[0].id : undefined);
-    
+
     // Load tickets sold stats for the current page
     if (ev && ev.length > 0) {
       const eventIds = ev.map(e => e.id);
-      
+
       const { data: attendeeCounts } = await supabase
         .from("attendees")
         .select("event_id")
         .in("event_id", eventIds);
-      
+
       const { data: ticketCapacities } = await supabase
         .from("tickets")
         .select("event_id, capacity_total")
         .in("event_id", eventIds);
-      
+
       const stats: Record<string, { ticketsSold: number; totalCapacity: number }> = {};
       eventIds.forEach(eventId => {
         const ticketsSold = attendeeCounts?.filter(a => a.event_id === eventId).length || 0;
         const totalCapacity = ticketCapacities
           ?.filter(t => t.event_id === eventId)
           .reduce((sum, t) => sum + (t.capacity_total || 0), 0) || 0;
-        
+
         stats[eventId] = { ticketsSold, totalCapacity };
       });
-      
+
       setEventStats(stats);
     }
-    
+
     setLoading(false);
   };
 
@@ -257,9 +257,9 @@ const AdminEvents = () => {
     try {
       const { data, error } = await supabase.functions.invoke('archive-past-events');
       if (error) throw error;
-      
+
       toast.success(data.message || 'Past events archived successfully');
-      
+
       // Reload events
       await loadEvents(currentPage, {
         tab: activeTab,
@@ -279,18 +279,18 @@ const AdminEvents = () => {
     setEShort(ev.short_description || '');
     setELong(ev.description || '');
     setEInstructions(ev.instructions || '');
-    
+
     // Convert UTC datetime to timezone-specific datetime for editing
     const formatDateForInput = (isoString: string, timezone: string) => {
       const utcDate = new Date(isoString);
-      
+
       // Convert UTC date to the event's timezone
       const zonedDate = toZonedTime(utcDate, timezone);
-      
+
       // Format for datetime-local input (YYYY-MM-DDTHH:mm)
       return format(zonedDate, "yyyy-MM-dd'T'HH:mm");
     };
-    
+
     const eventTimezone = (ev as any).timezone || 'America/Los_Angeles';
     setEStarts(ev.starts_at ? formatDateForInput(ev.starts_at, eventTimezone) : '');
     setEEnds(ev.ends_at ? formatDateForInput(ev.ends_at, eventTimezone) : '');
@@ -314,7 +314,7 @@ const AdminEvents = () => {
     setVenueEditOpen(true);
   };
 
-const saveVenueEdit = async () => {
+  const saveVenueEdit = async () => {
     if (!venueEditing) return;
     const { error } = await supabase
       .from('venues')
@@ -322,7 +322,7 @@ const saveVenueEdit = async () => {
       .eq('id', (venueEditing as any).id);
     if (error) return alert(error.message);
     setVenues(arr => arr.map(v => v.id === (venueEditing as any).id ? { ...v, name: vName, address: vAddress } : v));
-    await logAdmin('venue_updated','venue',(venueEditing as any).id,{ name: vName, address: vAddress });
+    await logAdmin('venue_updated', 'venue', (venueEditing as any).id, { name: vName, address: vAddress });
     setVenueEditOpen(false);
     setVenueEditing(null);
   };
@@ -356,11 +356,11 @@ const saveVenueEdit = async () => {
       };
       const { data, error } = await supabase.from("events").insert(payload as any).select("*").single();
       if (error) throw error;
-      await logAdmin('event_created','event', data!.id, { title });
+      await logAdmin('event_created', 'event', data!.id, { title });
 
       // Reset form
       setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setTimezone('America/Los_Angeles'); setImageUrl("");
-      
+
       // Reload events
       await loadEvents(currentPage, {
         tab: activeTab,
@@ -375,27 +375,27 @@ const saveVenueEdit = async () => {
   // Convert timezone-specific datetime to UTC for storage
   const convertToUTC = (localDateString: string, timezone: string): string => {
     if (!localDateString) return localDateString;
-    
+
     // Parse the datetime and treat it as being in the specified timezone
     const [datePart, timePart] = localDateString.split('T');
     const [year, month, day] = datePart.split('-').map(Number);
     const [hours, minutes] = timePart.split(':').map(Number);
-    
+
     // Create a date object representing the local time in the timezone
     const zonedDate = new Date(year, month - 1, day, hours, minutes);
-    
+
     // Convert from the specified timezone to UTC
     const utcDate = fromZonedTime(zonedDate, timezone);
-    
+
     return utcDate.toISOString();
   };
 
   const saveEdit = async () => {
     if (!editingEvent) return;
-    
+
     const startsAtUTC = eStarts ? convertToUTC(eStarts, eTimezone) : editingEvent.starts_at;
     const endsAtUTC = eEnds ? convertToUTC(eEnds, eTimezone) : editingEvent.ends_at;
-    
+
     const payload: any = {
       title: eTitle,
       short_description: eShort,
@@ -409,12 +409,12 @@ const saveVenueEdit = async () => {
       timezone: eTimezone,
       hidden: eHidden,
     };
-const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
+    const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
     if (error) return alert(error.message);
-    await logAdmin('event_updated','event', editingEvent.id, payload);
+    await logAdmin('event_updated', 'event', editingEvent.id, payload);
     setEditOpen(false);
     setEditingEvent(null);
-    
+
     // Reload events
     await loadEvents(currentPage, {
       tab: activeTab,
@@ -530,8 +530,8 @@ const { data, error } = await supabase.from('events').update(payload).eq('id', e
         month: filterMonth,
         year: filterYear
       });
-      await logAdmin('event_duplicated', 'event', newEvent.id, { 
-        original_event_id: duplicatingEvent.id, 
+      await logAdmin('event_duplicated', 'event', newEvent.id, {
+        original_event_id: duplicatingEvent.id,
         original_title: duplicatingEvent.title,
         new_date: newEventDate
       });
@@ -557,7 +557,7 @@ const { data, error } = await supabase.from('events').update(payload).eq('id', e
     setAddonsOpen(true);
   };
 
-const addAddon = async () => {
+  const addAddon = async () => {
     if (!addonsEventId) return;
     const { data, error } = await supabase
       .from('addons')
@@ -566,22 +566,22 @@ const addAddon = async () => {
       .single();
     if (error) return alert(error.message);
     setAddons((arr) => [data!, ...arr]);
-    await logAdmin('addon_created','addon', data!.id, { name: data!.name, event_id: addonsEventId });
+    await logAdmin('addon_created', 'addon', data!.id, { name: data!.name, event_id: addonsEventId });
   };
 
-const updateAddonField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number; max_quantity_per_person: number | null }>) => {
+  const updateAddonField = async (id: string, patch: Partial<{ name: string; unit_amount_cents: number; max_quantity_per_person: number | null }>) => {
     const { error } = await supabase.from('addons').update(patch).eq('id', id);
     if (error) return alert(error.message);
-    setAddons(arr => arr.map(a => a.id===id ? { ...a, ...patch } : a));
-    await logAdmin('addon_updated','addon', id, patch);
+    setAddons(arr => arr.map(a => a.id === id ? { ...a, ...patch } : a));
+    await logAdmin('addon_updated', 'addon', id, patch);
   };
 
-const deleteAddon = async (id: string) => {
+  const deleteAddon = async (id: string) => {
     if (!confirm('Delete this add-on?')) return;
     const { error } = await supabase.from('addons').delete().eq('id', id);
     if (error) return alert(error.message);
     setAddons(arr => arr.filter(a => a.id !== id));
-    await logAdmin('addon_deleted','addon', id);
+    await logAdmin('addon_deleted', 'addon', id);
   };
 
   const updateAddonDesc = (id: string, description: string) => {
@@ -613,18 +613,18 @@ const deleteAddon = async (id: string) => {
     setTicketsOpen(true);
   };
 
-const addTicketSimple = async () => {
+  const addTicketSimple = async () => {
     if (!ticketsEventId) return;
     const maxOrder = Math.max(0, ...tickets.map(t => t.display_order || 0));
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ 
-        event_id: ticketsEventId, 
-        name: 'General', 
-        unit_amount_cents: 2000, 
-        capacity_total: 100, 
-        currency: 'usd', 
-        participants_per_ticket: 1, 
+      .insert({
+        event_id: ticketsEventId,
+        name: 'General',
+        unit_amount_cents: 2000,
+        capacity_total: 100,
+        currency: 'usd',
+        participants_per_ticket: 1,
         zone: null,
         display_order: maxOrder + 1
       })
@@ -632,21 +632,21 @@ const addTicketSimple = async () => {
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-    await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
+    await logAdmin('ticket_created', 'ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
-const addTicketCombo = async () => {
+  const addTicketCombo = async () => {
     if (!ticketsEventId) return;
     const maxOrder = Math.max(0, ...tickets.map(t => t.display_order || 0));
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ 
-        event_id: ticketsEventId, 
-        name: 'Combo (2 participants)', 
-        unit_amount_cents: 3500, 
-        capacity_total: 100, 
-        currency: 'usd', 
-        participants_per_ticket: 2, 
+      .insert({
+        event_id: ticketsEventId,
+        name: 'Combo (2 participants)',
+        unit_amount_cents: 3500,
+        capacity_total: 100,
+        currency: 'usd',
+        participants_per_ticket: 2,
         zone: null,
         display_order: maxOrder + 1
       })
@@ -654,21 +654,21 @@ const addTicketCombo = async () => {
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-    await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
+    await logAdmin('ticket_created', 'ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
-const addTicketByZone = async () => {
+  const addTicketByZone = async () => {
     if (!ticketsEventId) return;
     const maxOrder = Math.max(0, ...tickets.map(t => t.display_order || 0));
     const { data, error } = await supabase
       .from('tickets')
-      .insert({ 
-        event_id: ticketsEventId, 
-        name: 'By zone', 
-        unit_amount_cents: 2500, 
-        capacity_total: 100, 
-        currency: 'usd', 
-        participants_per_ticket: 1, 
+      .insert({
+        event_id: ticketsEventId,
+        name: 'By zone',
+        unit_amount_cents: 2500,
+        capacity_total: 100,
+        currency: 'usd',
+        participants_per_ticket: 1,
         zone: 'General',
         display_order: maxOrder + 1
       })
@@ -676,10 +676,10 @@ const addTicketByZone = async () => {
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-    await logAdmin('ticket_created','ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
+    await logAdmin('ticket_created', 'ticket', data!.id, { event_id: ticketsEventId, name: data!.name });
   };
 
-const updateTicketField = async (
+  const updateTicketField = async (
     id: string,
     patch: Partial<{
       name: string;
@@ -698,35 +698,35 @@ const updateTicketField = async (
   ) => {
     const { error } = await supabase.from('tickets').update(patch).eq('id', id);
     if (error) return alert(error.message);
-    setTickets(arr => arr.map(t => t.id===id ? { ...t, ...patch } : t).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-    await logAdmin('ticket_updated','ticket', id, patch);
+    setTickets(arr => arr.map(t => t.id === id ? { ...t, ...patch } : t).sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
+    await logAdmin('ticket_updated', 'ticket', id, patch);
   };
 
   const moveTicketUp = async (ticketId: string) => {
     const currentIndex = tickets.findIndex(t => t.id === ticketId);
     if (currentIndex <= 0) return; // Already at top
-    
+
     // Normalize display_order values to ensure sequential ordering
     const normalizedTickets = tickets.map((t, idx) => ({
       ...t,
       display_order: idx
     }));
-    
+
     // Swap with previous ticket
     const temp = normalizedTickets[currentIndex - 1].display_order;
     normalizedTickets[currentIndex - 1].display_order = normalizedTickets[currentIndex].display_order;
     normalizedTickets[currentIndex].display_order = temp;
-    
+
     // Update database for all tickets to ensure consistency
     await Promise.all(
-      normalizedTickets.map(t => 
+      normalizedTickets.map(t =>
         supabase.from('tickets').update({ display_order: t.display_order }).eq('id', t.id)
       )
     );
-    
+
     // Update local state
     setTickets(normalizedTickets.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-    
+
     await logAdmin('ticket_reordered', 'ticket', ticketId, { moved: 'up' });
     toast.success('Ticket moved up');
   };
@@ -734,40 +734,40 @@ const updateTicketField = async (
   const moveTicketDown = async (ticketId: string) => {
     const currentIndex = tickets.findIndex(t => t.id === ticketId);
     if (currentIndex === -1 || currentIndex >= tickets.length - 1) return; // Already at bottom
-    
+
     // Normalize display_order values to ensure sequential ordering
     const normalizedTickets = tickets.map((t, idx) => ({
       ...t,
       display_order: idx
     }));
-    
+
     // Swap with next ticket
     const temp = normalizedTickets[currentIndex + 1].display_order;
     normalizedTickets[currentIndex + 1].display_order = normalizedTickets[currentIndex].display_order;
     normalizedTickets[currentIndex].display_order = temp;
-    
+
     // Update database for all tickets to ensure consistency
     await Promise.all(
-      normalizedTickets.map(t => 
+      normalizedTickets.map(t =>
         supabase.from('tickets').update({ display_order: t.display_order }).eq('id', t.id)
       )
     );
-    
+
     // Update local state
     setTickets(normalizedTickets.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
-    
+
     await logAdmin('ticket_reordered', 'ticket', ticketId, { moved: 'down' });
     toast.success('Ticket moved down');
   };
 
-const deleteTicket = async (id: string) => {
+  const deleteTicket = async (id: string) => {
     // Check if ticket has any orders
     const { data: orders } = await supabase
       .from('order_items')
       .select('id')
       .eq('ticket_id', id)
       .limit(1);
-    
+
     if (orders && orders.length > 0) {
       toast.error('Cannot delete this ticket because it has existing orders/purchases.');
       return;
@@ -779,23 +779,23 @@ const deleteTicket = async (id: string) => {
       .select('id')
       .eq('comped_ticket_id', id)
       .limit(1);
-    
+
     if (comped && comped.length > 0) {
       toast.error('Cannot delete this ticket because it has comped attendees.');
       return;
     }
 
     if (!confirm('Delete this ticket?')) return;
-    
+
     const { error } = await supabase.from('tickets').delete().eq('id', id);
     if (error) {
       toast.error(`Failed to delete ticket: ${error.message}`);
       return;
     }
-    
+
     setTickets(arr => arr.filter(t => t.id !== id));
     toast.success('Ticket deleted successfully');
-    await logAdmin('ticket_deleted','ticket', id);
+    await logAdmin('ticket_deleted', 'ticket', id);
   };
 
   // Attendees functionality moved to separate page
@@ -808,16 +808,16 @@ const deleteTicket = async (id: string) => {
 
   const deleteEvent = async () => {
     if (!eventToDelete) return;
-    
+
     try {
       await supabase.from('tickets').delete().eq('event_id', eventToDelete.id);
       await supabase.from('addons').delete().eq('event_id', eventToDelete.id);
       const { error } = await supabase.from('events').delete().eq('id', eventToDelete.id);
       if (error) throw error;
-      
-      await logAdmin('event_deleted','event', eventToDelete.id);
+
+      await logAdmin('event_deleted', 'event', eventToDelete.id);
       toast.success('Event deleted successfully');
-      
+
       // Reload events
       await loadEvents(currentPage, {
         tab: activeTab,
@@ -838,9 +838,9 @@ const deleteTicket = async (id: string) => {
     if (selectedIds.length === 0) return;
     const { error } = await supabase.from('events').update({ status: next }).in('id', selectedIds as any);
     if (error) return alert(error.message);
-    await logAdmin('events_bulk_status','event', null as any, { next, count: selectedIds.length });
+    await logAdmin('events_bulk_status', 'event', null as any, { next, count: selectedIds.length });
     setSelectedIds([]);
-    
+
     // Reload events
     await loadEvents(currentPage, {
       tab: activeTab,
@@ -857,9 +857,9 @@ const deleteTicket = async (id: string) => {
     await supabase.from('addons').delete().in('event_id', selectedIds as any);
     const { error } = await supabase.from('events').delete().in('id', selectedIds as any);
     if (error) return alert(error.message);
-    await logAdmin('events_bulk_deleted','event', null as any, { count: selectedIds.length });
+    await logAdmin('events_bulk_deleted', 'event', null as any, { count: selectedIds.length });
     setSelectedIds([]);
-    
+
     // Reload events
     await loadEvents(currentPage, {
       tab: activeTab,
@@ -920,12 +920,12 @@ const deleteTicket = async (id: string) => {
           <Card>
             <CardHeader><CardTitle>Create New Event</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <Input placeholder="Title" value={title} onChange={(e)=>setTitle(e.target.value)} />
+              <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
               <div className="space-y-1">
                 <Textarea
                   placeholder="Short description (max 350 characters)"
                   value={shortDesc}
-                  onChange={(e)=>{
+                  onChange={(e) => {
                     const val = e.target.value;
                     setShortDesc(val.slice(0, 350));
                   }}
@@ -943,8 +943,8 @@ const deleteTicket = async (id: string) => {
                 <RichMarkdownEditor value={instructions} onChange={setInstructions} />
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
-                <Input type="datetime-local" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
-                <Input type="datetime-local" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
+                <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+                <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
               </div>
 
               <div className="grid sm:grid-cols-2 gap-3">
@@ -977,7 +977,7 @@ const deleteTicket = async (id: string) => {
               </div>
               <div className="space-y-3">
                 <div className="grid sm:grid-cols-3 gap-3 items-center">
-                  <Input type="file" accept="image/*" onChange={(e)=>{
+                  <Input type="file" accept="image/*" onChange={(e) => {
                     const file = e.target.files?.[0] || null;
                     setImageFile(file);
                     if (file) {
@@ -1006,15 +1006,15 @@ const deleteTicket = async (id: string) => {
             <CardContent className="space-y-4">
               <div className="space-y-1">
                 <Label htmlFor="manage-ev">Select event</Label>
-                <Select value={manageEventId} onValueChange={(v)=>setManageEventId(v)}>
+                <Select value={manageEventId} onValueChange={(v) => setManageEventId(v)}>
                   <SelectTrigger id="manage-ev"><SelectValue placeholder="Choose an event" /></SelectTrigger>
                   <SelectContent>
                     {events.map(e => (
                       <SelectItem key={e.id} value={e.id}>
-                        {e.title} - {new Date(e.starts_at).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
+                        {e.title} - {new Date(e.starts_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
                         })}
                       </SelectItem>
                     ))}
@@ -1022,10 +1022,10 @@ const deleteTicket = async (id: string) => {
                 </Select>
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={()=> manageEventId && openTickets(manageEventId!)} disabled={!manageEventId}>Manage tickets</Button>
-                <Button variant="outline" onClick={()=> manageEventId && openAddons(manageEventId!)} disabled={!manageEventId}>Manage add-ons</Button>
+                <Button variant="secondary" onClick={() => manageEventId && openTickets(manageEventId!)} disabled={!manageEventId}>Manage tickets</Button>
+                <Button variant="outline" onClick={() => manageEventId && openAddons(manageEventId!)} disabled={!manageEventId}>Manage add-ons</Button>
                 {(ticketsOpen || addonsOpen) && (
-                  <Button variant="ghost" onClick={()=>{setTicketsOpen(false); setAddonsOpen(false);}}>Close</Button>
+                  <Button variant="ghost" onClick={() => { setTicketsOpen(false); setAddonsOpen(false); }}>Close</Button>
                 )}
               </div>
 
@@ -1064,25 +1064,25 @@ const deleteTicket = async (id: string) => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => moveTicketUp(t.id)}
                               disabled={isFirst}
                               title="Move up"
                             >
                               <ChevronUp className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => moveTicketDown(t.id)}
                               disabled={isLast}
                               title="Move down"
                             >
                               <ChevronDown className="w-4 h-4" />
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={()=>deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
+                            <Button variant="destructive" size="sm" onClick={() => deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -1090,7 +1090,7 @@ const deleteTicket = async (id: string) => {
                         <div className="grid gap-3 sm:grid-cols-12 items-end">
                           <div className="sm:col-span-4 space-y-1">
                             <Label>Name</Label>
-                            <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
+                            <Input className="w-full" defaultValue={t.name} onBlur={(e) => updateTicketField(t.id, { name: e.currentTarget.value })} />
                           </div>
                           <div className="sm:col-span-2 space-y-1">
                             <Label>Price</Label>
@@ -1118,13 +1118,13 @@ const deleteTicket = async (id: string) => {
                             <Label>Capacity</Label>
                             <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
                               className="w-full text-right"
-                              onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
+                              onBlur={(e) => updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                             />
                           </div>
                           <div className="sm:col-span-2 space-y-1">
                             <Label>Zone</Label>
-                            <Input placeholder="e.g. General, VIP" defaultValue={t.zone || ''} 
-                              onBlur={(e)=>updateTicketField(t.id, { zone: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                            <Input placeholder="e.g. General, VIP" defaultValue={t.zone || ''}
+                              onBlur={(e) => updateTicketField(t.id, { zone: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
                             />
                           </div>
                           {(t.name?.toLowerCase().includes('combo') || (t.participants_per_ticket ?? 1) > 1) && (
@@ -1136,7 +1136,7 @@ const deleteTicket = async (id: string) => {
                                 min={1}
                                 defaultValue={t.participants_per_ticket || 1}
                                 className="w-full text-right"
-                                onBlur={(e)=>updateTicketField(t.id, { participants_per_ticket: Math.max(1, parseInt(e.currentTarget.value || '1', 10)) })}
+                                onBlur={(e) => updateTicketField(t.id, { participants_per_ticket: Math.max(1, parseInt(e.currentTarget.value || '1', 10)) })}
                               />
                             </div>
                           )}
@@ -1147,7 +1147,7 @@ const deleteTicket = async (id: string) => {
                             <Textarea
                               placeholder="Brief description (shown under this ticket)"
                               defaultValue={t.description || ''}
-                              onBlur={(e)=>updateTicketField(t.id, { description: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                              onBlur={(e) => updateTicketField(t.id, { description: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
                             />
                           </div>
                           <div className="space-y-1">
@@ -1158,7 +1158,7 @@ const deleteTicket = async (id: string) => {
                             <Textarea
                               placeholder="Private notes for administrators (not shown to the public)"
                               defaultValue={t.internal_notes || ''}
-                              onBlur={(e)=>updateTicketField(t.id, { internal_notes: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                              onBlur={(e) => updateTicketField(t.id, { internal_notes: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
                               className="bg-muted/50 border-muted-foreground/20"
                             />
                           </div>
@@ -1173,7 +1173,7 @@ const deleteTicket = async (id: string) => {
                               <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Active' : 'Inactive'}</span>
                               <Switch
                                 checked={earlyEnabled}
-                                onCheckedChange={(checked)=>{
+                                onCheckedChange={(checked) => {
                                   if (!checked) {
                                     updateTicketField(t.id, { early_bird_amount_cents: null, early_bird_start: null, early_bird_end: null });
                                   } else {
@@ -1188,20 +1188,20 @@ const deleteTicket = async (id: string) => {
                             <div className="grid sm:grid-cols-4 gap-3">
                               <div className="space-y-1">
                                 <Label>Early price</Label>
-                                <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents||0)/100).toFixed(2)}
-                                  onBlur={(e)=>updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                                <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents || 0) / 100).toFixed(2)}
+                                  onBlur={(e) => updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0') * 100) })}
                                 />
                               </div>
                               <div className="space-y-1 sm:col-span-2">
                                 <Label>Start</Label>
-                                <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0,16) : ''}
-                                  onBlur={(e)=>updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                                <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0, 16) : ''}
+                                  onBlur={(e) => updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
                                 />
                               </div>
                               <div className="space-y-1 sm:col-span-2">
                                 <Label>End</Label>
-                                <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0,16) : ''}
-                                  onBlur={(e)=>updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                                <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0, 16) : ''}
+                                  onBlur={(e) => updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
                                 />
                               </div>
                             </div>
@@ -1211,8 +1211,8 @@ const deleteTicket = async (id: string) => {
                     );
                   })}
                   <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="secondary" onClick={()=>setTicketsOpen(false)}>Close</Button>
-                    <Button onClick={()=>toast.success('Changes saved')}>Save changes</Button>
+                    <Button variant="secondary" onClick={() => setTicketsOpen(false)}>Close</Button>
+                    <Button onClick={() => toast.success('Changes saved')}>Save changes</Button>
                   </div>
                 </div>
               )}
@@ -1226,33 +1226,33 @@ const deleteTicket = async (id: string) => {
                   {addons.length === 0 && (
                     <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
                   )}
-                   {addons.map((a) => (
-                     <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
-                       <div className="grid sm:grid-cols-4 gap-2 items-center">
-                         <Input placeholder="Name" defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
-                         <Input type="number" step="0.01" min="0" placeholder="Price" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
-                           onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
-                         />
-                         <Input 
-                           type="number" 
-                           min="1" 
-                           placeholder="Max qty per person" 
-                           defaultValue={a.max_quantity_per_person || ''} 
-                           onBlur={(e)=>updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })} 
-                         />
-                          <div className="flex justify-end">
-                            <Button variant="destructive" size="icon" onClick={()=>deleteAddon(a.id)} title="Delete addon" aria-label="Delete addon">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                       </div>
-                       <Textarea
-                         placeholder="Brief description (max ~30 words)"
-                         value={a.description ?? ''}
-                         onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
-                       />
-                     </div>
-                   ))}
+                  {addons.map((a) => (
+                    <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
+                      <div className="grid sm:grid-cols-4 gap-2 items-center">
+                        <Input placeholder="Name" defaultValue={a.name} onBlur={(e) => updateAddonField(a.id, { name: e.currentTarget.value })} />
+                        <Input type="number" step="0.01" min="0" placeholder="Price" defaultValue={(a.unit_amount_cents / 100).toFixed(2)}
+                          onBlur={(e) => updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0') * 100) })}
+                        />
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Max qty per person"
+                          defaultValue={a.max_quantity_per_person || ''}
+                          onBlur={(e) => updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })}
+                        />
+                        <div className="flex justify-end">
+                          <Button variant="destructive" size="icon" onClick={() => deleteAddon(a.id)} title="Delete addon" aria-label="Delete addon">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        placeholder="Brief description (max ~30 words)"
+                        value={a.description ?? ''}
+                        onChange={(e) => updateAddonDesc(a.id, e.target.value)}
+                      />
+                    </div>
+                  ))}
                   {addons.length > 0 && (
                     <div className="flex justify-end">
                       <Button onClick={saveAddonDescriptions} disabled={savingAddons}>{savingAddons ? 'Saving…' : 'Save descriptions'}</Button>
@@ -1285,9 +1285,9 @@ const deleteTicket = async (id: string) => {
 
             <TabsContent value={activeTab} className="space-y-3 mt-4">
               <div className="flex flex-wrap items-center gap-3">
-                <Input 
-                  placeholder="Search events..." 
-                  value={searchQuery} 
+                <Input
+                  placeholder="Search events..."
+                  value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="max-w-xs"
                 />
@@ -1296,8 +1296,8 @@ const deleteTicket = async (id: string) => {
                   <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent className="z-50 bg-popover">
                     <SelectItem value="all">All</SelectItem>
-                    {['1','2','3','4','5','6','7','8','9','10','11','12'].map(m=> (
-                      <SelectItem key={m} value={m}>{new Date(2025, parseInt(m)-1, 1).toLocaleString(undefined,{month:'short'})}</SelectItem>
+                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map(m => (
+                      <SelectItem key={m} value={m}>{new Date(2025, parseInt(m) - 1, 1).toLocaleString(undefined, { month: 'short' })}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1306,7 +1306,7 @@ const deleteTicket = async (id: string) => {
                   <SelectTrigger className="w-28"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent className="z-50 bg-popover">
                     <SelectItem value="all">All</SelectItem>
-                    {Array.from(new Set(events.map(e=> new Date(e.starts_at).getFullYear()))).sort().map(y => (
+                    {Array.from(new Set(events.map(e => new Date(e.starts_at).getFullYear()))).sort().map(y => (
                       <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                     ))}
                   </SelectContent>
@@ -1316,266 +1316,306 @@ const deleteTicket = async (id: string) => {
               {selectedIds.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 p-3 border rounded-md bg-muted/30">
                   <span className="text-sm">Selected: {selectedIds.length}</span>
-                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('published')}>Publish</Button>
-                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('sold_out')}>Mark Sold Out</Button>
-                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('paused')}>Pause Sales</Button>
-                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('draft')}>Mark draft</Button>
-                  <Button size="sm" variant="outline" onClick={()=>bulkUpdateStatus('archived')}>Archive</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('published')}>Publish</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('sold_out')}>Mark Sold Out</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('paused')}>Pause Sales</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('draft')}>Mark draft</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('archived')}>Archive</Button>
                   <Button size="sm" variant="destructive" onClick={bulkDelete}>Delete</Button>
-                  <Button size="sm" variant="secondary" onClick={()=>setSelectedIds([])}>Clear</Button>
+                  <Button size="sm" variant="secondary" onClick={() => setSelectedIds([])}>Clear</Button>
                 </div>
               )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted-foreground border-b">
-                  <th className="py-3 pr-4 w-12">
-                    <Checkbox
-                      checked={events.length>0 && events.every(e => selectedIds.includes(e.id))}
-                      onCheckedChange={(v)=>{
-                        const checked = Boolean(v);
-                        setSelectedIds(prev => {
-                          if (checked) {
-                            return Array.from(new Set([...prev, ...events.map(e => e.id)]));
-                          } else {
-                            return prev.filter(id => !events.some(e => e.id === id));
-                          }
-                        });
-                      }}
-                      aria-label="Select all on page"
-                    />
-                  </th>
-                  <th className="py-3 pr-4 min-w-48">Title</th>
-                  <th className="py-3 pr-4 min-w-40">Start</th>
-                  <th className="py-3 pr-4 min-w-36">Venue</th>
-                  <th className="py-3 pr-4 min-w-24">Status</th>
-                  <th className="py-3 pr-4 min-w-20">Visible</th>
-                  <th className="py-3 pr-4 min-w-32">Tickets Sold</th>
-                  <th className="py-3 pr-4 min-w-72">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map(ev => {
-                  // Format date with timezone consideration
-                  const eventDate = new Date(ev.starts_at);
-                  const formattedDate = eventDate.toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                  });
-                  
-                  return (
-                    <tr key={ev.id} className="border-b">
-                      <td className="py-3 pr-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted-foreground border-b">
+                      <th className="py-3 pr-4 w-12">
                         <Checkbox
-                          checked={selectedIds.includes(ev.id)}
-                          onCheckedChange={(v)=>{
+                          checked={events.length > 0 && events.every(e => selectedIds.includes(e.id))}
+                          onCheckedChange={(v) => {
                             const checked = Boolean(v);
-                            setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
+                            setSelectedIds(prev => {
+                              if (checked) {
+                                return Array.from(new Set([...prev, ...events.map(e => e.id)]));
+                              } else {
+                                return prev.filter(id => !events.some(e => e.id === id));
+                              }
+                            });
                           }}
-                          aria-label={`Select ${ev.title}`}
+                          aria-label="Select all on page"
                         />
-                      </td>
-                      <td className="py-3 pr-4 font-medium max-w-48 truncate" title={ev.title}>{ev.title}</td>
-                      <td className="py-3 pr-4 text-nowrap">{formattedDate}</td>
-                      <td className="py-3 pr-4 max-w-36 truncate" title={ev.venues?.name || '-'}>{ev.venues?.name || '-'}</td>
-                      <td className="py-3 pr-4 capitalize">
-                        <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                          ev.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                          ev.status === 'sold_out' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                          ev.status === 'paused' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                          ev.status === 'draft' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                        }`}>
-                          {ev.status === 'sold_out' ? 'Sold Out' : ev.status === 'paused' ? 'Paused' : ev.status}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <Switch
-                          checked={!ev.hidden}
-                          onCheckedChange={async (checked) => {
-                            const { error } = await supabase.from('events').update({ hidden: !checked }).eq('id', ev.id);
-                            if (!error) {
-                              await logAdmin('event_visibility_changed', 'event', ev.id, { hidden: !checked });
-                              await loadEvents(currentPage, {
-                                tab: activeTab,
-                                search: searchQuery,
-                                month: filterMonth,
-                                year: filterYear
-                              });
-                            }
-                          }}
-                          aria-label={ev.hidden ? 'Show event' : 'Hide event'}
-                        />
-                      </td>
-                      <td className="py-3 pr-4 text-sm font-medium">
-                        {(() => {
-                          const stats = eventStats[ev.id];
-                          if (!stats) return '-';
-                          return `${stats.ticketsSold}/${stats.totalCapacity}`;
-                        })()}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <div className="flex gap-1">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="outline" title="Change status" aria-label="Change status" className="h-8 w-8">
-                                <Megaphone className="w-3 h-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="z-50 bg-popover">
-                              <DropdownMenuItem onClick={async ()=>{
-                                const next = 'published';
-                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                                if (!error) {
-                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
-                                  await loadEvents(currentPage, {
-                                    tab: activeTab,
-                                    search: searchQuery,
-                                    month: filterMonth,
-                                    year: filterYear
-                                  });
-                                }
-                              }}>Published</DropdownMenuItem>
-                              <DropdownMenuItem onClick={async ()=>{
-                                const next = 'sold_out';
-                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                                if (!error) {
-                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
-                                  await loadEvents(currentPage, {
-                                    tab: activeTab,
-                                    search: searchQuery,
-                                    month: filterMonth,
-                                    year: filterYear
-                                  });
-                                }
-                              }}>Sold Out</DropdownMenuItem>
-                              <DropdownMenuItem onClick={async ()=>{
-                                const next = 'paused';
-                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                                if (!error) {
-                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
-                                  await loadEvents(currentPage, {
-                                    tab: activeTab,
-                                    search: searchQuery,
-                                    month: filterMonth,
-                                    year: filterYear
-                                  });
-                                }
-                              }}>Paused</DropdownMenuItem>
-                              <DropdownMenuItem onClick={async ()=>{
-                                const next = 'draft';
-                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                                if (!error) {
-                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
-                                  await loadEvents(currentPage, {
-                                    tab: activeTab,
-                                    search: searchQuery,
-                                    month: filterMonth,
-                                    year: filterYear
-                                  });
-                                }
-                              }}>Draft</DropdownMenuItem>
-                              <DropdownMenuItem onClick={async ()=>{
-                                const next = 'archived';
-                                const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
-                                if (!error) {
-                                  await logAdmin('event_status_changed','event', ev.id, { from: ev.status, to: next });
-                                  await loadEvents(currentPage, {
-                                    tab: activeTab,
-                                    search: searchQuery,
-                                    month: filterMonth,
-                                    year: filterYear
-                                  });
-                                }
-                              }}>Archived</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={()=>openEdit(ev)} disabled={ev.status === 'archived'}>
-                            <Edit3 className="w-3 h-3" />
-                          </Button>
-                          <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-8 w-8" onClick={()=>openDuplicate(ev)}>
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                          <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-8 w-8" asChild>
-                            <Link to={`/admin/events/${ev.id}/attendees`}>
-                              <Users className="w-3 h-3" />
-                            </Link>
-                          </Button>
-                          <Button size="icon" variant="outline" title="View" aria-label="View" className="h-8 w-8" asChild>
-                            <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
-                              <Eye className="w-3 h-3" />
-                            </a>
-                          </Button>
-                          <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" className="h-8 w-8" onClick={()=>confirmDeleteEvent(ev)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </td>
+                      </th>
+                      <th className="py-3 pr-4 min-w-48">Title</th>
+                      <th className="py-3 pr-4 min-w-40">Start</th>
+                      <th className="py-3 pr-4 min-w-36">Venue</th>
+                      <th className="py-3 pr-4 min-w-24">Status</th>
+                      <th className="py-3 pr-4 min-w-20">Visible</th>
+                      <th className="py-3 pr-4 min-w-32">Tickets Sold</th>
+                      <th className="py-3 pr-4 min-w-72">Actions</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {events.map(ev => {
+                      // Format date with timezone consideration
+                      const eventDate = new Date(ev.starts_at);
+                      const formattedDate = eventDate.toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      });
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-6">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                    // Show first page, last page, current page, and pages around current
-                    const showPage = page === 1 || 
-                                    page === totalPages || 
-                                    (page >= currentPage - 1 && page <= currentPage + 1);
-                    
-                    if (!showPage) {
-                      // Show ellipsis only once between ranges
-                      if (page === currentPage - 2 || page === currentPage + 2) {
+                      // Map status to badge variant
+                      const statusVariant =
+                        ev.status === 'published' ? 'success' as const :
+                          ev.status === 'sold_out' ? 'destructive' as const :
+                            ev.status === 'paused' ? 'warning' as const :
+                              ev.status === 'draft' ? 'muted' as const :
+                                'outline' as const;
+                      const statusLabel = ev.status === 'sold_out' ? 'Sold Out' : ev.status === 'paused' ? 'Paused' : ev.status.charAt(0).toUpperCase() + ev.status.slice(1);
+
+                      return (
+                        <tr key={ev.id} className="border-b border-border/30 transition-colors hover:bg-muted/40 group">
+                          <td className="py-3 pl-4 pr-2 w-10">
+                            <Checkbox
+                              checked={selectedIds.includes(ev.id)}
+                              onCheckedChange={(v) => {
+                                const checked = Boolean(v);
+                                setSelectedIds(prev => checked ? Array.from(new Set([...prev, ev.id])) : prev.filter(id => id !== ev.id));
+                              }}
+                              aria-label={`Select ${ev.title}`}
+                            />
+                          </td>
+                          <td className="py-3 px-4 font-medium max-w-52 truncate text-foreground" title={ev.title}>
+                            {ev.title}
+                            {ev.hidden && <span className="ml-2 text-xs text-muted-foreground font-normal">(hidden)</span>}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap">{formattedDate}</td>
+                          <td className="py-3 px-4 text-sm text-muted-foreground max-w-36 truncate" title={ev.venues?.name || '-'}>{ev.venues?.name || '-'}</td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide
+                              ${ev.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                ev.status === 'sold_out' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                  ev.status === 'paused' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                                    ev.status === 'draft' ? 'bg-muted text-muted-foreground' :
+                                      'bg-muted text-muted-foreground'}`}>
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4">
+                            <Switch
+                              checked={!ev.hidden}
+                              onCheckedChange={async (checked) => {
+                                const { error } = await supabase.from('events').update({ hidden: !checked }).eq('id', ev.id);
+                                if (!error) {
+                                  await logAdmin('event_visibility_changed', 'event', ev.id, { hidden: !checked });
+                                  await loadEvents(currentPage, {
+                                    tab: activeTab,
+                                    search: searchQuery,
+                                    month: filterMonth,
+                                    year: filterYear
+                                  });
+                                }
+                              }}
+                              aria-label={ev.hidden ? 'Show event' : 'Hide event'}
+                            />
+                          </td>
+                          <td className="py-3 pr-4 text-sm font-medium">
+                            {(() => {
+                              const stats = eventStats[ev.id];
+                              if (!stats) return '-';
+                              return `${stats.ticketsSold}/${stats.totalCapacity}`;
+                            })()}
+                          </td>
+                          <td className="py-3 pr-4">
+                            <div className="flex gap-1">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="icon" variant="outline" title="Change status" aria-label="Change status" className="h-8 w-8">
+                                    <Megaphone className="w-3 h-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="z-50 bg-popover">
+                                  <DropdownMenuItem onClick={async () => {
+                                    const next = 'published';
+                                    const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                    if (!error) {
+                                      await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                      await loadEvents(currentPage, {
+                                        tab: activeTab,
+                                        search: searchQuery,
+                                        month: filterMonth,
+                                        year: filterYear
+                                      });
+                                    }
+                                  }}>Published</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={async () => {
+                                    const next = 'sold_out';
+                                    const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                    if (!error) {
+                                      await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                      await loadEvents(currentPage, {
+                                        tab: activeTab,
+                                        search: searchQuery,
+                                        month: filterMonth,
+                                        year: filterYear
+                                      });
+                                    }
+                                  }}>Sold Out</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={async () => {
+                                    const next = 'paused';
+                                    const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                    if (!error) {
+                                      await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                      await loadEvents(currentPage, {
+                                        tab: activeTab,
+                                        search: searchQuery,
+                                        month: filterMonth,
+                                        year: filterYear
+                                      });
+                                    }
+                                  }}>Paused</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={async () => {
+                                    const next = 'draft';
+                                    const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                    if (!error) {
+                                      await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                      await loadEvents(currentPage, {
+                                        tab: activeTab,
+                                        search: searchQuery,
+                                        month: filterMonth,
+                                        year: filterYear
+                                      });
+                                    }
+                                  }}>Draft</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={async () => {
+                                    const next = 'archived';
+                                    const { error } = await supabase.from('events').update({ status: next }).eq('id', ev.id);
+                                    if (!error) {
+                                      await logAdmin('event_status_changed', 'event', ev.id, { from: ev.status, to: next });
+                                      await loadEvents(currentPage, {
+                                        tab: activeTab,
+                                        search: searchQuery,
+                                        month: filterMonth,
+                                        year: filterYear
+                                      });
+                                    }
+                                  }}>Archived</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <Button size="icon" variant="outline" title="Edit" aria-label="Edit" className="h-8 w-8" onClick={() => openEdit(ev)} disabled={ev.status === 'archived'}>
+                                <Edit3 className="w-3 h-3" />
+                              </Button>
+                              <Button size="icon" variant="outline" title="Duplicate" aria-label="Duplicate" className="h-8 w-8" onClick={() => openDuplicate(ev)}>
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                              <Button size="icon" variant="outline" title="Attendees" aria-label="Attendees" className="h-8 w-8" asChild>
+                                <Link to={`/admin/events/${ev.id}/attendees`}>
+                                  <Users className="w-3 h-3" />
+                                </Link>
+                              </Button>
+                              <Button size="icon" variant="outline" title="View" aria-label="View" className="h-8 w-8" asChild>
+                                <a href={`/event/${ev.id}`} target="_blank" rel="noopener noreferrer">
+                                  <Eye className="w-3 h-3" />
+                                </a>
+                              </Button>
+                              <Button size="icon" variant="destructive" title="Delete" aria-label="Delete" className="h-8 w-8" onClick={() => confirmDeleteEvent(ev)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-8 pb-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show first page, last page, current page, and pages around current
+                        const showPage = page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1);
+
+                        if (!showPage) {
+                          // Show ellipsis only once between ranges
+                          if (page === currentPage - 2 || page === currentPage + 2) {
+                            return (
+                              <PaginationItem key={page}>
+                                <span className="px-4 text-muted-foreground">...</span>
+                              </PaginationItem>
+                            );
+                          }
+                          return null;
+                        }
+
                         return (
                           <PaginationItem key={page}>
-                            <span className="px-4">...</span>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
                           </PaginationItem>
                         );
-                      }
-                      return null;
-                    }
+                      })}
 
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          onClick={() => setCurrentPage(page)}
-                          isActive={currentPage === page}
-                          className="cursor-pointer"
-                        >
-                          {page}
-                        </PaginationLink>
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
                       </PaginationItem>
-                    );
-                  })}
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
 
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
+              {/* Empty State */}
+              {events.length === 0 && !loading && (
+                <div className="text-center py-16 px-4 bg-muted/20 border border-dashed rounded-lg mt-6 flex flex-col items-center justify-center">
+                  <div className="h-12 w-12 rounded-full bg-secondary/80 flex items-center justify-center mb-4 text-muted-foreground">
+                    <Megaphone className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-medium text-foreground">No events found</h3>
+                  <p className="max-w-sm mt-2 text-sm text-muted-foreground">
+                    {searchQuery || filterMonth !== 'all' || filterYear !== 'all'
+                      ? "Try adjusting your filters or search terms."
+                      : activeTab === 'active'
+                        ? "Get started by creating your first event."
+                        : "There are no archived events here."}
+                  </p>
+                  {activeTab === 'active' && !searchQuery && filterMonth === 'all' && filterYear === 'all' && (
+                    <Button
+                      className="mt-6"
+                      variant="outline"
+                      onClick={() => {
+                        // trigger a scroll to top or focus to the creation form
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                    >
+                      Create an Event
+                    </Button>
+                  )}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </section>
@@ -1589,39 +1629,39 @@ const deleteTicket = async (id: string) => {
               {addons.length === 0 && (
                 <p className="text-sm text-muted-foreground">No add-ons for this event yet.</p>
               )}
-               {addons.map((a) => (
-                 <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
-                   <div className="grid sm:grid-cols-4 gap-2 items-center">
-                     <Input placeholder="Name" defaultValue={a.name} onBlur={(e)=>updateAddonField(a.id, { name: e.currentTarget.value })} />
-                     <Input type="number" step="0.01" min="0" placeholder="Price" defaultValue={(a.unit_amount_cents/100).toFixed(2)}
-                       onBlur={(e)=>updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
-                     />
-                     <Input 
-                       type="number" 
-                       min="1" 
-                       placeholder="Max qty per person" 
-                       defaultValue={a.max_quantity_per_person || ''} 
-                       onBlur={(e)=>updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })} 
-                     />
-                      <div className="flex justify-end">
-                        <Button variant="destructive" size="icon" onClick={()=>deleteAddon(a.id)} title="Delete addon" aria-label="Delete addon">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                   </div>
-                   <Textarea
-                     placeholder="Brief description (max ~30 words)"
-                     value={a.description ?? ''}
-                     onChange={(e)=>updateAddonDesc(a.id, e.target.value)}
-                   />
-                 </div>
-               ))}
+              {addons.map((a) => (
+                <div key={a.id} className="p-3 border rounded-md bg-card space-y-2">
+                  <div className="grid sm:grid-cols-4 gap-2 items-center">
+                    <Input placeholder="Name" defaultValue={a.name} onBlur={(e) => updateAddonField(a.id, { name: e.currentTarget.value })} />
+                    <Input type="number" step="0.01" min="0" placeholder="Price" defaultValue={(a.unit_amount_cents / 100).toFixed(2)}
+                      onBlur={(e) => updateAddonField(a.id, { unit_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0') * 100) })}
+                    />
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Max qty per person"
+                      defaultValue={a.max_quantity_per_person || ''}
+                      onBlur={(e) => updateAddonField(a.id, { max_quantity_per_person: e.currentTarget.value ? parseInt(e.currentTarget.value, 10) : null })}
+                    />
+                    <div className="flex justify-end">
+                      <Button variant="destructive" size="icon" onClick={() => deleteAddon(a.id)} title="Delete addon" aria-label="Delete addon">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <Textarea
+                    placeholder="Brief description (max ~30 words)"
+                    value={a.description ?? ''}
+                    onChange={(e) => updateAddonDesc(a.id, e.target.value)}
+                  />
+                </div>
+              ))}
             </div>
             <DialogFooter className="flex gap-2">
               <Button variant="secondary" onClick={addAddon}>Add add-on</Button>
               <div className="ml-auto flex gap-2">
-                <Button variant="secondary" onClick={()=>setAddonsOpen(false)}>Close</Button>
-                <Button onClick={saveAddonDescriptions} disabled={savingAddons || addons.length===0}>{savingAddons? 'Saving...' : 'Save descriptions'}</Button>
+                <Button variant="secondary" onClick={() => setAddonsOpen(false)}>Close</Button>
+                <Button onClick={saveAddonDescriptions} disabled={savingAddons || addons.length === 0}>{savingAddons ? 'Saving...' : 'Save descriptions'}</Button>
               </div>
             </DialogFooter>
           </DialogContent>
@@ -1647,7 +1687,7 @@ const deleteTicket = async (id: string) => {
                     <div className="grid gap-3 sm:grid-cols-12 items-end">
                       <div className="sm:col-span-6 space-y-1">
                         <Label>Name</Label>
-                        <Input className="w-full" defaultValue={t.name} onBlur={(e)=>updateTicketField(t.id, { name: e.currentTarget.value })} />
+                        <Input className="w-full" defaultValue={t.name} onBlur={(e) => updateTicketField(t.id, { name: e.currentTarget.value })} />
                       </div>
                       <div className="sm:col-span-2 space-y-1">
                         <Label>Price</Label>
@@ -1675,11 +1715,11 @@ const deleteTicket = async (id: string) => {
                         <Label>Capacity</Label>
                         <Input type="number" inputMode="numeric" min={0} defaultValue={t.capacity_total || 0}
                           className="w-full text-right"
-                          onBlur={(e)=>updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
+                          onBlur={(e) => updateTicketField(t.id, { capacity_total: parseInt(e.currentTarget.value || '0', 10) })}
                         />
                       </div>
                       <div className="sm:col-span-1 flex justify-end">
-                        <Button variant="destructive" size="icon" onClick={()=>deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
+                        <Button variant="destructive" size="icon" onClick={() => deleteTicket(t.id)} title="Delete ticket" aria-label="Delete ticket">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -1696,7 +1736,7 @@ const deleteTicket = async (id: string) => {
                           <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Active' : 'Inactive'}</span>
                           <Switch
                             checked={earlyEnabled}
-                            onCheckedChange={(checked)=>{
+                            onCheckedChange={(checked) => {
                               if (!checked) {
                                 updateTicketField(t.id, { early_bird_amount_cents: null, early_bird_start: null, early_bird_end: null });
                               } else {
@@ -1711,20 +1751,20 @@ const deleteTicket = async (id: string) => {
                         <div className="grid sm:grid-cols-4 gap-3">
                           <div className="space-y-1">
                             <Label>Early price</Label>
-                            <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents||0)/100).toFixed(2)}
-                              onBlur={(e)=>updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0')*100) })}
+                            <Input type="number" step="0.01" min="0" defaultValue={((t.early_bird_amount_cents || 0) / 100).toFixed(2)}
+                              onBlur={(e) => updateTicketField(t.id, { early_bird_amount_cents: Math.round(parseFloat(e.currentTarget.value || '0') * 100) })}
                             />
                           </div>
                           <div className="space-y-1 sm:col-span-2">
                             <Label>Start</Label>
-                            <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0,16) : ''}
-                              onBlur={(e)=>updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                            <Input type="datetime-local" defaultValue={t.early_bird_start ? new Date(t.early_bird_start).toISOString().slice(0, 16) : ''}
+                              onBlur={(e) => updateTicketField(t.id, { early_bird_start: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
                             />
                           </div>
                           <div className="space-y-1 sm:col-span-2">
                             <Label>End</Label>
-                            <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0,16) : ''}
-                              onBlur={(e)=>updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                            <Input type="datetime-local" defaultValue={t.early_bird_end ? new Date(t.early_bird_end).toISOString().slice(0, 16) : ''}
+                              onBlur={(e) => updateTicketField(t.id, { early_bird_end: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
                             />
                           </div>
                         </div>
@@ -1738,7 +1778,7 @@ const deleteTicket = async (id: string) => {
               <Button variant="secondary" onClick={addTicketSimple}>Add simple ticket</Button>
               <Button variant="secondary" onClick={addTicketCombo}>Add combo (multi-participant)</Button>
               <Button variant="secondary" onClick={addTicketByZone}>Add ticket by zone</Button>
-              <Button variant="secondary" onClick={()=>setTicketsOpen(false)} className="ml-auto">Close</Button>
+              <Button variant="secondary" onClick={() => setTicketsOpen(false)} className="ml-auto">Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1751,12 +1791,12 @@ const deleteTicket = async (id: string) => {
                 <SheetTitle>Edit event</SheetTitle>
               </SheetHeader>
               <div className="space-y-3 py-4">
-                <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
+                <Input placeholder="Title" value={eTitle} onChange={(e) => setETitle(e.target.value)} />
                 <div className="space-y-1">
                   <Textarea
                     placeholder="Short description (max 350 characters)"
                     value={eShort}
-                    onChange={(e)=>{
+                    onChange={(e) => {
                       const val = e.target.value;
                       setEShort(val.slice(0, 350));
                     }}
@@ -1774,8 +1814,8 @@ const deleteTicket = async (id: string) => {
                   <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
                 </div>
                 <div className="grid grid-cols-1 gap-3">
-                  <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
-                  <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
+                  <Input type="datetime-local" value={eStarts} onChange={(e) => setEStarts(e.target.value)} />
+                  <Input type="datetime-local" value={eEnds} onChange={(e) => setEEnds(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   <Select value={eVenueId} onValueChange={setEVenueId as any}>
@@ -1811,7 +1851,7 @@ const deleteTicket = async (id: string) => {
                 </div>
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 gap-3 items-start">
-                    <Input type="file" accept="image/*" onChange={(e)=>{
+                    <Input type="file" accept="image/*" onChange={(e) => {
                       const file = e.target.files?.[0] || null;
                       setEImageFile(file);
                       if (file) {
@@ -1833,7 +1873,7 @@ const deleteTicket = async (id: string) => {
                 </div>
               </div>
               <SheetFooter className="gap-2">
-                <Button variant="secondary" onClick={()=>setEditOpen(false)}>Cancel</Button>
+                <Button variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
                 <Button onClick={saveEdit}>Save changes</Button>
               </SheetFooter>
             </SheetContent>
@@ -1845,12 +1885,12 @@ const deleteTicket = async (id: string) => {
                 <DialogTitle>Edit event</DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
-                <Input placeholder="Title" value={eTitle} onChange={(e)=>setETitle(e.target.value)} />
+                <Input placeholder="Title" value={eTitle} onChange={(e) => setETitle(e.target.value)} />
                 <div className="space-y-1">
                   <Textarea
                     placeholder="Short description (max 350 characters)"
                     value={eShort}
-                    onChange={(e)=>{
+                    onChange={(e) => {
                       const val = e.target.value;
                       setEShort(val.slice(0, 350));
                     }}
@@ -1868,8 +1908,8 @@ const deleteTicket = async (id: string) => {
                   <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <Input type="datetime-local" value={eStarts} onChange={(e)=>setEStarts(e.target.value)} />
-                  <Input type="datetime-local" value={eEnds} onChange={(e)=>setEEnds(e.target.value)} />
+                  <Input type="datetime-local" value={eStarts} onChange={(e) => setEStarts(e.target.value)} />
+                  <Input type="datetime-local" value={eEnds} onChange={(e) => setEEnds(e.target.value)} />
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <Select value={eVenueId} onValueChange={setEVenueId as any}>
@@ -1905,7 +1945,7 @@ const deleteTicket = async (id: string) => {
                 </div>
                 <div className="space-y-3">
                   <div className="grid sm:grid-cols-3 gap-3 items-center">
-                    <Input type="file" accept="image/*" onChange={(e)=>{
+                    <Input type="file" accept="image/*" onChange={(e) => {
                       const file = e.target.files?.[0] || null;
                       setEImageFile(file);
                       if (file) {
@@ -1927,7 +1967,7 @@ const deleteTicket = async (id: string) => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="secondary" onClick={()=>setEditOpen(false)}>Cancel</Button>
+                <Button variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
                 <Button onClick={saveEdit}>Save changes</Button>
               </DialogFooter>
             </DialogContent>
@@ -1943,7 +1983,7 @@ const deleteTicket = async (id: string) => {
             <div className="space-y-4">
               <div className="space-y-1">
                 <Label>Name</Label>
-                <Input placeholder="Name" value={vName} onChange={(e)=>setVName(e.target.value)} />
+                <Input placeholder="Name" value={vName} onChange={(e) => setVName(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label>Address & Location</Label>
@@ -1952,7 +1992,7 @@ const deleteTicket = async (id: string) => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="secondary" onClick={()=>setVenueEditOpen(false)}>Cancel</Button>
+              <Button variant="secondary" onClick={() => setVenueEditOpen(false)}>Cancel</Button>
               <Button onClick={saveVenueEdit}>Save</Button>
             </DialogFooter>
           </DialogContent>
@@ -1975,18 +2015,18 @@ const deleteTicket = async (id: string) => {
               </div>
               <div className="space-y-1">
                 <Label>New event title</Label>
-                <Input 
-                  type="text" 
-                  value={newEventTitle} 
+                <Input
+                  type="text"
+                  value={newEventTitle}
                   onChange={(e) => setNewEventTitle(e.target.value)}
                   placeholder="Enter new event title"
                 />
               </div>
               <div className="space-y-1">
                 <Label>New event date and time</Label>
-                <Input 
-                  type="datetime-local" 
-                  value={newEventDate} 
+                <Input
+                  type="datetime-local"
+                  value={newEventDate}
                   onChange={(e) => setNewEventDate(e.target.value)}
                 />
               </div>
