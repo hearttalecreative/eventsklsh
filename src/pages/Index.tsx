@@ -34,9 +34,6 @@ const Index = () => {
         <h1 className="font-playfair text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight text-foreground">
           Upcoming Events
         </h1>
-        <p className="mt-5 text-muted-foreground text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-          Discover deeply restorative sound healing sessions designed to reset your nervous system and nourish the soul.
-        </p>
         {/* Decorative divider */}
         <div className="mt-8 flex items-center justify-center gap-3">
           <div className="h-px w-16 bg-border" />
