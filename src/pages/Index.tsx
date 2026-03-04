@@ -29,7 +29,7 @@ const Index = () => {
       </Helmet>
 
       <header className="container mx-auto px-4 py-6 sm:py-8 text-center">
-        <h1 className="text-2xl sm:text-4xl font-bold">Upcoming events</h1>
+        <h1 className="font-playfair text-2xl sm:text-4xl font-bold">Upcoming events</h1>
       </header>
 
       <section className="py-4 sm:py-6">
