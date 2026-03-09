@@ -97,6 +97,8 @@ const AdminEvents = () => {
   const [ticketQuery, setTicketQuery] = useState("");
   const [addonQuery, setAddonQuery] = useState("");
   const [lastSaved, setLastSaved] = useState<{ kind: "ticket" | "addon"; id: string; at: number } | null>(null);
+  const [previewEmailByTicket, setPreviewEmailByTicket] = useState<Record<string, string>>({});
+  const [previewSendingByTicket, setPreviewSendingByTicket] = useState<Record<string, boolean>>({});
 
 
   // Edit event dialog state
@@ -811,6 +813,85 @@ const AdminEvents = () => {
     await logAdmin('ticket_deleted', 'ticket', id);
   };
 
+  const sendTicketPreviewEmail = async (ticket: {
+    id: string;
+    name: string;
+    unit_amount_cents: number;
+    post_purchase_instructions: string | null;
+  }) => {
+    const targetEmail = (previewEmailByTicket[ticket.id] || '').trim();
+    if (!targetEmail) {
+      toast.error('Enter an email address for preview');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(targetEmail)) {
+      toast.error('Enter a valid email address');
+      return;
+    }
+
+    if (!ticketsEventId) {
+      toast.error('No event selected');
+      return;
+    }
+
+    setPreviewSendingByTicket((prev) => ({ ...prev, [ticket.id]: true }));
+    try {
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('id,title,short_description,starts_at,slug,image_url,instructions,venue_id')
+        .eq('id', ticketsEventId)
+        .maybeSingle();
+
+      if (eventError) throw eventError;
+      if (!event) throw new Error('Event not found');
+
+      const { data: venue } = await supabase
+        .from('venues')
+        .select('name,address')
+        .eq('id', event.venue_id)
+        .maybeSingle();
+
+      const instructionsForPreview = ticket.post_purchase_instructions?.trim() || event.instructions;
+
+      const { error: sendError } = await supabase.functions.invoke('send-confirmation', {
+        body: {
+          name: 'Preview Recipient',
+          email: targetEmail,
+          eventTitle: event.title,
+          eventDescription: event.short_description,
+          eventDate: event.starts_at,
+          eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
+          instructions: instructionsForPreview,
+          confirmationCode: `PREVIEW-${ticket.id.slice(0, 6).toUpperCase()}`,
+          qrCode: `QR-PREVIEW-${ticket.id.slice(0, 6).toUpperCase()}`,
+          eventImageUrl: event.image_url,
+          eventSlug: event.slug,
+          orderDetails: {
+            orderId: `PREVIEW-${ticket.id.slice(0, 8).toUpperCase()}`,
+            totalAmount: ticket.unit_amount_cents,
+            currency: 'usd',
+            tickets: [{
+              name: ticket.name,
+              quantity: 1,
+              unitPrice: ticket.unit_amount_cents,
+            }],
+            addons: [],
+            discountInfo: null,
+          },
+        },
+      });
+
+      if (sendError) throw sendError;
+      toast.success(`Preview email sent to ${targetEmail}`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to send preview email');
+    } finally {
+      setPreviewSendingByTicket((prev) => ({ ...prev, [ticket.id]: false }));
+    }
+  };
+
   // Attendees functionality moved to separate page
 
   // Delete event
@@ -1282,6 +1363,24 @@ const AdminEvents = () => {
                               defaultValue={t.post_purchase_instructions || ''}
                               onBlur={(e) => updateTicketField(t.id, { post_purchase_instructions: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
                             />
+                            <div className="flex gap-2">
+                              <Input
+                                type="email"
+                                placeholder="Preview email"
+                                value={previewEmailByTicket[t.id] || ''}
+                                onChange={(e) => setPreviewEmailByTicket((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                                className="h-9"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-9 shrink-0"
+                                onClick={() => sendTicketPreviewEmail(t)}
+                                disabled={!!previewSendingByTicket[t.id]}
+                              >
+                                {previewSendingByTicket[t.id] ? 'Sending...' : 'Send preview'}
+                              </Button>
+                            </div>
                           </div>
                           <div className="space-y-1">
                             <Label className="flex items-center gap-2">
