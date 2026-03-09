@@ -497,6 +497,7 @@ const AdminEvents = () => {
           early_bird_start: ticket.early_bird_start,
           early_bird_end: ticket.early_bird_end,
           description: ticket.description,
+          post_purchase_instructions: ticket.post_purchase_instructions,
         }));
 
         const { error: ticketsError } = await supabase
@@ -616,7 +617,7 @@ const AdminEvents = () => {
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description,internal_notes,display_order,hidden')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description,post_purchase_instructions,internal_notes,display_order,hidden')
       .eq('event_id', eventId)
       .order('display_order', { ascending: true });
     setTickets(data || []);
@@ -638,7 +639,7 @@ const AdminEvents = () => {
         zone: null,
         display_order: maxOrder + 1
       })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,internal_notes,display_order')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,post_purchase_instructions,internal_notes,display_order')
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
@@ -660,7 +661,7 @@ const AdminEvents = () => {
         zone: null,
         display_order: maxOrder + 1
       })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,internal_notes,display_order')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,post_purchase_instructions,internal_notes,display_order')
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
@@ -682,7 +683,7 @@ const AdminEvents = () => {
         zone: 'General',
         display_order: maxOrder + 1
       })
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,internal_notes,display_order')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,post_purchase_instructions,internal_notes,display_order')
       .single();
     if (error) return alert(error.message);
     setTickets(arr => [...arr, data!].sort((a, b) => (a.display_order || 0) - (b.display_order || 0)));
@@ -701,6 +702,7 @@ const AdminEvents = () => {
       early_bird_start: string | null;
       early_bird_end: string | null;
       description: string | null;
+      post_purchase_instructions: string | null;
       internal_notes: string | null;
       display_order: number;
       hidden: boolean;
@@ -991,7 +993,7 @@ const AdminEvents = () => {
                     <RichMarkdownEditor value={longDesc} onChange={setLongDesc} />
                   </div>
                   <div className="space-y-1">
-                    <Label>Event instructions (shown to buyers after purchase)</Label>
+                    <Label>General event instructions (default for post-purchase emails)</Label>
                     <RichMarkdownEditor value={instructions} onChange={setInstructions} />
                   </div>
                 </TabsContent>
@@ -1271,6 +1273,14 @@ const AdminEvents = () => {
                               placeholder="Brief description (shown under this ticket)"
                               defaultValue={t.description || ''}
                               onBlur={(e) => updateTicketField(t.id, { description: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Ticket-specific email instructions (optional override)</Label>
+                            <Textarea
+                              placeholder="If set, this replaces the general event instructions for buyers of this ticket"
+                              defaultValue={t.post_purchase_instructions || ''}
+                              onBlur={(e) => updateTicketField(t.id, { post_purchase_instructions: e.currentTarget.value.trim() ? e.currentTarget.value : null })}
                             />
                           </div>
                           <div className="space-y-1">
@@ -2095,7 +2105,7 @@ const AdminEvents = () => {
                   <RichMarkdownEditor value={eLong} onChange={setELong} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Event instructions (shown to buyers after purchase)</Label>
+                  <Label>General event instructions (default for post-purchase emails)</Label>
                   <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
                 </div>
                 <div className="grid grid-cols-1 gap-3">
@@ -2205,7 +2215,7 @@ const AdminEvents = () => {
                       <RichMarkdownEditor value={eLong} onChange={setELong} />
                     </div>
                     <div className="space-y-1">
-                      <Label>Event instructions (shown to buyers after purchase)</Label>
+                      <Label>General event instructions (default for post-purchase emails)</Label>
                       <RichMarkdownEditor value={eInstructions} onChange={setEInstructions} />
                     </div>
                   </TabsContent>

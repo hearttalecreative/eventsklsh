@@ -786,6 +786,7 @@ export type Database = {
           internal_notes: string | null
           name: string
           participants_per_ticket: number
+          post_purchase_instructions: string | null
           unit_amount_cents: number
           updated_at: string
           zone: string | null
@@ -805,6 +806,7 @@ export type Database = {
           internal_notes?: string | null
           name: string
           participants_per_ticket?: number
+          post_purchase_instructions?: string | null
           unit_amount_cents: number
           updated_at?: string
           zone?: string | null
@@ -824,6 +826,7 @@ export type Database = {
           internal_notes?: string | null
           name?: string
           participants_per_ticket?: number
+          post_purchase_instructions?: string | null
           unit_amount_cents?: number
           updated_at?: string
           zone?: string | null

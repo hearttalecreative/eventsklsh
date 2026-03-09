@@ -33,7 +33,7 @@ serve(async (req) => {
     }
 
     // Fetch ticket details if ticket_id is provided (existing ticket)
-    let ticket = null;
+    let ticket: any = null;
     if (ticket_id) {
       const { data: ticketData, error: ticketError } = await supabase
         .from('tickets')
@@ -61,7 +61,7 @@ serve(async (req) => {
     }
 
     // Check for existing paid tickets for each email
-    const warnings = [];
+    const warnings: Array<{ email: string; message: string; existingCount: number }> = [];
     for (const attendeeData of attendees) {
       const { email } = attendeeData;
       
@@ -114,7 +114,7 @@ serve(async (req) => {
     }
 
     // Process each attendee
-    const createdAttendees = [];
+    const createdAttendees: any[] = [];
     
     for (const attendeeData of attendees) {
       const { name, email, phone } = attendeeData;
@@ -187,6 +187,8 @@ serve(async (req) => {
         currency: 'usd'
       };
 
+      const postPurchaseInstructions = ticket?.post_purchase_instructions?.trim() || event.instructions;
+
       // Format venue information
       const venueInfo = event.venues 
         ? `${event.venues.name}${event.venues.address ? ', ' + event.venues.address : ''}`
@@ -204,7 +206,7 @@ serve(async (req) => {
           eventVenue: venueInfo,
           eventImageUrl: event.image_url,
           eventSlug: event.slug,
-          instructions: event.instructions,
+          instructions: postPurchaseInstructions,
           confirmationCode: confirmationCode,
           qrCode: qrCode,
           orderDetails: orderSummary,

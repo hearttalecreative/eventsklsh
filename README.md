@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> **FOR AI AGENTS:** Before making changes, you MUST read [AGENT_GUIDE.md](./AGENT_GUIDE.md) and [PROJECT_MAP.md](./PROJECT_MAP.md). They define mandatory context-discovery workflow, architecture references, and project rules.
+
 # Kyle Lam Sound Healing Events App
 
 ## About the Project

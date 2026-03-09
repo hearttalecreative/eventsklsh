@@ -105,7 +105,7 @@ serve(async (req) => {
     // 2) Load authoritative data from DB
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")
-      .select("id, event_id, name, zone, unit_amount_cents, early_bird_amount_cents, early_bird_start, early_bird_end, participants_per_ticket, capacity_total")
+      .select("id, event_id, name, zone, unit_amount_cents, early_bird_amount_cents, early_bird_start, early_bird_end, participants_per_ticket, capacity_total, post_purchase_instructions")
       .eq("id", cart.ticketId)
       .maybeSingle();
     if (ticketErr) throw ticketErr;
@@ -150,6 +150,8 @@ serve(async (req) => {
       .select("name, address")
       .eq("id", event.venue_id)
       .maybeSingle();
+
+    const postPurchaseInstructions = ticket.post_purchase_instructions?.trim() || event.instructions;
 
     const addonIds = cart.addons?.filter(a => (a.qty ?? 0) > 0).map(a => a.id) ?? [];
     const { data: addonsRows, error: addonsErr } = addonIds.length > 0
@@ -325,7 +327,7 @@ serve(async (req) => {
               eventDescription: event.short_description,
               eventDate: event.starts_at,
               eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
-              instructions: event.instructions,
+              instructions: postPurchaseInstructions,
               confirmationCode: attendee?.confirmation_code,
               eventImageUrl: event.image_url,
               eventSlug: event.slug,

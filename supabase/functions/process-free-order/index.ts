@@ -42,7 +42,7 @@ serve(async (req: Request) => {
 
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")
-      .select("*")
+      .select("id, name, zone, unit_amount_cents, post_purchase_instructions")
       .eq("id", cart.ticketId)
       .single();
     if (ticketErr) throw ticketErr;
@@ -68,6 +68,8 @@ serve(async (req: Request) => {
       .select("*")
       .eq("id", event.venue_id)
       .maybeSingle();
+
+    const postPurchaseInstructions = ticket.post_purchase_instructions?.trim() || event.instructions;
 
     const { data: addons } = await supabase
       .from("addons")
@@ -198,7 +200,7 @@ serve(async (req: Request) => {
               eventDescription: event.short_description,
               eventDate: event.starts_at,
               eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
-              instructions: event.instructions,
+              instructions: postPurchaseInstructions,
               confirmationCode: attendee?.confirmation_code,
               qrCode: attendeeWithQR?.qr_code,
               orderDetails: {
