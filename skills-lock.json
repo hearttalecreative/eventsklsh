@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "backend-dev-guidelines": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "f32c0e523f3956accb9ec76fe74d4aedb685163daef6fedecf45adffc9052ecb"
+    },
+    "backend-development": {
+      "source": "mrgoonie/claudekit-skills",
+      "sourceType": "github",
+      "computedHash": "19a6a72ddb96062c3edef801451bd721726dd571f7db221f0b4d83ad70aad114"
+    },
+    "building-dashboards": {
+      "source": "axiomhq/skills",
+      "sourceType": "github",
+      "computedHash": "f630ef2c7572cd994f68bb02eeedb03f1d99b065752e47a13a6acda6fccd51c2"
+    },
+    "interactive-dashboard-builder": {
+      "source": "anthropics/knowledge-work-plugins",
+      "sourceType": "github",
+      "computedHash": "4eb80bd006f3f38a3df7444bfb3435e86d0e791138b762948cef3996fa8da8f4"
+    },
+    "senior-backend": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "1919d688687239bae5880bd935ce8f845e7b4f82293faba882bb8e2cbb9481b6"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "cf8e5916d474886bd67b09691247f43f331523008b7d366064bc607ab42d6302"
+    }
+  }
+}
