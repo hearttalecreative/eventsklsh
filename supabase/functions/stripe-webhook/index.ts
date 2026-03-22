@@ -76,6 +76,40 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
       // Load cart payload. New flow stores it in DB (Stripe metadata values have a 500-char limit).
       const metadata = session.metadata || {};
 
+      // Check for training purchases first
+      if (metadata.purchase_id) {
+        console.log(`[stripe-webhook] Processing training purchase: ${metadata.purchase_id}`);
+
+        // Update the training_purchases table to "paid"
+        const { error: updateError } = await supabase
+          .from("training_purchases")
+          .update({ status: "paid", updated_at: new Date().toISOString() })
+          .eq("id", metadata.purchase_id);
+
+        if (updateError) {
+          console.error("[stripe-webhook] Failed to update training purchase status:", updateError);
+          await notifyAdminOfError(`Failed to update training purchase status: ${updateError.message}`);
+          return new Response(JSON.stringify({ received: true, reason: 'training_update_failed' }), { status: 200 });
+        }
+
+        // Log to stripe_logs
+        await supabase.from("stripe_logs").insert({
+          event_type: event.type,
+          stripe_session_id: session.id,
+          stripe_event_id: event.id,
+          customer_email: session.customer_details?.email || metadata.customer_email || 'unknown',
+          customer_name: session.customer_details?.name || metadata.customer_name,
+          amount_cents: session.amount_total || 0,
+          currency: session.currency || 'usd',
+          status: 'success',
+          error_message: null,
+          processing_time_ms: Date.now() - startTime,
+        });
+
+        console.log(`[stripe-webhook] Successfully processed training purchase: ${metadata.purchase_id}`);
+        return new Response(JSON.stringify({ received: true, purchaseId: metadata.purchase_id }), { status: 200 });
+      }
+
       let cart: any | null = null;
       if (metadata.cart_data) {
         // Backward-compat for older sessions
