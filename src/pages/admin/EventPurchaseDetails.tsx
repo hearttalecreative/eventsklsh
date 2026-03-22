@@ -648,7 +648,7 @@ const EventPurchaseDetails = () => {
                 </div>
                 <div>
                   <p className="text-xl md:text-2xl font-bold text-primary">
-                    {formatCurrency(purchases.reduce((sum, p) => sum + p.total_amount_cents, 0))}
+                    {formatCurrency(purchases.reduce((sum, p) => sum + p.ticket_amount_cents, 0))}
                   </p>
                   <p className="text-xs md:text-sm text-muted-foreground">Total Revenue</p>
                 </div>
