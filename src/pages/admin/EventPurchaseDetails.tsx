@@ -564,8 +564,8 @@ const EventPurchaseDetails = () => {
           </Button>
         </header>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4">
+                {/* Summary Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
           <Card className="bg-white/85 border-primary/10 col-span-1">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -616,9 +616,11 @@ const EventPurchaseDetails = () => {
                 </div>
                 <div>
                   <p className="text-xl md:text-2xl font-bold">
-                    {formatCurrency(purchases.reduce((sum, p) => sum + p.ticket_amount_cents, 0))}
+                    {ticketBreakdown.reduce((sum, t) => sum + t.ticketsSold, 0)}
                   </p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Tickets Revenue</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Tickets Sold ({formatCurrency(purchases.reduce((sum, p) => sum + p.ticket_amount_cents, 0))})
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -632,25 +634,11 @@ const EventPurchaseDetails = () => {
                 </div>
                 <div>
                   <p className="text-xl md:text-2xl font-bold">
-                    {formatCurrency(purchases.reduce((sum, p) => sum + p.addons_amount_cents, 0))}
+                    {addonBreakdown.reduce((sum, a) => sum + a.count, 0)}
                   </p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Add-ons Revenue</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/85 border-primary/10 col-span-2 lg:col-span-1">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-orange-500/10">
-                  <DollarSign className="h-6 w-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-xl md:text-2xl font-bold text-primary">
-                    {formatCurrency(purchases.reduce((sum, p) => sum + p.total_amount_cents, 0))}
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Add-ons Sold ({formatCurrency(purchases.reduce((sum, p) => sum + p.addons_amount_cents, 0))})
                   </p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Total Revenue</p>
                 </div>
               </div>
             </CardContent>
@@ -776,7 +764,7 @@ const EventPurchaseDetails = () => {
                         <p className="text-xs text-muted-foreground mt-0.5">{purchase.attendee_phone || 'No phone'}</p>
                       </div>
                       <Badge variant="secondary" className="font-mono shrink-0 text-xs">
-                        {purchase.is_comped ? 'Free' : formatCurrency(purchase.total_amount_cents)}
+                        {purchase.is_comped ? 'Free' : formatCurrency(purchase.ticket_amount_cents + purchase.addons_amount_cents)}
                       </Badge>
                     </div>
 
@@ -808,7 +796,7 @@ const EventPurchaseDetails = () => {
                       <th className="pb-3 font-medium">Ticket</th>
                       <th className="pb-3 font-medium">Add-ons</th>
                       <th className="pb-3 font-medium">Purchase Date</th>
-                      <th className="pb-3 font-medium text-right">Total Amount</th>
+                       <th className="pb-3 font-medium text-right">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -860,10 +848,10 @@ const EventPurchaseDetails = () => {
                           {purchase.is_comped ? '-' : formatDate(purchase.purchase_date)}
                         </td>
                         <td className="py-3 text-right font-semibold">
-                          {purchase.is_comped ? (
+                           {purchase.is_comped ? (
                             <span className="text-green-600">Free</span>
                           ) : (
-                            formatCurrency(purchase.total_amount_cents)
+                            formatCurrency(purchase.ticket_amount_cents + purchase.addons_amount_cents)
                           )}
                         </td>
                       </tr>
