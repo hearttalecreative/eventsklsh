@@ -616,10 +616,10 @@ const EventPurchaseDetails = () => {
                 </div>
                 <div>
                   <p className="text-xl md:text-2xl font-bold">
-                    {ticketBreakdown.reduce((sum, t) => sum + t.ticketsSold, 0)}
+                    {formatCurrency(purchases.reduce((sum, p) => sum + p.ticket_amount_cents, 0))}
                   </p>
                   <p className="text-xs md:text-sm text-muted-foreground">
-                    Tickets Sold ({formatCurrency(purchases.reduce((sum, p) => sum + p.ticket_amount_cents, 0))})
+                    {ticketBreakdown.reduce((sum, t) => sum + t.ticketsSold, 0)} tickets sold
                   </p>
                 </div>
               </div>
@@ -634,10 +634,10 @@ const EventPurchaseDetails = () => {
                 </div>
                 <div>
                   <p className="text-xl md:text-2xl font-bold">
-                    {addonBreakdown.reduce((sum, a) => sum + a.count, 0)}
+                    {formatCurrency(purchases.reduce((sum, p) => sum + p.addons_amount_cents, 0))}
                   </p>
                   <p className="text-xs md:text-sm text-muted-foreground">
-                    Add-ons Sold ({formatCurrency(purchases.reduce((sum, p) => sum + p.addons_amount_cents, 0))})
+                    {addonBreakdown.reduce((sum, a) => sum + a.count, 0)} add-ons sold
                   </p>
                 </div>
               </div>
