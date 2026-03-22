@@ -40,6 +40,38 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    const notifyAdminOfError = async (errorMsg: string, cartData: any = null) => {
+      try {
+        const adminEmail = Deno.env.get("ADMIN_EMAIL") || "info@kylelamsoundhealing.com";
+        const customerName = session.customer_details?.name || cartData?.participants?.[0]?.fullName || "Unknown";
+        const customerEmail = session.customer_details?.email || cartData?.participants?.[0]?.email || "Unknown";
+        const amount = (session.amount_total || 0) / 100;
+        
+        const message = `A Stripe payment was received but failed to process completely in our system.
+
+Error Details:
+- Message: ${errorMsg}
+- Stripe Event ID: ${event.id}
+- Stripe Session ID: ${session.id}
+- Customer Name: ${customerName}
+- Customer Email: ${customerEmail}
+- Amount: $${amount.toFixed(2)} USD
+
+Please check the Stripe Dashboard and the application's Admin Logs for more details, and manually fulfill this order if necessary.`;
+
+        await supabase.functions.invoke("send-admin-email", {
+          body: {
+            to: adminEmail,
+            subject: `Action Required: Stripe Payment Processing Error - ${customerName}`,
+            message: message,
+            recipientName: "Administrator"
+          }
+        });
+      } catch (emailErr) {
+        console.error(`[stripe-webhook] Failed to send admin notification email:`, emailErr);
+      }
+    };
+
     try {
       // Load cart payload. New flow stores it in DB (Stripe metadata values have a 500-char limit).
       const metadata = session.metadata || {};
@@ -57,11 +89,13 @@ serve(async (req) => {
 
         if (pendingErr) {
           console.error('[stripe-webhook] Failed to load pending checkout cart:', pendingErr);
+          await notifyAdminOfError(`Failed to load pending checkout cart: ${pendingErr.message}`);
           return new Response(JSON.stringify({ received: true, reason: 'pending_checkout_load_failed' }), { status: 200 });
         }
 
         if (!pending?.cart) {
           console.error(`[stripe-webhook] No pending checkout cart found for checkout_id=${metadata.checkout_id} session=${session.id}`);
+          await notifyAdminOfError(`No pending checkout cart found for checkout_id=${metadata.checkout_id}`);
           return new Response(JSON.stringify({ received: true, reason: 'missing_pending_checkout' }), { status: 200 });
         }
 
@@ -83,6 +117,8 @@ serve(async (req) => {
           error_message: 'Missing cart payload (checkout_id/cart_data)',
           processing_time_ms: Date.now() - startTime,
         });
+
+        await notifyAdminOfError('Missing cart payload (checkout_id/cart_data)');
 
         return new Response(JSON.stringify({ received: true, reason: 'missing_cart_payload' }), { status: 200 });
       }
@@ -196,6 +232,8 @@ serve(async (req) => {
             .eq('id', initialLog.id);
         }
 
+        await notifyAdminOfError(error.message || String(error), cart);
+
         throw error;
       }
 
@@ -237,6 +275,8 @@ serve(async (req) => {
       } catch (logErr) {
         console.error('[stripe-webhook] Failed to log error:', logErr);
       }
+
+      await notifyAdminOfError(err.message || String(err));
 
       // Acknowledge to stop Stripe retries; internal processing failed but will be handled via fallback/manual
       return new Response(JSON.stringify({ received: true, error: err.message }), { status: 200 });
