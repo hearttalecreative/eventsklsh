@@ -36,7 +36,7 @@ const sendNotificationEmail = async (
   try {
     await resend.emails.send({
       from: "Kyle Lam Sound Healing <onboarding@resend.dev>",
-      to: ["info@kylelamsoundhealing.com"],
+      to: ["info@kylelamsoundhealing.com", "kyle@kylelamsoundhealing.com"],
       subject: `New Training Purchase: ${program.name}`,
       html: `
         <h1>New Training Program Purchase</h1>
