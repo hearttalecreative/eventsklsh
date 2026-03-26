@@ -17,7 +17,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { event_id, ticket_id, addon_ids = [], ticket_label = null, attendees, internal_notes = null } = await req.json();
+    const { event_id, ticket_id, addon_ids = [], ticket_label = null, attendees, internal_notes = null, force = false } = await req.json();
 
     console.log('Creating comped attendees:', { event_id, ticket_id, addon_ids, ticket_label, count: attendees.length, internal_notes });
 
@@ -98,8 +98,8 @@ serve(async (req) => {
       }
     }
 
-    // If warnings exist, return them without creating attendees
-    if (warnings.length > 0) {
+    // If warnings exist and not forced, return them without creating attendees
+    if (warnings.length > 0 && !force) {
       return new Response(
         JSON.stringify({ 
           success: false,

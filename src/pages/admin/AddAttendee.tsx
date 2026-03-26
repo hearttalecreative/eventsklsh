@@ -38,6 +38,7 @@ const AddAttendeePage = () => {
     {name: '', email: '', phone: ''}
   ]);
   const [internalNotes, setInternalNotes] = useState<string>('');
+  const [force, setForce] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -113,17 +114,28 @@ const AddAttendeePage = () => {
           addon_ids: selectedAddonIds,
           ticket_label: ticketType === 'custom' ? customTicketName.trim() : null,
           attendees,
-          internal_notes: internalNotes.trim() || null
+          internal_notes: internalNotes.trim() || null,
+          force
         }
       });
 
-      if (error) throw error;
-      
-      // Check for duplicate warnings
-      if (data && !data.success && data.warnings) {
-        const warningMessage = data.warnings.map((w: any) => w.message).join('\n');
-        toast.error(`Cannot create comped tickets:\n${warningMessage}`, { duration: 6000 });
-        return;
+      if (error) {
+        let errorMessage = error.message || 'Error adding attendees';
+        
+        // Try to parse detailed error from response
+        try {
+          const body = await error.context?.response?.json();
+          if (body && body.warnings) {
+            const warningMessage = body.warnings.map((w: any) => w.message).join('\n');
+            toast.error(`Existing paid tickets found:\n${warningMessage}\n\nCheck 'Force issue' if you want to proceed anyway.`, { duration: 6000 });
+            return;
+          }
+          if (body && body.error) errorMessage = body.error;
+        } catch (parseErr) {
+          // Ignore parse error
+        }
+        
+        throw new Error(errorMessage);
       }
       
       toast.success(`${attendees.length} attendee(s) added and emails sent`);
@@ -133,6 +145,7 @@ const AddAttendeePage = () => {
       setSelectedTicketId('');
       setSelectedAddonIds([]);
       setInternalNotes('');
+      setForce(false);
     } catch (e: any) {
       console.error('Error creating comped attendees:', e);
       toast.error(e?.message || 'Error adding attendees');
@@ -368,6 +381,25 @@ const AddAttendeePage = () => {
             <p className="text-xs text-muted-foreground">
               This note will be visible in the Sales Analytics page
             </p>
+          </div>
+
+          <div className="flex items-center space-x-2 p-3 border rounded-md bg-amber-50">
+            <Checkbox 
+              id="force-issue"
+              checked={force}
+              onCheckedChange={(checked) => setForce(!!checked)}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <label
+                htmlFor="force-issue"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Force issue
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Check this if you want to issue the ticket even if the system warns about existing paid tickets for this email.
+              </p>
+            </div>
           </div>
 
           <div className="flex gap-3">
