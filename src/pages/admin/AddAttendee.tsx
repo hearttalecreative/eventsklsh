@@ -127,7 +127,17 @@ const AddAttendeePage = () => {
           const body = await error.context?.response?.json();
           if (body && body.warnings) {
             const warningMessage = body.warnings.map((w: any) => w.message).join('\n');
-            toast.error(`Existing paid tickets found:\n${warningMessage}\n\nCheck 'Force issue' if you want to proceed anyway.`, { duration: 6000 });
+            toast.error(`Existing paid tickets found:\n${warningMessage}\n\nPlease check 'Force issue' if you want to override this block.`, { duration: 6000 });
+            
+            // Scroll to the force issue checkbox
+            const forceCheckbox = document.getElementById('force-issue-container');
+            if (forceCheckbox) {
+              forceCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              forceCheckbox.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2');
+              setTimeout(() => {
+                forceCheckbox.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2');
+              }, 3000);
+            }
             return;
           }
           if (body && body.error) errorMessage = body.error;
@@ -138,7 +148,13 @@ const AddAttendeePage = () => {
         throw new Error(errorMessage);
       }
       
-      toast.success(`${attendees.length} attendee(s) added and emails sent`);
+      if (data?.emailSent) {
+        toast.success(`${attendees.length} attendee(s) added and confirmation emails sent`);
+      } else if (data?.success) {
+        toast.warning(`${attendees.length} attendee(s) added, but confirmation emails could not be sent. Check the admin logs for details.`);
+      } else {
+        toast.success(`${attendees.length} attendee(s) added`);
+      }
       setAttendees([{name: '', email: '', phone: ''}]);
       setQuantity(1);
       setCustomTicketName('');
@@ -383,7 +399,7 @@ const AddAttendeePage = () => {
             </p>
           </div>
 
-          <div className="flex items-center space-x-2 p-3 border rounded-md bg-amber-50">
+          <div id="force-issue-container" className="flex items-center space-x-2 p-3 border rounded-md bg-amber-50 transition-all duration-300">
             <Checkbox 
               id="force-issue"
               checked={force}

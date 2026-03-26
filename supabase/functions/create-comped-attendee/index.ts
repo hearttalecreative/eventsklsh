@@ -113,6 +113,9 @@ serve(async (req) => {
       );
     }
 
+    let emailSent = false;
+    let emailErrorResponse = null;
+
     // Process each attendee
     const createdAttendees: any[] = [];
     
@@ -156,17 +159,7 @@ serve(async (req) => {
         await addContactToBrevo(email, name, location);
       } catch (error) {
         console.error(`[Brevo] Failed to add comped attendee to Brevo:`, error);
-        // Continue with email sending even if Brevo fails
       }
-
-      // Prepare email data for this attendee
-      const attendeesForEmail = [{
-        name,
-        email,
-        phone,
-        confirmation_code: confirmationCode,
-        qr_code: qrCode
-      }];
 
       // Build order summary for email
       const ticketNameForEmail = ticket ? ticket.name : (ticket_label || 'Complimentary Ticket');
@@ -176,12 +169,12 @@ serve(async (req) => {
         tickets: [{
           name: ticketNameForEmail,
           quantity: 1,
-          unitPrice: 0 // Show as $0 for comped
+          unitPrice: 0
         }],
         addons: addonsData.map(addon => ({
           name: addon.name,
           quantity: 1,
-          unitPrice: 0 // Show as $0 for comped
+          unitPrice: 0
         })),
         totalAmount: 0,
         currency: 'usd'
@@ -194,46 +187,53 @@ serve(async (req) => {
         ? `${event.venues.name}${event.venues.address ? ', ' + event.venues.address : ''}`
         : null;
 
-      // Invoke confirmation email function for each attendee
-      const { error: emailError } = await supabase.functions.invoke('send-confirmation', {
-        body: {
-          email,
-          name,
-          phone,
-          eventTitle: event.title,
-          eventDescription: event.short_description || event.description,
-          eventDate: event.starts_at,
-          eventVenue: venueInfo,
-          eventImageUrl: event.image_url,
-          eventSlug: event.slug,
-          instructions: postPurchaseInstructions,
-          confirmationCode: confirmationCode,
-          qrCode: qrCode,
-          orderDetails: orderSummary,
-          is_comped: true // Flag to customize email message
-        }
-      });
+      try {
+        // Invoke confirmation email function
+        const { error: invokeErr } = await supabase.functions.invoke('send-confirmation', {
+          body: {
+            email,
+            name,
+            phone,
+            eventTitle: event.title,
+            eventDescription: event.short_description || event.description,
+            eventDate: event.starts_at,
+            eventVenue: venueInfo,
+            eventImageUrl: event.image_url,
+            eventSlug: event.slug,
+            instructions: postPurchaseInstructions,
+            confirmationCode: confirmationCode,
+            qrCode: qrCode,
+            orderDetails: orderSummary,
+            is_comped: true
+          }
+        });
 
-      if (emailError) {
-        console.error('Error sending confirmation email:', emailError);
-        // Don't fail the whole operation if email fails
-      } else {
-        console.log('Confirmation email sent successfully to:', email);
+        if (invokeErr) {
+          console.error('Error sending confirmation email:', invokeErr);
+          emailErrorResponse = invokeErr.message || String(invokeErr);
+        } else {
+          emailSent = true;
+          console.log('Confirmation email sent successfully to:', email);
+        }
+      } catch (err: any) {
+        console.error('Exception sending confirmation email:', err);
+        emailErrorResponse = err.message || String(err);
       }
-    }
+    } // End of for loop
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         attendees_created: createdAttendees.length,
-        attendee_ids: createdAttendees.map(a => a.id)
+        attendee_ids: createdAttendees.map(a => a.id),
+        emailSent,
+        emailError: emailErrorResponse
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
     );
-
   } catch (error: any) {
     console.error('Error in create-comped-attendee:', error);
     return new Response(
