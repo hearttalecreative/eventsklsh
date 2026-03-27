@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CheckCircle, XCircle, Search, Filter, ArrowLeft, Trash2, Download } from "lucide-react";
+import { CheckCircle, XCircle, Search, Filter, ArrowLeft, Trash2, Download, Edit } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { EditAttendeeDialog } from "@/components/admin/EditAttendeeDialog";
 
 interface Event {
   id: string;
@@ -60,6 +61,8 @@ const EventAttendeesPage = () => {
   const [processingCheckIn, setProcessingCheckIn] = useState<Record<string, boolean>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [attendeeToDelete, setAttendeeToDelete] = useState<Attendee | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [attendeeToEdit, setAttendeeToEdit] = useState<Attendee | null>(null);
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -194,6 +197,44 @@ const EventAttendeesPage = () => {
   const handleDeleteClick = (attendee: Attendee) => {
     setAttendeeToDelete(attendee);
     setDeleteDialogOpen(true);
+  };
+
+  const handleEditClick = (attendee: Attendee) => {
+    setAttendeeToEdit(attendee);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    // Reload attendees to reflect changes
+    if (!selectedEventId) return;
+    
+    setLoading(true);
+    const loadAttendees = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("admin-list-attendees", {
+          body: { eventId: selectedEventId },
+        });
+        if (error) throw error as any;
+
+        const attendeesData = (data?.attendees || []) as any[];
+        const sortedAttendees = attendeesData.sort((a, b) => {
+          const nameA = (a.name || "").toLowerCase();
+          const nameB = (b.name || "").toLowerCase();
+          if (!nameA && !nameB) return 0;
+          if (!nameA) return 1;
+          if (!nameB) return -1;
+          return nameA.localeCompare(nameB);
+        });
+        
+        setAttendees(sortedAttendees as any);
+      } catch (error) {
+        console.error("Failed to reload attendees:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAttendees();
   };
 
   const handleDeleteConfirm = async () => {
@@ -472,15 +513,25 @@ const EventAttendeesPage = () => {
                               >
                                 {processingCheckIn[attendee.id] ? 'Processing...' : 'Check-in'}
                               </label>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteClick(attendee)}
-                              className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                             </div>
+                             <div className="flex gap-2">
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 onClick={() => handleEditClick(attendee)}
+                                 className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 shrink-0"
+                               >
+                                 <Edit className="h-4 w-4" />
+                               </Button>
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 onClick={() => handleDeleteClick(attendee)}
+                                 className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                               >
+                                 <Trash2 className="h-4 w-4" />
+                               </Button>
+                             </div>
                           </div>
                         </div>
                       ))
@@ -576,16 +627,28 @@ const EventAttendeesPage = () => {
                                     ? new Date(attendee.checked_in_at).toLocaleString() 
                                     : "-"}
                                 </td>
-                                <td className="py-3">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeleteClick(attendee)}
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </td>
+                                 <td className="py-3">
+                                   <div className="flex gap-2">
+                                     <Button
+                                       variant="ghost"
+                                       size="icon"
+                                       onClick={() => handleEditClick(attendee)}
+                                       className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
+                                       title="Editar datos"
+                                     >
+                                       <Edit className="h-4 w-4" />
+                                     </Button>
+                                     <Button
+                                       variant="ghost"
+                                       size="icon"
+                                       onClick={() => handleDeleteClick(attendee)}
+                                       className="h-8 w-8 text-destructive hover:text-destructive"
+                                       title="Eliminar asistente"
+                                     >
+                                       <Trash2 className="h-4 w-4" />
+                                     </Button>
+                                   </div>
+                                 </td>
                               </tr>
                             ))}
                           </tbody>
@@ -616,6 +679,14 @@ const EventAttendeesPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit Attendee Dialog */}
+        <EditAttendeeDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          attendee={attendeeToEdit}
+          onSuccess={handleEditSuccess}
+        />
       </main>
     </AdminRoute>
   );
