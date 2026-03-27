@@ -79,8 +79,8 @@ export const EditAttendeeDialog = ({
       }
 
       toast({
-        title: "Éxito",
-        description: "Los datos del asistente han sido actualizados correctamente.",
+        title: "Success",
+        description: "Attendee information has been updated successfully.",
       });
 
       onSuccess();
@@ -89,7 +89,7 @@ export const EditAttendeeDialog = ({
       console.error('Error updating attendee:', error);
       toast({
         title: "Error",
-        description: error.message || "No se pudieron actualizar los datos del asistente.",
+        description: error.message || "Could not update attendee information.",
         variant: "destructive",
       });
     } finally {
@@ -101,7 +101,7 @@ export const EditAttendeeDialog = ({
     if (!attendee || !attendee.email) {
       toast({
         title: "Error",
-        description: "El asistente no tiene una dirección de email válida.",
+        description: "Attendee does not have a valid email address.",
         variant: "destructive",
       });
       return;
@@ -124,14 +124,14 @@ export const EditAttendeeDialog = ({
       }
 
       toast({
-        title: "Email Enviado",
-        description: `El ticket ha sido reenviado a ${data.attendee?.email || attendee.email}`,
+        title: "Email Sent",
+        description: `Ticket has been resent to ${data.attendee?.email || attendee.email}`,
       });
     } catch (error: any) {
       console.error('Error resending email:', error);
       toast({
         title: "Error",
-        description: error.message || "No se pudo reenviar el email del ticket.",
+        description: error.message || "Could not resend ticket email.",
         variant: "destructive",
       });
     } finally {
@@ -149,9 +149,9 @@ export const EditAttendeeDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Editar Datos del Asistente</DialogTitle>
+          <DialogTitle>Edit Attendee Information</DialogTitle>
           <DialogDescription>
-            Modifica la información del asistente. Los cambios se guardarán en el sistema.
+            Modify the attendee's information. Changes will be saved to the system.
           </DialogDescription>
         </DialogHeader>
 
@@ -159,14 +159,14 @@ export const EditAttendeeDialog = ({
           <div className="space-y-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
-                Nombre
+                Name
               </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 className="col-span-3"
-                placeholder="Nombre completo"
+                placeholder="Full name"
               />
             </div>
 
@@ -180,13 +180,13 @@ export const EditAttendeeDialog = ({
                 value={formData.email}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 className="col-span-3"
-                placeholder="email@ejemplo.com"
+                placeholder="email@example.com"
               />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="phone" className="text-right">
-                Teléfono
+                Phone
               </Label>
               <Input
                 id="phone"
@@ -201,7 +201,7 @@ export const EditAttendeeDialog = ({
             <div className="border-t pt-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right text-sm text-muted-foreground">
-                  Código
+                  Code
                 </Label>
                 <div className="col-span-3">
                   <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
@@ -215,9 +215,9 @@ export const EditAttendeeDialog = ({
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium">Reenviar Ticket</Label>
+                    <Label className="text-sm font-medium">Resend Ticket</Label>
                     <p className="text-sm text-muted-foreground">
-                      Envía nuevamente el email del ticket a la dirección actual
+                      Send the ticket email again to the current address
                     </p>
                   </div>
                   <Button
@@ -230,12 +230,12 @@ export const EditAttendeeDialog = ({
                     {resendingEmail ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Enviando...
+                         Sending...
                       </>
                     ) : (
                       <>
                         <Mail className="h-4 w-4 mr-2" />
-                        Reenviar Ticket
+                         Resend Ticket
                       </>
                     )}
                   </Button>
@@ -252,7 +252,7 @@ export const EditAttendeeDialog = ({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            Cancelar
+             Cancel
           </Button>
           <Button 
             type="button" 
@@ -262,12 +262,12 @@ export const EditAttendeeDialog = ({
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Guardando...
+                 Saving...
               </>
             ) : (
               <>
                 <UserCheck className="h-4 w-4 mr-2" />
-                Guardar Cambios
+                 Save Changes
               </>
             )}
           </Button>

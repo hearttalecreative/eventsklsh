@@ -634,7 +634,7 @@ const EventAttendeesPage = () => {
                                        size="icon"
                                        onClick={() => handleEditClick(attendee)}
                                        className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
-                                       title="Editar datos"
+                                       title="Edit data"
                                      >
                                        <Edit className="h-4 w-4" />
                                      </Button>
@@ -643,7 +643,7 @@ const EventAttendeesPage = () => {
                                        size="icon"
                                        onClick={() => handleDeleteClick(attendee)}
                                        className="h-8 w-8 text-destructive hover:text-destructive"
-                                       title="Eliminar asistente"
+                                        title="Delete attendee"
                                      >
                                        <Trash2 className="h-4 w-4" />
                                      </Button>
