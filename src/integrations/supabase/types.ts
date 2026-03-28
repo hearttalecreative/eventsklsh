@@ -396,6 +396,9 @@ export type Database = {
           created_by: string | null
           description: string | null
           ends_at: string | null
+          external_ticket_button_text: string | null
+          external_ticket_sales: boolean
+          external_ticket_url: string | null
           hidden: boolean
           id: string
           image_url: string | null
@@ -420,6 +423,9 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          external_ticket_button_text?: string | null
+          external_ticket_sales?: boolean
+          external_ticket_url?: string | null
           hidden?: boolean
           id?: string
           image_url?: string | null
@@ -444,6 +450,9 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          external_ticket_button_text?: string | null
+          external_ticket_sales?: boolean
+          external_ticket_url?: string | null
           hidden?: boolean
           id?: string
           image_url?: string | null

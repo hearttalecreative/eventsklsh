@@ -48,4 +48,7 @@ export interface EventItem {
   recurrenceRule?: string; // optional iCal RRULE
   recurrenceText?: string; // human-readable recurrence
   timezone?: string; // IANA timezone, e.g., America/Los_Angeles
+  externalTicketSales?: boolean; // when true, use external platform instead of internal Stripe system
+  externalTicketUrl?: string; // URL to external ticketing platform
+  externalTicketButtonText?: string; // text for the purchase button
 }

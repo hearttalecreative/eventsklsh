@@ -15,9 +15,10 @@ import { useSupabaseEventDetail } from '@/hooks/useSupabaseEvents';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { Facebook, Mail, MessageSquare, Send, Share2, Copy, CalendarDays } from 'lucide-react';
+import { Facebook, Mail, MessageSquare, Send, Share2, Copy, CalendarDays, ExternalLink, Pause } from 'lucide-react';
 import whatsappIcon from '@/assets/whatsapp.svg';
 import GoogleMapDisplay from '@/components/GoogleMapDisplay';
+import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 
 function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
   if (
@@ -114,6 +115,10 @@ const EventDetail = () => {
   const [couponValid, setCouponValid] = useState(false);
   const [couponInfo, setCouponInfo] = useState<null | { applyTo: 'tickets' | 'addons' | 'both'; discount: { type: 'percent' | 'amount'; value: number } }>(null);
   const [ticketAvailability, setTicketAvailability] = useState<{ available: boolean; remaining: number } | null>(null);
+
+  // External ticket sales email capture modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   const [showFullDesc, setShowFullDesc] = useState(false);
   const { shortDesc, isLong } = useMemo(() => {
@@ -244,6 +249,49 @@ const EventDetail = () => {
   const locationStr = `${event.venue.name} — ${event.venue.address}`;
   const detailsStr = `${event.shortDescription || ''} ${typeof window !== 'undefined' ? window.location.href : ''}`.trim();
   const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(detailsStr)}&location=${encodeURIComponent(locationStr)}`;
+
+  // Handle email submission for external ticket sales
+  const handleEmailSubmit = async (email: string) => {
+    setEmailSubmitting(true);
+    
+    try {
+      const response = await supabase.functions.invoke('capture-external-email', {
+        body: {
+          email,
+          eventId: event.id,
+          eventTitle: event.title,
+          venue: event.venue
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save email');
+      }
+
+      // Close modal and redirect to external URL
+      setShowEmailModal(false);
+      
+      // Open external URL in new tab
+      if (event.externalTicketUrl) {
+        window.open(event.externalTicketUrl, '_blank', 'noopener,noreferrer');
+      }
+      
+      toast.success('Redirecting to ticket purchase page...');
+      
+    } catch (error) {
+      console.error('Email capture failed:', error);
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setEmailSubmitting(false);
+    }
+  };
+
+  // Handle external ticket sales button click
+  const handleExternalTicketClick = () => {
+    if (event.externalTicketSales) {
+      setShowEmailModal(true);
+    }
+  };
 
 const proceed = async () => {
     // basic validation
@@ -443,21 +491,67 @@ const proceed = async () => {
         </div>
 
         <aside className="space-y-6 xl:col-span-5 xl:sticky xl:top-24 self-start order-2">
-          <section className="p-6 border border-border/80 rounded-2xl bg-white/80 shadow-horizon animate-enter">
-            {!canPurchaseTickets && (
-                <div className="mb-4 p-3 rounded-lg bg-muted/70 border border-muted-foreground/20">
-                <p className="text-sm text-muted-foreground">
-                  {event.status === 'sold_out' && '🎫 This event is sold out.'}
-                  {event.status === 'paused' && '⏸️ Ticket sales are temporarily paused.'}
-                  {event.status === 'draft' && 'This event is in draft mode.'}
-                  {event.status === 'archived' && 'This event has been archived.'}
-                  {isPast && 'This event has already ended.'}
-                  {!hasTickets && !['sold_out', 'paused'].includes(event.status) && 'No tickets available for this event.'}
-                  {canPurchaseTickets ? '' : ' Ticket purchasing is disabled.'}
+          {event.externalTicketSales ? (
+            // External ticket sales UI
+            <section className="p-6 border border-border/80 rounded-2xl bg-white/80 shadow-horizon animate-enter">
+              <h2 className="text-xl font-semibold mb-4">Get Tickets</h2>
+              <p className="text-muted-foreground mb-6">
+                Tickets for this event are sold through an external platform. 
+                Click below to purchase your tickets.
+              </p>
+              
+              <Button 
+                onClick={handleExternalTicketClick}
+                className="w-full min-h-12 text-base"
+                disabled={isPaused || isPast}
+              >
+                {isPaused ? (
+                  <>
+                    <Pause className="h-4 w-4 mr-2" />
+                    Sales Paused
+                  </>
+                ) : isPast ? (
+                  <>
+                    Event Ended
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {event.externalTicketButtonText || 'Get Tickets'}
+                  </>
+                )}
+              </Button>
+              
+              {isPaused && (
+                <p className="text-sm text-muted-foreground text-center mt-3">
+                  ⏸️ Ticket sales are temporarily paused.
                 </p>
-              </div>
-            )}
-            {hasTickets && selectedTicket ? (
+              )}
+              
+              {isPast && (
+                <p className="text-sm text-muted-foreground text-center mt-3">
+                  This event has already ended.
+                </p>
+              )}
+            </section>
+          ) : (
+            // Internal ticket sales UI (existing)
+            <>
+              <section className="p-6 border border-border/80 rounded-2xl bg-white/80 shadow-horizon animate-enter">
+                {!canPurchaseTickets && (
+                    <div className="mb-4 p-3 rounded-lg bg-muted/70 border border-muted-foreground/20">
+                    <p className="text-sm text-muted-foreground">
+                      {event.status === 'sold_out' && '🎫 This event is sold out.'}
+                      {event.status === 'paused' && '⏸️ Ticket sales are temporarily paused.'}
+                      {event.status === 'draft' && 'This event is in draft mode.'}
+                      {event.status === 'archived' && 'This event has been archived.'}
+                      {isPast && 'This event has already ended.'}
+                      {!hasTickets && !['sold_out', 'paused'].includes(event.status) && 'No tickets available for this event.'}
+                      {canPurchaseTickets ? '' : ' Ticket purchasing is disabled.'}
+                    </p>
+                  </div>
+                )}
+                {hasTickets && selectedTicket ? (
               <>
                 <h2 className="text-xl font-semibold mb-4">1. Choose tickets</h2>
                 <div className="space-y-3">
@@ -536,14 +630,14 @@ const proceed = async () => {
                   )}
                 </div>
               </>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground">No tickets are currently available for this event.</p>
-              </div>
-            )}
-          </section>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground">No tickets are currently available for this event.</p>
+                  </div>
+                )}
+              </section>
 
-          {hasTickets && selectedTicket && (
+              {hasTickets && selectedTicket && (
             <>
               {event.addons.length > 0 && (
                 <section className="p-6 border border-border/80 rounded-2xl bg-white/80 shadow-horizon animate-enter">
@@ -730,8 +824,20 @@ const proceed = async () => {
                 <Button className="w-full mt-4 min-h-11 text-base" onClick={proceed} disabled={!canPurchaseTickets}>Proceed to payment</Button>
                 <p className="text-xs text-muted-foreground mt-2">You will be redirected to Stripe Checkout.</p>
               </section>
+              </>
+            )}
             </>
           )}
+
+          {/* Email Capture Modal */}
+          <EmailCaptureModal
+            isOpen={showEmailModal}
+            onClose={() => setShowEmailModal(false)}
+            onSubmit={handleEmailSubmit}
+            eventTitle={event.title}
+            isLoading={emailSubmitting}
+            buttonText={event.externalTicketButtonText}
+          />
         </aside>
       </div>
     </main>

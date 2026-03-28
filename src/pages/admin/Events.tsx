@@ -69,6 +69,11 @@ const AdminEvents = () => {
   const [status, setStatus] = useState("draft");
   const [timezone, setTimezone] = useState('America/Los_Angeles');
 
+  // External ticket sales state for creation
+  const [externalTicketSales, setExternalTicketSales] = useState(false);
+  const [externalTicketUrl, setExternalTicketUrl] = useState('');
+  const [externalTicketButtonText, setExternalTicketButtonText] = useState('Get Tickets');
+
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -119,6 +124,10 @@ const AdminEvents = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [eImagePreview, setEImagePreview] = useState<string | null>(null);
 
+  // External ticket sales state
+  const [eExternalTicketSales, setEExternalTicketSales] = useState(false);
+  const [eExternalTicketUrl, setEExternalTicketUrl] = useState('');
+  const [eExternalTicketButtonText, setEExternalTicketButtonText] = useState('Get Tickets');
 
   // Venue create dialog state
   const [venueDialogOpen, setVenueDialogOpen] = useState(false);
@@ -308,6 +317,9 @@ const AdminEvents = () => {
     setEImageFile(null); // Reset file input
     setETimezone((ev as any).timezone || 'America/Los_Angeles');
     setEHidden(ev.hidden ?? false);
+    setEExternalTicketSales(ev.external_ticket_sales ?? false);
+    setEExternalTicketUrl(ev.external_ticket_url || '');
+    setEExternalTicketButtonText(ev.external_ticket_button_text || 'Get Tickets');
     setEditOpen(true);
   };
   const createVenue = async () => {
@@ -335,6 +347,13 @@ const AdminEvents = () => {
   };
   const createEvent = async () => {
     if (!title || !startsAt) return alert("Title and start are required");
+    
+    // Validate external ticket sales
+    if (externalTicketSales && !externalTicketUrl.trim()) {
+      toast.error('External ticket URL is required when external sales is enabled');
+      return;
+    }
+    
     const { data: session } = await supabase.auth.getSession();
     const created_by = session.session?.user?.id || null;
 
@@ -353,6 +372,9 @@ const AdminEvents = () => {
       timezone,
       image_url: imageUrl || null,
       created_by,
+      external_ticket_sales: externalTicketSales,
+      external_ticket_url: externalTicketSales ? externalTicketUrl.trim() : null,
+      external_ticket_button_text: externalTicketSales && externalTicketButtonText.trim() ? externalTicketButtonText.trim() : 'Get Tickets',
     };
 
     try {
@@ -367,6 +389,7 @@ const AdminEvents = () => {
 
       // Reset form
       setTitle(""); setShortDesc(""); setLongDesc(""); setInstructions(""); setStartsAt(""); setEndsAt(""); setVenueId(undefined); setStatus("draft"); setTimezone('America/Los_Angeles'); setImageUrl("");
+      setExternalTicketSales(false); setExternalTicketUrl(""); setExternalTicketButtonText("Get Tickets");
 
       // Reload events
       await loadEvents(currentPage, {
@@ -400,6 +423,12 @@ const AdminEvents = () => {
   const saveEdit = async () => {
     if (!editingEvent) return;
 
+    // Validate external ticket sales
+    if (eExternalTicketSales && !eExternalTicketUrl.trim()) {
+      toast.error('External ticket URL is required when external sales is enabled');
+      return;
+    }
+
     const startsAtUTC = eStarts ? convertToUTC(eStarts, eTimezone) : editingEvent.starts_at;
     const endsAtUTC = eEnds ? convertToUTC(eEnds, eTimezone) : editingEvent.ends_at;
 
@@ -415,6 +444,9 @@ const AdminEvents = () => {
       image_url: eImageUrl || editingEvent.image_url,
       timezone: eTimezone,
       hidden: eHidden,
+      external_ticket_sales: eExternalTicketSales,
+      external_ticket_url: eExternalTicketSales ? eExternalTicketUrl.trim() : null,
+      external_ticket_button_text: eExternalTicketSales && eExternalTicketButtonText.trim() ? eExternalTicketButtonText.trim() : 'Get Tickets',
     };
     const { data, error } = await supabase.from('events').update(payload).eq('id', editingEvent.id).select('*').single();
     if (error) return alert(error.message);
@@ -1130,6 +1162,67 @@ const AdminEvents = () => {
                       </Select>
                     </div>
                   </div>
+
+                  {/* External Ticket Sales Configuration */}
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold">Ticket Sales Configuration</Label>
+                    <div className="space-y-4 rounded-md border bg-muted/30 p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label className="text-sm">External Ticket Sales</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Use external platform (Eventbrite, etc.) instead of integrated sales system
+                          </p>
+                        </div>
+                        <Switch 
+                          checked={externalTicketSales} 
+                          onCheckedChange={setExternalTicketSales} 
+                        />
+                      </div>
+                      
+                      {externalTicketSales && (
+                        <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+                          <div className="space-y-2">
+                            <Label htmlFor="external-url" className="text-sm font-medium">
+                              External Ticket URL <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                              id="external-url"
+                              type="url"
+                              placeholder="https://eventbrite.com/your-event"
+                              value={externalTicketUrl}
+                              onChange={(e) => setExternalTicketUrl(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Where users will be redirected to purchase tickets
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="button-text" className="text-sm font-medium">
+                              Button Text
+                            </Label>
+                            <Input
+                              id="button-text"
+                              placeholder="Get Tickets"
+                              value={externalTicketButtonText}
+                              onChange={(e) => setExternalTicketButtonText(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Text displayed on the purchase button
+                            </p>
+                          </div>
+                          
+                          <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                            <p className="text-xs text-blue-800">
+                              <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span>
+                              When external sales is enabled, users will enter their email before being redirected to your external ticketing platform.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="media" className="space-y-4 rounded-lg border border-border/70 bg-card/40 p-4">
@@ -1187,9 +1280,40 @@ const AdminEvents = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* External Sales Warning */}
+              {manageEventId && events.find(e => e.id === manageEventId)?.external_ticket_sales && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-amber-600 text-lg">⚠️</span>
+                    <div>
+                      <h3 className="font-semibold text-amber-800">External Ticket Sales Enabled</h3>
+                      <p className="text-sm text-amber-700 mt-1">
+                        Ticket configuration is disabled for this event because external ticket sales is enabled. 
+                        To configure tickets here, disable external sales in the Settings tab when editing this event.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2">
-                <Button className="w-full" variant={ticketsOpen ? "secondary" : "outline"} onClick={() => manageEventId && openTickets(manageEventId!)} disabled={!manageEventId}>Tickets</Button>
-                <Button className="w-full" variant={addonsOpen ? "secondary" : "outline"} onClick={() => manageEventId && openAddons(manageEventId!)} disabled={!manageEventId}>Add-ons</Button>
+                <Button 
+                  className="w-full" 
+                  variant={ticketsOpen ? "secondary" : "outline"} 
+                  onClick={() => manageEventId && openTickets(manageEventId!)} 
+                  disabled={!manageEventId || (manageEventId && events.find(e => e.id === manageEventId)?.external_ticket_sales)}
+                >
+                  Tickets
+                </Button>
+                <Button 
+                  className="w-full" 
+                  variant={addonsOpen ? "secondary" : "outline"} 
+                  onClick={() => manageEventId && openAddons(manageEventId!)} 
+                  disabled={!manageEventId || (manageEventId && events.find(e => e.id === manageEventId)?.external_ticket_sales)}
+                >
+                  Add-ons
+                </Button>
               </div>
               {(ticketsOpen || addonsOpen) && (
                 <div className="flex justify-end">
@@ -2370,6 +2494,67 @@ const AdminEvents = () => {
                           <Label>Visible on frontend</Label>
                         </div>
                         <Switch checked={!eHidden} onCheckedChange={(checked) => setEHidden(!checked)} />
+                      </div>
+                    </div>
+
+                    {/* External Ticket Sales Configuration */}
+                    <div className="space-y-1">
+                      <Label className="text-sm font-semibold">Ticket Sales Configuration</Label>
+                      <div className="space-y-4 rounded-md border bg-muted/30 p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <Label className="text-sm">External Ticket Sales</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Use external platform (Eventbrite, etc.) instead of integrated sales system
+                            </p>
+                          </div>
+                          <Switch 
+                            checked={eExternalTicketSales} 
+                            onCheckedChange={setEExternalTicketSales} 
+                          />
+                        </div>
+                        
+                        {eExternalTicketSales && (
+                          <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-external-url" className="text-sm font-medium">
+                                External Ticket URL <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="edit-external-url"
+                                type="url"
+                                placeholder="https://eventbrite.com/your-event"
+                                value={eExternalTicketUrl}
+                                onChange={(e) => setEExternalTicketUrl(e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Where users will be redirected to purchase tickets
+                              </p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="edit-button-text" className="text-sm font-medium">
+                                Button Text
+                              </Label>
+                              <Input
+                                id="edit-button-text"
+                                placeholder="Get Tickets"
+                                value={eExternalTicketButtonText}
+                                onChange={(e) => setEExternalTicketButtonText(e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Text displayed on the purchase button
+                              </p>
+                            </div>
+                            
+                            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                              <p className="text-xs text-blue-800">
+                                <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span>
+                                When external sales is enabled, users will enter their email before being redirected to your external ticketing platform.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </TabsContent>
