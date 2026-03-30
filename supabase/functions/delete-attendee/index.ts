@@ -79,7 +79,7 @@ serve(async (req) => {
       throw deleteError;
     }
 
-    // If the attendee was part of a paid order, check if we should clean up the order_item
+    // If the attendee was part of a paid order, check if we should clean up or update the order_item
     if (attendee.order_item_id && !attendee.is_comped) {
       console.log(`[delete-attendee] Checking order_item ${attendee.order_item_id} for cleanup`);
       
@@ -91,50 +91,91 @@ serve(async (req) => {
 
       console.log(`[delete-attendee] Remaining attendees for order_item: ${remainingAttendees || 0}`);
 
-      if (!remainingAttendees || remainingAttendees === 0) {
-        // No more attendees for this order_item, we need to get the order_id before deleting
-        const { data: orderItem } = await supabase
-          .from('order_items')
-          .select('order_id')
-          .eq('id', attendee.order_item_id)
-          .single();
+      const { data: orderItem } = await supabase
+        .from('order_items')
+        .select('*, ticket:ticket_id (participants_per_ticket)')
+        .eq('id', attendee.order_item_id)
+        .single();
 
-        console.log(`[delete-attendee] Deleting empty order_item ${attendee.order_item_id}`);
-        
-        const { error: deleteItemError } = await supabase
-          .from('order_items')
-          .delete()
-          .eq('id', attendee.order_item_id);
+      if (orderItem) {
+        const parts = orderItem.ticket?.participants_per_ticket || 1;
+        const newQuantity = Math.ceil((remainingAttendees || 0) / parts);
 
-        if (deleteItemError) {
-          console.error(`[delete-attendee] Error deleting order_item:`, deleteItemError);
-        } else if (orderItem) {
-          // Check if the order has any remaining items
-          const { data: remainingOrderItems } = await supabase
+        if (!remainingAttendees || remainingAttendees === 0) {
+          // No more attendees for this order_item, delete the item
+          console.log(`[delete-attendee] Deleting empty order_item ${attendee.order_item_id}`);
+          
+          const { error: deleteItemError } = await supabase
             .from('order_items')
-            .select('id')
-            .eq('order_id', orderItem.order_id);
+            .delete()
+            .eq('id', attendee.order_item_id);
 
-          console.log(`[delete-attendee] Order ${orderItem.order_id} has ${remainingOrderItems?.length || 0} remaining items`);
+          if (deleteItemError) {
+            console.error(`[delete-attendee] Error deleting order_item:`, deleteItemError);
+          } else {
+            // Check if the order has any remaining items
+            const { data: remainingOrderItems } = await supabase
+              .from('order_items')
+              .select('id, total_amount_cents')
+              .eq('order_id', orderItem.order_id);
 
-          if (!remainingOrderItems || remainingOrderItems.length === 0) {
-            // Delete the order if it has no more items
-            console.log(`[delete-attendee] Deleting empty order ${orderItem.order_id}`);
-            
-            const { error: deleteOrderError } = await supabase
-              .from('orders')
-              .delete()
-              .eq('id', orderItem.order_id);
+            if (!remainingOrderItems || remainingOrderItems.length === 0) {
+              // Delete the order if it has no more items
+              console.log(`[delete-attendee] Deleting empty order ${orderItem.order_id}`);
+              
+              const { error: deleteOrderError } = await supabase
+                .from('orders')
+                .delete()
+                .eq('id', orderItem.order_id);
 
-            if (deleteOrderError) {
-              console.error(`[delete-attendee] Error deleting order:`, deleteOrderError);
+              if (deleteOrderError) {
+                console.error(`[delete-attendee] Error deleting order:`, deleteOrderError);
+              } else {
+                console.log(`[delete-attendee] Successfully deleted empty order ${orderItem.order_id}`);
+              }
             } else {
-              console.log(`[delete-attendee] Successfully deleted empty order ${orderItem.order_id}`);
+              // Recalculate order total amount since order_item was deleted
+              const newOrderTotal = remainingOrderItems.reduce((sum, item) => sum + (item.total_amount_cents || 0), 0);
+              await supabase
+                .from('orders')
+                .update({ total_amount_cents: newOrderTotal })
+                .eq('id', orderItem.order_id);
             }
           }
+        } else {
+          // Order item still has attendees, but we should update its quantity to free up availability/revenue counts
+          if (newQuantity < orderItem.quantity) {
+             console.log(`[delete-attendee] Decrementing order_item quantity from ${orderItem.quantity} to ${newQuantity}`);
+             
+             // Base ticket unit price without addons
+             const ticketUnitCents = orderItem.unit_amount_cents || 0;
+             const newTotalCents = newQuantity * ticketUnitCents;
+
+             await supabase
+                .from('order_items')
+                .update({ 
+                  quantity: newQuantity, 
+                  total_amount_cents: newTotalCents 
+                })
+                .eq('id', orderItem.id);
+
+             // Update order's total_amount_cents as well
+             const { data: allItems } = await supabase
+                .from('order_items')
+                .select('id, total_amount_cents')
+                .eq('order_id', orderItem.order_id);
+             
+             if (allItems) {
+                const newOrderTotal = allItems.reduce((sum, item) => sum + (item.total_amount_cents || 0), 0);
+                await supabase
+                  .from('orders')
+                  .update({ total_amount_cents: newOrderTotal })
+                  .eq('id', orderItem.order_id);
+             }
+          } else {
+             console.log(`[delete-attendee] Order_item still has ${remainingAttendees} attendees (quantity stays ${orderItem.quantity})`);
+          }
         }
-      } else {
-        console.log(`[delete-attendee] Order_item still has ${remainingAttendees} attendees, keeping it`);
       }
     }
 
