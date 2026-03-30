@@ -1,8 +1,3 @@
-# Fix Orphaned Order Items and Quantities
-
-Run this SQL snippet in your Supabase SQL Editor to correctly update the seats that are currently wrong due to the old deletion logic. It will check every order item against its actual current attendee count and decrement the order capacity to free it up.
-
-```sql
 DO $$ 
 DECLARE
     item RECORD;
@@ -50,4 +45,3 @@ BEGIN
         WHERE oi.order_id = o.id
     ), 0);
 END $$;
-```

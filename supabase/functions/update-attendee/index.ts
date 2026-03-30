@@ -1,5 +1,5 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,53 +24,64 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Get the user from the token
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error('Authentication failed');
-    }
-
-    // Check if user is admin
-    const { data: roles, error: roleError } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    if (roleError || !roles?.some(r => r.role === 'admin')) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized: Admin access required' }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Client with user JWT — only used to identify the calling user
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false },
+      }
+    );
+
+    // Get the user from the token
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Service role client — bypasses RLS for admin checks and data operations
+    const service = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { persistSession: false } }
+    );
+
+    // Check admin role using the has_role() security definer RPC (same pattern as admin-list-attendees)
+    const { data: isAdmin, error: roleError } = await service.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin',
+    });
+
+    if (roleError || !isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse request body
     const body: UpdateAttendeeRequest = await req.json();
     const { attendeeId, name, email, phone } = body;
 
     if (!attendeeId) {
       return new Response(
         JSON.stringify({ error: 'attendeeId is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get current attendee data before update for audit log
-    const { data: currentAttendee, error: getCurrentError } = await supabase
+    // Get current attendee data before update (for audit log)
+    const { data: currentAttendee, error: getCurrentError } = await service
       .from('attendees')
       .select('*')
       .eq('id', attendeeId)
@@ -79,15 +90,12 @@ serve(async (req) => {
     if (getCurrentError || !currentAttendee) {
       return new Response(
         JSON.stringify({ error: 'Attendee not found' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Prepare update data (only include fields that are provided)
-    const updateData: any = {};
+    const updateData: Record<string, string | null> = {};
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
@@ -95,15 +103,12 @@ serve(async (req) => {
     if (Object.keys(updateData).length === 0) {
       return new Response(
         JSON.stringify({ error: 'No update fields provided' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Update attendee
-    const { data: updatedAttendee, error: updateError } = await supabase
+    // Update attendee using service client (bypasses RLS)
+    const { data: updatedAttendee, error: updateError } = await service
       .from('attendees')
       .update(updateData)
       .eq('id', attendeeId)
@@ -114,22 +119,19 @@ serve(async (req) => {
       console.error('Update error:', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to update attendee: ' + updateError.message }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Log the admin activity
+    // Log the admin activity (best-effort — don't fail if this errors)
     try {
       const changes = Object.keys(updateData).map(key => ({
         field: key,
-        old_value: currentAttendee[key],
-        new_value: updateData[key]
+        old_value: (currentAttendee as any)[key],
+        new_value: (updateData as any)[key],
       }));
 
-      await supabase
+      await service
         .from('admin_activity_logs')
         .insert({
           admin_id: user.id,
@@ -139,34 +141,27 @@ serve(async (req) => {
           details: {
             attendee_name: updatedAttendee.name,
             attendee_email: updatedAttendee.email,
-            changes: changes
-          }
+            changes,
+          },
         });
     } catch (logError) {
       console.error('Failed to log admin activity:', logError);
-      // Don't fail the request if logging fails
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         attendee: updatedAttendee,
-        message: 'Attendee updated successfully'
+        message: 'Attendee updated successfully',
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in update-attendee function:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
