@@ -4,12 +4,12 @@
 
 -- Add the new columns for external ticket sales
 ALTER TABLE public.events 
-ADD COLUMN external_ticket_sales boolean DEFAULT false,
-ADD COLUMN external_ticket_url text,
-ADD COLUMN external_ticket_button_text text DEFAULT 'Get Tickets';
+ADD COLUMN IF NOT EXISTS external_ticket_sales boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS external_ticket_url text,
+ADD COLUMN IF NOT EXISTS external_ticket_button_text text DEFAULT 'Get Tickets';
 
 -- Create table to track external email captures for analytics
-CREATE TABLE public.external_email_captures (
+CREATE TABLE IF NOT EXISTS public.external_email_captures (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id uuid NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   email text NOT NULL,
@@ -20,16 +20,16 @@ CREATE TABLE public.external_email_captures (
 );
 
 -- Add indexes for performance
-CREATE INDEX idx_external_email_captures_event_id ON public.external_email_captures(event_id);
-CREATE INDEX idx_external_email_captures_email ON public.external_email_captures(email);
-CREATE INDEX idx_external_email_captures_captured_at ON public.external_email_captures(captured_at);
+CREATE INDEX IF NOT EXISTS idx_external_email_captures_event_id ON public.external_email_captures(event_id);
+CREATE INDEX IF NOT EXISTS idx_external_email_captures_email ON public.external_email_captures(email);
+CREATE INDEX IF NOT EXISTS idx_external_email_captures_captured_at ON public.external_email_captures(captured_at);
 
 -- Add RLS (Row Level Security) policies for external_email_captures
 ALTER TABLE public.external_email_captures ENABLE ROW LEVEL SECURITY;
 
 -- Allow admins to read all captures
 CREATE POLICY "Admins can read external email captures" ON public.external_email_captures
-  FOR SELECT USING (auth.uid() IN (SELECT user_id FROM public.admins));
+  FOR SELECT USING (public.has_role(auth.uid(), 'admin'::app_role));
 
 -- Allow edge functions to insert captures (using service role)
 CREATE POLICY "Service role can insert external email captures" ON public.external_email_captures

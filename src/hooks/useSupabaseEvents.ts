@@ -48,7 +48,7 @@ export function useSupabaseEventsList() {
       const now = new Date().toISOString();
       const { data: evs, error: eErr } = await supabase
         .from('events')
-        .select('id,slug,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku,timezone,hidden')
+        .select('id,slug,title,short_description,image_url,starts_at,ends_at,venue_id,status,category,description,sku,timezone,hidden,external_ticket_sales,external_ticket_url,external_ticket_button_text')
         .in('status', ['published', 'sold_out', 'paused'])
         .eq('hidden', false)
         .gte('ends_at', now) // Only show events that haven't ended yet
@@ -117,6 +117,9 @@ export function useSupabaseEventsList() {
         recurrenceRule: r.recurrence_rule || undefined,
         recurrenceText: r.recurrence_text || undefined,
         timezone: r.timezone || 'America/Los_Angeles',
+        externalTicketSales: r.external_ticket_sales || false,
+        externalTicketUrl: r.external_ticket_url || undefined,
+        externalTicketButtonText: r.external_ticket_button_text || undefined,
       }));
 
       if (!canceled) { setData(mapped); setLoading(false); }
@@ -146,7 +149,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
       // Fetch event - no status filter for direct access
       const { data: e, error } = await supabase
         .from('events')
-        .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone')
+        .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone,external_ticket_sales,external_ticket_url,external_ticket_button_text')
         .eq(field, idOrSlug)
         .maybeSingle();
       console.log('[useSupabaseEventDetail] Event query result:', { e, error });
@@ -161,7 +164,7 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
           console.log('[useSupabaseEventDetail] Attempting suffix fallback:', suffix);
           const { data: e2, error: err2 } = await supabase
             .from('events')
-            .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone')
+            .select('id,slug,title,short_description,description,image_url,starts_at,ends_at,venue_id,status,category,sku,recurrence_rule,recurrence_text,capacity_total,timezone,external_ticket_sales,external_ticket_url,external_ticket_button_text')
             .ilike('slug', `%--${suffix}`)
             .maybeSingle();
           if (err2) console.warn('[useSupabaseEventDetail] Fallback query error:', err2);
@@ -210,6 +213,9 @@ export function useSupabaseEventDetail(idOrSlug: string | undefined) {
         recurrenceRule: eFound.recurrence_rule || undefined,
         recurrenceText: eFound.recurrence_text || undefined,
         timezone: eFound.timezone || 'America/Los_Angeles',
+        externalTicketSales: eFound.external_ticket_sales || false,
+        externalTicketUrl: eFound.external_ticket_url || undefined,
+        externalTicketButtonText: eFound.external_ticket_button_text || undefined,
       };
       console.log('[useSupabaseEventDetail] Final mapped event:', mapped);
       if (!canceled) { setData(mapped); setLoading(false); }
