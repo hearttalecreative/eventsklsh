@@ -188,9 +188,19 @@ serve(async (req) => {
         : null;
 
       try {
-        // Invoke confirmation email function
-        const { error: invokeErr } = await supabase.functions.invoke('send-confirmation', {
-          body: {
+        // Use direct fetch for edge-to-edge invocation so we can pass the service role
+        // key as the Authorization header — supabase.functions.invoke() from a
+        // service-role client does not forward a JWT, which causes JWT verification
+        // failures on the downstream send-confirmation function.
+        const sendConfirmationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-confirmation`;
+        const emailResp = await fetch(sendConfirmationUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
+          },
+          body: JSON.stringify({
             email,
             name,
             phone,
@@ -205,12 +215,13 @@ serve(async (req) => {
             qrCode: qrCode,
             orderDetails: orderSummary,
             is_comped: true
-          }
+          }),
         });
 
-        if (invokeErr) {
-          console.error('Error sending confirmation email:', invokeErr);
-          emailErrorResponse = invokeErr.message || String(invokeErr);
+        if (!emailResp.ok) {
+          const errText = await emailResp.text();
+          console.error('Error sending confirmation email — HTTP', emailResp.status, errText);
+          emailErrorResponse = `HTTP ${emailResp.status}: ${errText}`;
         } else {
           emailSent = true;
           console.log('Confirmation email sent successfully to:', email);
