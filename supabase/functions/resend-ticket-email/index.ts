@@ -66,17 +66,25 @@ serve(async (req) => {
       );
     }
 
+    // Use service-role client to bypass RLS on the orders join
+    const service = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { persistSession: false } }
+    );
+
     // Get attendee data with related information
-    const { data: attendeeData, error: getAttendeeError } = await supabase
+    // Note: order_items is left-joined (no !inner) so comped attendees without orders still work
+    const { data: attendeeData, error: getAttendeeError } = await service
       .from('attendees')
       .select(`
         *,
         events!inner(*,venues(*)),
-        order_items!inner(
+        order_items(
           id,
           ticket_id,
           quantity,
-          orders!inner(
+          orders(
             id,
             total_amount_cents,
             user_id,
@@ -142,7 +150,9 @@ serve(async (req) => {
 
     // Prepare email content
     const emailSubject = `Your Ticket for ${attendeeData.events.title}`;
-    const order = attendeeData.order_items.orders;
+    // order_items is an array — safely grab the first item and its order
+    const firstOrderItem = Array.isArray(attendeeData.order_items) ? attendeeData.order_items[0] : null;
+    const order = firstOrderItem?.orders ?? null;
     const venue = attendeeData.events.venues;
 
     const emailHtml = `
@@ -183,8 +193,8 @@ serve(async (req) => {
             ${attendeeData.phone ? `<div class="ticket-detail"><strong>Phone:</strong> ${attendeeData.phone}</div>` : ''}
             <div class="ticket-detail"><strong>Event Date:</strong> ${eventDate}</div>
             ${venue ? `<div class="ticket-detail"><strong>Venue:</strong> ${venue.name}${venue.address ? `, ${venue.address}` : ''}</div>` : ''}
-            <div class="ticket-detail"><strong>Ticket Type:</strong> ${attendeeData.order_items.tickets?.name || 'Standard'}</div>
-            <div class="ticket-detail"><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</div>
+            <div class="ticket-detail"><strong>Ticket Type:</strong> ${firstOrderItem?.tickets?.name || 'Standard'}</div>
+            ${order ? `<div class="ticket-detail"><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</div>` : ''}
           </div>
 
           ${attendeeData.events.instructions ? `
