@@ -662,7 +662,8 @@ const TicketSales = () => {
                   </Card>
                 );
               })
-            )}
+            )
+          }
         </div>
 
         {/* Pagination */}
