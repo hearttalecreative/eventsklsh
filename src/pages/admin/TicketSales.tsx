@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import AdminRoute from "@/routes/AdminRoute";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface AttendeeWithNotes {
   id: string;
@@ -76,9 +78,11 @@ const TicketSales = () => {
           title,
           capacity_total,
           starts_at,
-          ends_at
+          ends_at,
+          status
         `)
-        .in('status', ['published', 'sold_out'])
+        .in('status', ['published', 'sold_out', 'archived', 'paused'])
+
         .order('starts_at', { ascending: true });
 
       if (error) throw error;
@@ -316,33 +320,35 @@ const TicketSales = () => {
         </Helmet>
 
         <header className="space-y-3 rounded-2xl border border-primary/15 bg-gradient-to-br from-white via-[hsl(35_50%_97%)] to-[hsl(30_45%_94%)] p-4 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Ticket Sales Analytics</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Sales Analytics: {showPastEvents ? 'Past Events' : 'Current Events'}
+              </h1>
               <p className="text-sm md:text-base text-muted-foreground">
-                Monitor ticket sales performance by event and ticket type
+                Monitor ticket sales performance and attendee metrics
               </p>
             </div>
-            <Button
-              variant={showPastEvents ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowPastEvents(!showPastEvents)}
-              className="w-full md:w-auto min-h-10"
+            
+            <Tabs 
+              value={showPastEvents ? "past" : "current"} 
+              onValueChange={(v) => setShowPastEvents(v === "past")}
+              className="w-full md:w-auto"
             >
-              {showPastEvents ? (
-                <>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Current Events ({currentEvents.length})
-                </>
-              ) : (
-                <>
-                  <History className="h-4 w-4 mr-2" />
-                  Past Events ({pastEvents.length})
-                </>
-              )}
-            </Button>
+              <TabsList className="grid w-full grid-cols-2 h-10">
+                <TabsTrigger value="current" className="text-xs md:text-sm">
+                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                  Current ({currentEvents.length})
+                </TabsTrigger>
+                <TabsTrigger value="past" className="text-xs md:text-sm">
+                  <History className="h-3.5 w-3.5 mr-1.5" />
+                  Past ({pastEvents.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </header>
+
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="bg-white/80 border-primary/10">
