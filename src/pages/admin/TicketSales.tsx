@@ -293,7 +293,7 @@ const TicketSales = () => {
       return hoursSinceStart < 24; // Show events that started less than 24 hours ago
     }
     return new Date(event.event_ends_at) >= now;
-  });
+  }).sort((a, b) => new Date(a.event_starts_at).getTime() - new Date(b.event_starts_at).getTime());
   
   const pastEvents = filteredSalesData.filter(event => {
     if (!event.event_ends_at) {
@@ -302,7 +302,7 @@ const TicketSales = () => {
       return hoursSinceStart >= 24;
     }
     return new Date(event.event_ends_at) < now;
-  });
+  }).sort((a, b) => new Date(b.event_starts_at).getTime() - new Date(a.event_starts_at).getTime());
 
   const eventsToDisplay = showPastEvents ? pastEvents : currentEvents;
   
