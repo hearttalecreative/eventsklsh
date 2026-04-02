@@ -12,6 +12,23 @@ import { Progress } from "@/components/ui/progress";
 import AdminRoute from "@/routes/AdminRoute";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { FilterX } from "lucide-react";
+
 
 
 interface AttendeeWithNotes {
@@ -61,6 +78,12 @@ const TicketSales = () => {
   const [salesData, setSalesData] = useState<EventSalesData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showPastEvents, setShowPastEvents] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const now = new Date();
+
 
   useEffect(() => {
     fetchTicketSales();
@@ -253,9 +276,16 @@ const TicketSales = () => {
     }).format(cents / 100);
   };
 
-  // Separate current and past events
-  const now = new Date();
-  const currentEvents = salesData.filter(event => {
+  // Filter by Month and Year BEFORE splitting into current vs past
+  const filteredSalesData = salesData.filter(event => {
+    const eventStart = new Date(event.event_starts_at);
+    const matchesMonth = selectedMonth === "all" || (eventStart.getMonth() + 1).toString() === selectedMonth;
+    const matchesYear = selectedYear === "all" || eventStart.getFullYear().toString() === selectedYear;
+    return matchesMonth && matchesYear;
+  });
+
+  // Separate current and past events based on filtered data
+  const currentEvents = filteredSalesData.filter(event => {
     // If no end time, check if start time is in the future or within last 24 hours
     if (!event.event_ends_at) {
       const eventStart = new Date(event.event_starts_at);
@@ -265,7 +295,7 @@ const TicketSales = () => {
     return new Date(event.event_ends_at) >= now;
   });
   
-  const pastEvents = salesData.filter(event => {
+  const pastEvents = filteredSalesData.filter(event => {
     if (!event.event_ends_at) {
       const eventStart = new Date(event.event_starts_at);
       const hoursSinceStart = (now.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
@@ -275,6 +305,42 @@ const TicketSales = () => {
   });
 
   const eventsToDisplay = showPastEvents ? pastEvents : currentEvents;
+  
+  // Apply pagination to the final list
+  const totalItems = eventsToDisplay.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = eventsToDisplay.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Generate Year options based on data, plus fallback current/next year
+  const years = Array.from(new Set([
+    ...salesData.map(e => new Date(e.event_starts_at).getFullYear().toString()),
+    new Date().getFullYear().toString(),
+    (new Date().getFullYear() + 1).toString()
+  ])).sort((a, b) => b.localeCompare(a));
+
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+
+  const resetFilters = () => {
+    setSelectedMonth("all");
+    setSelectedYear("all");
+    setCurrentPage(1);
+  };
+
   const viewTotals = eventsToDisplay.reduce(
     (acc, event) => {
       acc.capacity += event.event_capacity;
@@ -321,33 +387,76 @@ const TicketSales = () => {
 
         <header className="space-y-3 rounded-2xl border border-primary/15 bg-gradient-to-br from-white via-[hsl(35_50%_97%)] to-[hsl(30_45%_94%)] p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
+            <div className="flex-1 min-w-0">
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                 Sales Analytics: {showPastEvents ? 'Past Events' : 'Current Events'}
               </h1>
-              <p className="text-sm md:text-base text-muted-foreground">
+              <p className="text-sm md:text-base text-muted-foreground truncate">
                 Monitor ticket sales performance and attendee metrics
               </p>
             </div>
             
-            <Tabs 
-              value={showPastEvents ? "past" : "current"} 
-              onValueChange={(v) => setShowPastEvents(v === "past")}
-              className="w-full md:w-auto"
-            >
-              <TabsList className="grid w-full grid-cols-2 h-10">
-                <TabsTrigger value="current" className="text-xs md:text-sm">
-                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                  Current ({currentEvents.length})
-                </TabsTrigger>
-                <TabsTrigger value="past" className="text-xs md:text-sm">
-                  <History className="h-3.5 w-3.5 mr-1.5" />
-                  Past ({pastEvents.length})
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <div className="flex gap-2">
+                <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-full sm:w-[120px] bg-white/50 backdrop-blur-sm border-primary/20">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Years</SelectItem>
+                    {years.map(y => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={selectedMonth} onValueChange={(v) => { setSelectedMonth(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-full sm:w-[150px] bg-white/50 backdrop-blur-sm border-primary/20">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Months</SelectItem>
+                    {months.map(m => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Tabs 
+                  value={showPastEvents ? "past" : "current"} 
+                  onValueChange={(v) => { setShowPastEvents(v === "past"); setCurrentPage(1); }}
+                  className="flex-1 sm:flex-none"
+                >
+                  <TabsList className="grid w-full grid-cols-2 h-10">
+                    <TabsTrigger value="current" className="text-xs md:text-sm">
+                      <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                      Current ({currentEvents.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="past" className="text-xs md:text-sm">
+                      <History className="h-3.5 w-3.5 mr-1.5" />
+                      Past ({pastEvents.length})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                {(selectedMonth !== "all" || selectedYear !== "all") && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={resetFilters}
+                    title="Clear Filters"
+                    className="h-10 w-10 text-muted-foreground hover:text-primary"
+                  >
+                    <FilterX className="h-5 w-5" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </header>
+
 
 
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -388,15 +497,18 @@ const TicketSales = () => {
                     {showPastEvents ? 'No past events found' : 'No current events found'}
                   </h3>
                   <p className="text-muted-foreground">
-                    {showPastEvents 
-                      ? 'No completed events with ticket sales data available.'
-                      : 'No current events with ticket sales data available.'}
+                    {selectedMonth !== "all" || selectedYear !== "all"
+                      ? 'No events match your current month/year filters.'
+                      : (showPastEvents 
+                        ? 'No completed events with ticket sales data available.'
+                        : 'No current events with ticket sales data available.')}
                   </p>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            eventsToDisplay.map((event) => {
+            currentItems.map((event) => {
+
               const overallPercentage = (event.total_tickets_sold / event.event_capacity) * 100;
               
               return (
@@ -551,9 +663,45 @@ const TicketSales = () => {
                 );
               })
             )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center pt-8 pb-12">
+            <Pagination>
+              <PaginationContent className="bg-white/70 backdrop-blur-sm border border-primary/10 rounded-full px-2 py-1 shadow-sm">
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page} className="hidden sm:inline-block">
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
-        </main>
-      </AdminRoute>
+        )}
+      </main>
+    </AdminRoute>
+
     );
   };
 
