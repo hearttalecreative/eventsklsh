@@ -123,8 +123,15 @@ const CouponsPage = () => {
               <Input type="number" min={0} max={100} value={form.discount_percent ?? ''} onChange={(e)=>setForm(f=>({...f, discount_percent: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="100" />
             </div>
             <div>
-              <label className="text-sm">Fixed amount (cents)</label>
-              <Input type="number" min={0} value={form.discount_amount_cents ?? ''} onChange={(e)=>setForm(f=>({...f, discount_amount_cents: e.target.value===''? undefined : Number(e.target.value)}))} placeholder="Optional" />
+              <label className="text-sm">Fixed amount ($)</label>
+              <Input 
+                type="number" 
+                min={0} 
+                step="0.01"
+                value={form.discount_amount_cents !== undefined ? form.discount_amount_cents / 100 : ''} 
+                onChange={(e)=>setForm(f=>({...f, discount_amount_cents: e.target.value===''? undefined : Math.round(Number(e.target.value) * 100)}))} 
+                placeholder="Optional" 
+              />
             </div>
             <div>
               <label className="text-sm">Starts at</label>
@@ -195,7 +202,7 @@ const CouponsPage = () => {
                       )}
                     </div>
                     <div className="text-muted-foreground text-[11px] mt-1 leading-relaxed break-words">
-                      {c.discount_percent != null ? `${c.discount_percent}%` : `${c.discount_amount_cents}¢`} · {c.apply_to}
+                      {c.discount_percent != null ? `${c.discount_percent}%` : `$${(c.discount_amount_cents! / 100).toFixed(2)}`} · {c.apply_to}
                       {c.one_per_customer && <span className="ml-2 text-primary">• 1 per customer (global)</span>}
                       {c.one_per_customer_per_event && <span className="ml-2 text-primary">• 1 per customer per event</span>}
                     </div>

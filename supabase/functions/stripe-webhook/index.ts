@@ -76,16 +76,34 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
     try {
       // Load cart payload. New flow stores it in DB (Stripe metadata values have a 500-char limit).
       const metadata = session.metadata || {};
+      let purchaseId = metadata.purchase_id;
+
+      // Fallback for Training Purchase: Match by email + amount + status=pending if metadata was lost
+      if (!purchaseId && session.customer_details?.email) {
+        console.log(`[stripe-webhook] Missing purchase_id, attempting fallback for ${session.customer_details.email} ($${(session.amount_total || 0) / 100})`);
+        const { data: matchedPurchases } = await supabase
+          .from("training_purchases")
+          .select("id")
+          .eq("email", session.customer_details.email)
+          .eq("amount_cents", session.amount_total || 0)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false });
+
+        if (matchedPurchases && matchedPurchases.length === 1) {
+          purchaseId = matchedPurchases[0].id;
+          console.log(`[stripe-webhook] Fallback matched training purchase: ${purchaseId}`);
+        }
+      }
 
       // Check for training purchases first
-      if (metadata.purchase_id) {
-        console.log(`[stripe-webhook] Processing training purchase: ${metadata.purchase_id}`);
+      if (purchaseId) {
+        console.log(`[stripe-webhook] Processing training purchase: ${purchaseId}`);
 
         // Update the training_purchases table to "paid"
         const { error: updateError } = await supabase
           .from("training_purchases")
           .update({ status: "paid", updated_at: new Date().toISOString() })
-          .eq("id", metadata.purchase_id);
+          .eq("id", purchaseId);
 
         if (updateError) {
           console.error("[stripe-webhook] Failed to update training purchase status:", updateError);
@@ -131,7 +149,7 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
                 <p>Please follow up with the customer to confirm training dates.</p>
               `,
             });
-            console.log(`[stripe-webhook] Admin confirmation email sent for training purchase: ${metadata.purchase_id}`);
+            console.log(`[stripe-webhook] Admin confirmation email sent for training purchase: ${purchaseId}`);
           } else {
             console.warn("[stripe-webhook] RESEND_API_KEY not set — skipping confirmation email");
           }
@@ -152,36 +170,61 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
           status: 'success',
           error_message: null,
           processing_time_ms: Date.now() - startTime,
+          metadata: {
+            payment_intent_id: session.payment_intent,
+            purchase_id: purchaseId
+          }
         });
 
-        console.log(`[stripe-webhook] Successfully processed training purchase: ${metadata.purchase_id}`);
-        return new Response(JSON.stringify({ received: true, purchaseId: metadata.purchase_id }), { status: 200 });
+        console.log(`[stripe-webhook] Successfully processed training purchase: ${purchaseId}`);
+        return new Response(JSON.stringify({ received: true, purchaseId: purchaseId }), { status: 200 });
       }
 
       let cart: any | null = null;
+      let checkoutId = metadata.checkout_id;
+
+      // Fallback for Event Ticket: Match by email in pending_checkouts if metadata was lost
+      if (!checkoutId && !metadata.cart_data && session.customer_details?.email) {
+        console.log(`[stripe-webhook] Missing checkout_id, attempting fallback for ${session.customer_details.email}`);
+        const { data: matchedCheckouts } = await supabase
+          .from("pending_checkouts")
+          .select("id, cart")
+          .eq("buyer_email", session.customer_details.email)
+          .order("created_at", { ascending: false });
+
+        if (matchedCheckouts && matchedCheckouts.length === 1) {
+          checkoutId = matchedCheckouts[0].id;
+          cart = matchedCheckouts[0].cart;
+          console.log(`[stripe-webhook] Fallback matched event checkout: ${checkoutId}`);
+        }
+      }
+
       if (metadata.cart_data) {
         // Backward-compat for older sessions
         cart = JSON.parse(metadata.cart_data);
-      } else if (metadata.checkout_id) {
-        const { data: pending, error: pendingErr } = await supabase
-          .from('pending_checkouts')
-          .select('cart')
-          .eq('id', metadata.checkout_id)
-          .maybeSingle();
+      } else if (checkoutId) {
+        // Load cart from DB if not already loaded by fallback
+        if (!cart) {
+          const { data: pending, error: pendingErr } = await supabase
+            .from('pending_checkouts')
+            .select('cart')
+            .eq('id', checkoutId)
+            .maybeSingle();
 
-        if (pendingErr) {
-          console.error('[stripe-webhook] Failed to load pending checkout cart:', pendingErr);
-          await notifyAdminOfError(`Failed to load pending checkout cart: ${pendingErr.message}`);
-          return new Response(JSON.stringify({ received: true, reason: 'pending_checkout_load_failed' }), { status: 200 });
+          if (pendingErr) {
+            console.error('[stripe-webhook] Failed to load pending checkout cart:', pendingErr);
+            await notifyAdminOfError(`Failed to load pending checkout cart: ${pendingErr.message}`);
+            return new Response(JSON.stringify({ received: true, reason: 'pending_checkout_load_failed' }), { status: 200 });
+          }
+
+          if (!pending?.cart) {
+            console.error(`[stripe-webhook] No pending checkout cart found for checkout_id=${checkoutId} session=${session.id}`);
+            await notifyAdminOfError(`No pending checkout cart found for checkout_id=${checkoutId}`);
+            return new Response(JSON.stringify({ received: true, reason: 'missing_pending_checkout' }), { status: 200 });
+          }
+
+          cart = pending.cart;
         }
-
-        if (!pending?.cart) {
-          console.error(`[stripe-webhook] No pending checkout cart found for checkout_id=${metadata.checkout_id} session=${session.id}`);
-          await notifyAdminOfError(`No pending checkout cart found for checkout_id=${metadata.checkout_id}`);
-          return new Response(JSON.stringify({ received: true, reason: 'missing_pending_checkout' }), { status: 200 });
-        }
-
-        cart = pending.cart;
       }
 
       if (!cart) {
@@ -291,7 +334,8 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
         tickets_count: cart.participants?.length || 0,
         metadata: {
           payment_status: session.payment_status,
-          payment_method_types: session.payment_method_types
+          payment_method_types: session.payment_method_types,
+          payment_intent_id: session.payment_intent
         }
       }).select().single();
 

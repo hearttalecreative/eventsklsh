@@ -87,13 +87,16 @@ const StripeLogs = () => {
   const filterLogs = () => {
     let filtered = [...logs];
 
-    // Search by name or email
+    // Search by name, email, or Stripe IDs
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(log => 
         log.customer_name?.toLowerCase().includes(term) ||
         log.customer_email?.toLowerCase().includes(term) ||
-        log.stripe_session_id?.toLowerCase().includes(term)
+        log.stripe_session_id?.toLowerCase().includes(term) ||
+        log.stripe_event_id?.toLowerCase().includes(term) ||
+        // Also search within metadata which often contains the payment_intent ID
+        (log.metadata && JSON.stringify(log.metadata).toLowerCase().includes(term))
       );
     }
 
