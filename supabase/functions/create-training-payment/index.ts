@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,41 +25,40 @@ const formatPrice = (cents: number) => {
 };
 
 const sendNotificationEmail = async (
-  resend: Resend,
+  supabase: any,
   program: { name: string; price_cents: number; processing_fee_percent: number },
   customer: { fullName: string; email: string; phone: string; preferredDates: string },
   totalAmountCents: number
 ) => {
   const processingFeeCents = Math.round(program.price_cents * (program.processing_fee_percent / 100));
+  const adminEmail = Deno.env.get("ADMIN_EMAIL") || "info@kylelamsoundhealing.com";
   
+  const message = `A new training program registration has been initiated (Pending Payment).
+
+Program Details:
+- Program: ${program.name}
+- Program Price: ${formatPrice(program.price_cents)}
+- Processing Fee (${program.processing_fee_percent}%): ${formatPrice(processingFeeCents)}
+- Total Amount: ${formatPrice(totalAmountCents)}
+
+Customer Information:
+- Name: ${customer.fullName}
+- Email: ${customer.email}
+- Phone: ${customer.phone}
+- Preferred Dates: ${customer.preferredDates}
+
+This is a lead notification. A second email will be sent once the payment is confirmed.`;
+
   try {
-    await resend.emails.send({
-      from: "Kyle Lam Sound Healing <onboarding@resend.dev>",
-      to: ["info@kylelamsoundhealing.com", "kyle@kylelamsoundhealing.com"],
-      subject: `New Training Purchase: ${program.name}`,
-      html: `
-        <h1>New Training Program Purchase</h1>
-        
-        <h2>Program Details</h2>
-        <ul>
-          <li><strong>Program:</strong> ${program.name}</li>
-          <li><strong>Program Price:</strong> ${formatPrice(program.price_cents)}</li>
-          <li><strong>Processing Fee (${program.processing_fee_percent}%):</strong> ${formatPrice(processingFeeCents)}</li>
-          <li><strong>Total Amount:</strong> ${formatPrice(totalAmountCents)}</li>
-        </ul>
-        
-        <h2>Customer Information</h2>
-        <ul>
-          <li><strong>Name:</strong> ${customer.fullName}</li>
-          <li><strong>Email:</strong> ${customer.email}</li>
-          <li><strong>Phone:</strong> ${customer.phone}</li>
-          <li><strong>Preferred Dates:</strong> ${customer.preferredDates}</li>
-        </ul>
-        
-        <p>Please follow up with the customer to confirm training dates.</p>
-      `,
+    await supabase.functions.invoke("send-admin-email", {
+      body: {
+        to: [adminEmail, "kyle@kylelamsoundhealing.com"],
+        subject: `New Training Purchase (Pending): ${program.name} — ${customer.fullName}`,
+        message: message,
+        recipientName: "Administrator"
+      }
     });
-    console.log("Notification email sent to info@kylelamsoundhealing.com");
+    console.log("Notification email sent via send-admin-email");
   } catch (emailError) {
     console.error("Failed to send notification email:", emailError);
   }
@@ -87,10 +85,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Initialize Resend
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
     // Fetch the training program
     const { data: program, error: programError } = await supabase
@@ -197,14 +191,12 @@ serve(async (req) => {
       .eq("id", purchase.id);
 
     // Send notification email
-    if (resend) {
-      await sendNotificationEmail(
-        resend,
-        program,
-        { fullName, email, phone, preferredDates },
-        totalAmountCents
-      );
-    }
+    await sendNotificationEmail(
+      supabase,
+      program,
+      { fullName, email, phone, preferredDates },
+      totalAmountCents
+    );
 
     console.log(`Created Stripe session ${session.id} for purchase ${purchase.id}`);
 

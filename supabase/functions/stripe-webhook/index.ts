@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { Resend } from "npm:resend@2.0.0";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -113,46 +112,41 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
 
         // Send confirmation email to admin now that payment is confirmed
         try {
-          const resendApiKey = Deno.env.get("RESEND_API_KEY");
-          if (resendApiKey) {
-            const resend = new Resend(resendApiKey);
-            const customerName = metadata.customer_name || session.customer_details?.name || "Unknown";
-            const customerEmail = metadata.customer_email || session.customer_details?.email || "Unknown";
-            const customerPhone = metadata.customer_phone || "Not provided";
-            const preferredDates = metadata.preferred_dates || "Not provided";
-            const programName = metadata.program_name || "Training Program";
-            const amountUSD = ((session.amount_total || 0) / 100).toFixed(2);
+          const customerName = metadata.customer_name || session.customer_details?.name || "Unknown";
+          const customerEmail = metadata.customer_email || session.customer_details?.email || "Unknown";
+          const customerPhone = metadata.customer_phone || "Not provided";
+          const preferredDates = metadata.preferred_dates || "Not provided";
+          const programName = metadata.program_name || "Training Program";
+          const amountUSD = ((session.amount_total || 0) / 100).toFixed(2);
 
-            await resend.emails.send({
-              from: "Kyle Lam Sound Healing <onboarding@resend.dev>",
-              to: ["info@kylelamsoundhealing.com", "kyle@kylelamsoundhealing.com"],
+          const adminEmail = Deno.env.get("ADMIN_EMAIL") || "info@kylelamsoundhealing.com";
+
+          const message = `New Training Payment Confirmed!
+A payment has been successfully processed through Stripe.
+
+Program Details:
+- Program: ${programName}
+- Amount Paid: $${amountUSD} USD
+- Stripe Session: ${session.id}
+
+Customer Information:
+- Name: ${customerName}
+- Email: ${customerEmail}
+- Phone: ${customerPhone}
+- Preferred Dates: ${preferredDates}
+
+Please follow up with the customer to confirm training dates.`;
+
+          await supabase.functions.invoke("send-admin-email", {
+            body: {
+              to: [adminEmail, "kyle@kylelamsoundhealing.com"],
               subject: `✅ Payment Confirmed: ${programName} — ${customerName}`,
-              html: `
-                <h1>New Training Payment Confirmed</h1>
-                <p>A payment has been successfully processed through Stripe.</p>
+              message: message,
+              recipientName: "Administrator"
+            }
+          });
 
-                <h2>Program Details</h2>
-                <ul>
-                  <li><strong>Program:</strong> ${programName}</li>
-                  <li><strong>Amount Paid:</strong> $${amountUSD} USD</li>
-                  <li><strong>Stripe Session:</strong> ${session.id}</li>
-                </ul>
-
-                <h2>Customer Information</h2>
-                <ul>
-                  <li><strong>Name:</strong> ${customerName}</li>
-                  <li><strong>Email:</strong> ${customerEmail}</li>
-                  <li><strong>Phone:</strong> ${customerPhone}</li>
-                  <li><strong>Preferred Dates:</strong> ${preferredDates}</li>
-                </ul>
-
-                <p>Please follow up with the customer to confirm training dates.</p>
-              `,
-            });
-            console.log(`[stripe-webhook] Admin confirmation email sent for training purchase: ${purchaseId}`);
-          } else {
-            console.warn("[stripe-webhook] RESEND_API_KEY not set — skipping confirmation email");
-          }
+          console.log(`[stripe-webhook] Admin confirmation email sent via send-admin-email for training purchase: ${purchaseId}`);
         } catch (emailErr) {
           console.error("[stripe-webhook] Failed to send training confirmation email:", emailErr);
           // Don't fail the webhook just because email failed
