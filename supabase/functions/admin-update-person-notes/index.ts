@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 type RecordType = "event" | "training";
@@ -78,18 +79,49 @@ serve(async (req) => {
     const sanitizedNotes = internalNotes && internalNotes.trim().length > 0 ? internalNotes.trim() : null;
 
     const targetTable = recordType === "training" ? "training_purchases" : "attendees";
+    const notesUpdatedAt = new Date().toISOString();
 
-    const { error: updateError } = await serviceClient
+    let updateAttempt = await serviceClient
       .from(targetTable)
-      .update({ internal_notes: sanitizedNotes })
-      .eq("id", recordId);
+      .update({
+        internal_notes: sanitizedNotes,
+        internal_notes_updated_at: notesUpdatedAt,
+      })
+      .eq("id", recordId)
+      .select("id, internal_notes, internal_notes_updated_at")
+      .single();
+
+    if (updateAttempt.error && updateAttempt.error.message?.includes("internal_notes_updated_at")) {
+      updateAttempt = await serviceClient
+        .from(targetTable)
+        .update({ internal_notes: sanitizedNotes })
+        .eq("id", recordId)
+        .select("id, internal_notes")
+        .single();
+    }
+
+    const updateError = updateAttempt.error;
 
     if (updateError) {
+      if (updateError.message?.includes("internal_notes")) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing internal_notes column. Apply the latest database migration before editing notes.",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
       console.error("[admin-update-person-notes] update error", updateError);
       throw updateError;
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      notesUpdatedAt: (updateAttempt.data as { internal_notes_updated_at?: string | null })?.internal_notes_updated_at || notesUpdatedAt,
+    }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

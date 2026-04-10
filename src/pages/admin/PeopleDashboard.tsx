@@ -56,6 +56,7 @@ interface PeopleRecord {
   stripeSessionId: string | null;
   confirmationCode: string | null;
   internalNotes: string | null;
+  notesUpdatedAt: string | null;
   meta?: PersonMeta;
 }
 
@@ -75,8 +76,20 @@ interface ProductsResponse {
 
 interface DashboardResponse {
   records: PeopleRecord[];
-  summary: Summary;
-  products: ProductsResponse;
+  products?: ProductsResponse;
+  pagination: PaginationState;
+}
+
+interface NotesUpdateResponse {
+  ok: boolean;
+  notesUpdatedAt?: string | null;
+}
+
+interface PaginationState {
+  page: number;
+  pageSize: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
 }
 
 const defaultSummary: Summary = {
@@ -86,6 +99,13 @@ const defaultSummary: Summary = {
   paidCount: 0,
   pendingCount: 0,
   revenueCents: 0,
+};
+
+const defaultPagination: PaginationState = {
+  page: 1,
+  pageSize: 25,
+  hasPrevPage: false,
+  hasNextPage: false,
 };
 
 const currencyFormatter = new Intl.NumberFormat("es-US", {
@@ -167,6 +187,8 @@ const PeopleDashboard = () => {
   const [people, setPeople] = useState<PeopleRecord[]>([]);
   const [summary, setSummary] = useState<Summary>(defaultSummary);
   const [products, setProducts] = useState<ProductsResponse>({ events: [], trainings: [] });
+  const [pagination, setPagination] = useState<PaginationState>(defaultPagination);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -205,7 +227,9 @@ const PeopleDashboard = () => {
     setError(null);
 
     const payload: Record<string, unknown> = {
-      limit: 400,
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      includeCatalog: !catalogLoaded,
     };
 
     if (debouncedSearch) payload.search = debouncedSearch;
@@ -228,9 +252,21 @@ const PeopleDashboard = () => {
       if (!data) throw new Error("No data returned from admin-list-customers");
 
       setPeople(data.records || []);
-      setSummary(data.summary || defaultSummary);
-      if (data.products) {
+      setSummary({
+        totalRecords: data.records?.length || 0,
+        eventRecords: (data.records || []).filter((record) => record.recordType === "event").length,
+        trainingRecords: (data.records || []).filter((record) => record.recordType === "training").length,
+        paidCount: (data.records || []).filter((record) => (record.status || "").toLowerCase() === "paid").length,
+        pendingCount: (data.records || []).filter((record) => (record.status || "").toLowerCase() !== "paid").length,
+        revenueCents: (data.records || [])
+          .filter((record) => (record.status || "").toLowerCase() === "paid")
+          .reduce((sum, record) => sum + (record.amountCents || 0), 0),
+      });
+      setPagination(data.pagination || defaultPagination);
+
+      if (data.products && !catalogLoaded) {
         setProducts(data.products);
+        setCatalogLoaded(true);
       }
     } catch (err: unknown) {
       const rawMessage = err instanceof Error ? err.message : String(err);
@@ -245,7 +281,17 @@ const PeopleDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, debouncedSearch, productFilterId, productFilterType, toast]);
+  }, [
+    catalogLoaded,
+    dateFrom,
+    dateTo,
+    debouncedSearch,
+    pagination.page,
+    pagination.pageSize,
+    productFilterId,
+    productFilterType,
+    toast,
+  ]);
 
   useEffect(() => {
     fetchData();
@@ -264,6 +310,7 @@ const PeopleDashboard = () => {
     setProductKey("all");
     setProductFilterId(null);
     setProductFilterType(null);
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleProductChange = (value: string) => {
@@ -271,6 +318,7 @@ const PeopleDashboard = () => {
     if (value === "all") {
       setProductFilterId(null);
       setProductFilterType(null);
+      setPagination((prev) => ({ ...prev, page: 1 }));
       return;
     }
 
@@ -278,6 +326,7 @@ const PeopleDashboard = () => {
     if (type && id) {
       setProductFilterType(type === "training" ? "training" : "event");
       setProductFilterId(id);
+      setPagination((prev) => ({ ...prev, page: 1 }));
     }
   };
 
@@ -297,21 +346,30 @@ const PeopleDashboard = () => {
         internalNotes: notesValue.trim() ? notesValue.trim() : null,
       };
 
-      const { error: fnError } = await supabase.functions.invoke("admin-update-person-notes", {
+      const { data, error: fnError } = await supabase.functions.invoke<NotesUpdateResponse>("admin-update-person-notes", {
         body: payload,
       });
 
       if (fnError) throw fnError;
+      const notesUpdatedAt = data?.notesUpdatedAt || new Date().toISOString();
 
       setPeople((prev) =>
         prev.map((record) =>
           record.id === selectedPerson.id && record.recordType === selectedPerson.recordType
-            ? { ...record, internalNotes: payload.internalNotes }
+            ? { ...record, internalNotes: payload.internalNotes, notesUpdatedAt }
             : record,
         ),
       );
 
-      setSelectedPerson((prev) => (prev ? { ...prev, internalNotes: payload.internalNotes || null } : prev));
+      setSelectedPerson((prev) => (
+        prev
+          ? {
+              ...prev,
+              internalNotes: payload.internalNotes || null,
+              notesUpdatedAt,
+            }
+          : prev
+      ));
 
       toast({
         title: "Notes updated",
@@ -424,35 +482,21 @@ const PeopleDashboard = () => {
     );
   };
 
-  const heroBadge = `${summary.totalRecords} records · ${summary.paidCount} paid`;
+  const heroBadge = `${summary.totalRecords} records on this page · ${summary.paidCount} paid`;
 
   const renderNotesPreview = (record: PeopleRecord) => {
     if (!record.internalNotes) {
       return <span className="text-muted-foreground text-xs italic">No notes yet</span>;
     }
     return (
-      <span className="text-sm line-clamp-2">
-        {record.internalNotes}
-      </span>
+      <div className="space-y-1">
+        <span className="text-sm line-clamp-2">{record.internalNotes}</span>
+        {record.notesUpdatedAt && (
+          <p className="text-[11px] text-muted-foreground">Updated {formatDisplayDate(record.notesUpdatedAt)}</p>
+        )}
+      </div>
     );
   };
-
-  const productOptions = useMemo(() => {
-    const options = [{ value: "all", label: "All products" }];
-    if (products.events.length) {
-      options.push({ value: "__events", label: "Events" });
-      products.events.forEach((event) =>
-        options.push({ value: `event:${event.id}`, label: event.title || "Untitled event" }),
-      );
-    }
-    if (products.trainings.length) {
-      options.push({ value: "__trainings", label: "Trainings" });
-      products.trainings.forEach((program) =>
-        options.push({ value: `training:${program.id}`, label: program.name || "Training" }),
-      );
-    }
-    return options;
-  }, [products]);
 
   return (
     <AdminRoute>
@@ -472,7 +516,7 @@ const PeopleDashboard = () => {
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">People ops</p>
             <h1 className="text-2xl md:text-3xl font-semibold text-foreground">People management workspace</h1>
             <p className="text-sm text-muted-foreground max-w-3xl">
-              Search, filter, and contact everyone who has paid through Stripe across events, trainings, and future products—all in one practical view.
+              Search, filter, and contact everyone who has paid through Stripe across events, trainings, and future products—all in one practical view. Most recent purchases appear first.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs md:text-sm">
@@ -491,7 +535,10 @@ const PeopleDashboard = () => {
               <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
                 placeholder="Search by name, email, phone, or payment code"
                 className="pl-9 h-11"
               />
@@ -500,14 +547,19 @@ const PeopleDashboard = () => {
               <Input
                 type="date"
                 value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
+                onChange={(event) => {
+                  setDateFrom(event.target.value);
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
                 className="h-11"
-                icon=""
               />
               <Input
                 type="date"
                 value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
+                onChange={(event) => {
+                  setDateTo(event.target.value);
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
                 className="h-11"
               />
               <Select value={productKey} onValueChange={handleProductChange}>
@@ -582,8 +634,8 @@ const PeopleDashboard = () => {
                 <div key={`${record.recordType}-${record.id}`} className="rounded-2xl border border-amber-900/20 bg-white/95 p-4 space-y-3 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-base font-semibold leading-tight">{record.fullName || "No name"}</p>
-                      <p className="text-xs text-muted-foreground">{record.productName}</p>
+                      <p className="text-lg font-semibold leading-tight">{record.fullName || "No name"}</p>
+                      <p className="text-[11px] text-muted-foreground">{record.productName}</p>
                     </div>
                     <Badge variant="secondary" className="text-[11px]">
                       {statusLabel(record.status)}
@@ -636,14 +688,14 @@ const PeopleDashboard = () => {
                     <TableRow key={`${record.recordType}-${record.id}`} className="hover:bg-amber-50/40">
                       <TableCell>
                         <div className="space-y-1">
-                          <p className="font-medium">{record.fullName || "No name"}</p>
+                          <p className="text-base font-semibold">{record.fullName || "No name"}</p>
                           <p className="text-xs text-muted-foreground">{record.email || record.phone || "—"}</p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <p className="text-sm font-medium">{record.productName}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{record.recordType}</p>
+                          <p className="text-xs text-muted-foreground">{record.productName}</p>
+                          <p className="text-[11px] text-muted-foreground capitalize">{record.recordType}</p>
                         </div>
                       </TableCell>
                       <TableCell className="font-semibold">{formatCurrency(record.amountCents)}</TableCell>
@@ -673,6 +725,55 @@ const PeopleDashboard = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {!loading && !error && people.length > 0 && (
+            <div className="mt-5 flex flex-col gap-3 border-t border-border/70 pt-4 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Page {pagination.page} · {people.length} records shown
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Rows</span>
+                  <Select
+                    value={String(pagination.pageSize)}
+                    onValueChange={(value) => {
+                      const nextSize = Number(value) || 25;
+                      setPagination({ page: 1, pageSize: nextSize, hasPrevPage: false, hasNextPage: false });
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[84px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!pagination.hasPrevPage || loading}
+                    onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!pagination.hasNextPage || loading}
+                    onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </section>
@@ -752,7 +853,11 @@ const PeopleDashboard = () => {
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold">Internal notes</p>
                     {selectedPerson.internalNotes && (
-                      <Badge variant="secondary" className="text-[11px]">Stored on last edit</Badge>
+                      <Badge variant="secondary" className="text-[11px]">
+                        {selectedPerson.notesUpdatedAt
+                          ? `Saved ${formatDisplayDate(selectedPerson.notesUpdatedAt)}`
+                          : "Saved"}
+                      </Badge>
                     )}
                   </div>
                   <Textarea
