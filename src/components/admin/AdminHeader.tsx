@@ -10,6 +10,7 @@ import {
   Menu,
   Users,
   UserPlus,
+  UserCheck,
   Shield,
   Home,
   FileWarning,
@@ -48,7 +49,8 @@ const AdminHeader = () => {
   ];
 
   const peopleNavItems = [
-    { path: "/admin/attendees", label: "Attendees", icon: Users },
+    { path: "/admin/people", label: "People", icon: Users },
+    { path: "/admin/attendees", label: "Event Attendees", icon: UserCheck },
     { path: "/admin/attendees/add", label: "Add Attendee", icon: UserPlus },
   ];
 
