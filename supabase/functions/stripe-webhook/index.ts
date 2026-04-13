@@ -7,6 +7,7 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
 });
 
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") || "";
+const ADMIN_REPORTS_EMAIL = "info@kylelamsoundhealing.com";
 
 serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
@@ -42,7 +43,6 @@ serve(async (req) => {
 
     const notifyAdminOfError = async (errorMsg: string, cartData: any = null) => {
       try {
-        const adminEmail = Deno.env.get("ADMIN_EMAIL") || "privates@kylelamsoundhealing.com";
         const customerName = session.customer_details?.name || cartData?.participants?.[0]?.fullName || "Unknown";
         const customerEmail = session.customer_details?.email || cartData?.participants?.[0]?.email || "Unknown";
         const amount = (session.amount_total || 0) / 100;
@@ -61,7 +61,7 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
 
         await supabase.functions.invoke("send-admin-email", {
           body: {
-            to: adminEmail,
+            to: ADMIN_REPORTS_EMAIL,
             subject: `Action Required: Stripe Payment Processing Error - ${customerName}`,
             message: message,
             recipientName: "Administrator"
@@ -119,8 +119,6 @@ Please check the Stripe Dashboard and the application's Admin Logs for more deta
           const programName = metadata.program_name || "Training Program";
           const amountUSD = ((session.amount_total || 0) / 100).toFixed(2);
 
-          const adminEmail = Deno.env.get("ADMIN_EMAIL") || "privates@kylelamsoundhealing.com";
-
           const message = `New Training Payment Confirmed!
 A payment has been successfully processed through Stripe.
 
@@ -139,7 +137,7 @@ Please follow up with the customer to confirm training dates.`;
 
           await supabase.functions.invoke("send-admin-email", {
             body: {
-              to: [adminEmail],
+              to: [ADMIN_REPORTS_EMAIL],
               subject: `✅ Payment Confirmed: ${programName} — ${customerName}`,
               message: message,
               recipientName: "Administrator"

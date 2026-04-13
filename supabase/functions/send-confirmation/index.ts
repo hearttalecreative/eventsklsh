@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // Brevo email helper
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") || "";
+const ADMIN_REPORTS_EMAIL = "info@kylelamsoundhealing.com";
 async function sendBrevoEmail(toEmail: string, toName: string, subject: string, html: string) {
   const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "no-reply@example.com";
   const senderName = Deno.env.get("BREVO_SENDER_NAME") || "Notifications";
@@ -372,14 +373,14 @@ serve(async (req: Request) => {
       const response = await sendBrevoEmail(email, name, subject, html);
       console.log("[send-confirmation] Email sent successfully to recipient:", { email, response });
       
-      // Send copy to Info@kylelamsoundhealing.com
+      // Send copy to admin reports mailbox
       try {
         const copySubject = is_comped 
           ? `[COPY - COMPLIMENTARY] ${subject} - ${name}`
           : `[COPY] ${subject} - ${name}`;
-        console.log("[send-confirmation] Sending copy to Info@kylelamsoundhealing.com...");
-        const copyResponse = await sendBrevoEmail("Info@kylelamsoundhealing.com", "Kyle Lam Sound Healing", copySubject, html);
-        console.log("[send-confirmation] Copy email sent successfully to Info@kylelamsoundhealing.com");
+        console.log(`[send-confirmation] Sending copy to ${ADMIN_REPORTS_EMAIL}...`);
+        await sendBrevoEmail(ADMIN_REPORTS_EMAIL, "Kyle Lam Sound Healing", copySubject, html);
+        console.log(`[send-confirmation] Copy email sent successfully to ${ADMIN_REPORTS_EMAIL}`);
       } catch (copyError: any) {
         console.error("[send-confirmation] WARNING - Failed to send copy email:", copyError?.message || String(copyError));
         // Don't fail the main request if copy email fails

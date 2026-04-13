@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const ADMIN_REPORTS_EMAIL = 'info@kylelamsoundhealing.com';
+
 interface ResendTicketEmailRequest {
   attendeeId: string;
 }
@@ -216,7 +218,7 @@ serve(async (req) => {
           <div style="background: #f0f9ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
             <strong>💡 Need Help?</strong><br/>
             If you have any questions or need to make changes to your ticket, please contact us at 
-            <a href="mailto:Info@kylelamsoundhealing.com" style="color: #667eea;">Info@kylelamsoundhealing.com</a>
+            <a href="mailto:${ADMIN_REPORTS_EMAIL}" style="color: #667eea;">${ADMIN_REPORTS_EMAIL}</a>
           </div>
         </div>
         
@@ -253,7 +255,7 @@ serve(async (req) => {
         // Copy admin on resent tickets
         cc: [
           {
-            email: 'Info@kylelamsoundhealing.com',
+            email: ADMIN_REPORTS_EMAIL,
             name: 'Kyle Lam Sound Healing - Admin'
           }
         ],

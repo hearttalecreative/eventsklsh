@@ -3,6 +3,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") || "";
 const SENDER_EMAIL = Deno.env.get("BREVO_SENDER_EMAIL") || "no-reply@example.com";
 const SENDER_NAME = Deno.env.get("BREVO_SENDER_NAME") || "Event Admin";
+const TRAINING_PENDING_EMAIL = "privates@kylelamsoundhealing.com";
+const TRAINING_PENDING_TYPE = "training_pending";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +40,7 @@ interface AdminEmailRequest {
   message: string;
   recipientName?: string | null;
   isBulk?: boolean;
+  notificationType?: "training_pending" | "general";
 }
 
 serve(async (req) => {
@@ -56,7 +59,7 @@ serve(async (req) => {
       });
     }
 
-    const { to, subject, message, recipientName, isBulk }: AdminEmailRequest = await req.json();
+    const { to, subject, message, recipientName, isBulk, notificationType }: AdminEmailRequest = await req.json();
 
     if (!to || !subject || !message) {
       return new Response(JSON.stringify({ ok: false, error: "Missing to, subject or message" }), {
@@ -66,8 +69,37 @@ serve(async (req) => {
     }
 
     const toArray = Array.isArray(to) ? to : [to];
+    const normalizedRecipients = toArray.map((email) => email.trim().toLowerCase());
+    const includesTrainingPendingMailbox = normalizedRecipients.includes(TRAINING_PENDING_EMAIL);
 
-    console.log("[send-admin-email] sending to", { count: toArray.length, isBulk: !!isBulk });
+    if (notificationType === TRAINING_PENDING_TYPE) {
+      const allRecipientsAreTrainingMailbox = normalizedRecipients.every(
+        (email) => email === TRAINING_PENDING_EMAIL,
+      );
+      if (!allRecipientsAreTrainingMailbox) {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: "training_pending notifications can only be sent to privates@kylelamsoundhealing.com",
+        }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    } else if (includesTrainingPendingMailbox) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: "privates@kylelamsoundhealing.com is reserved for training pending payment notifications only",
+      }), {
+        status: 403,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("[send-admin-email] sending to", {
+      count: toArray.length,
+      isBulk: !!isBulk,
+      notificationType: notificationType || "general",
+    });
 
     const results: { email: string; ok: boolean; error?: string }[] = [];
 

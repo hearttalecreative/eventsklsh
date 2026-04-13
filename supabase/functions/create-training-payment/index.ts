@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const TRAINING_PENDING_EMAIL = "privates@kylelamsoundhealing.com";
+
 interface RequestPayload {
   programId: string;
   fullName: string;
@@ -31,9 +33,12 @@ const sendNotificationEmail = async (
   totalAmountCents: number
 ) => {
   const processingFeeCents = Math.round(program.price_cents * (program.processing_fee_percent / 100));
-  const adminEmail = Deno.env.get("ADMIN_EMAIL") || "privates@kylelamsoundhealing.com";
+  const pendingTrainingEmail = TRAINING_PENDING_EMAIL;
   
   const message = `A new training program registration has been initiated (Pending Payment).
+
+Payment Status:
+- Pending
 
 Program Details:
 - Program: ${program.name}
@@ -52,10 +57,11 @@ This is a lead notification. A second email will be sent once the payment is con
   try {
     await supabase.functions.invoke("send-admin-email", {
       body: {
-        to: [adminEmail],
+        to: [pendingTrainingEmail],
         subject: `New Training Purchase (Pending): ${program.name} — ${customer.fullName}`,
         message: message,
-        recipientName: "Administrator"
+        recipientName: "Administrator",
+        notificationType: "training_pending"
       }
     });
     console.log("Notification email sent via send-admin-email");
