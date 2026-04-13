@@ -31,7 +31,7 @@ const sendNotificationEmail = async (
   totalAmountCents: number
 ) => {
   const processingFeeCents = Math.round(program.price_cents * (program.processing_fee_percent / 100));
-  const adminEmail = Deno.env.get("ADMIN_EMAIL") || "info@kylelamsoundhealing.com";
+  const adminEmail = Deno.env.get("ADMIN_EMAIL") || "privates@kylelamsoundhealing.com";
   
   const message = `A new training program registration has been initiated (Pending Payment).
 
@@ -52,7 +52,7 @@ This is a lead notification. A second email will be sent once the payment is con
   try {
     await supabase.functions.invoke("send-admin-email", {
       body: {
-        to: [adminEmail, "kyle@kylelamsoundhealing.com"],
+        to: [adminEmail],
         subject: `New Training Purchase (Pending): ${program.name} — ${customer.fullName}`,
         message: message,
         recipientName: "Administrator"
