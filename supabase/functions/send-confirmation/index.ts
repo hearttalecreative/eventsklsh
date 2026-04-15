@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // Brevo email helper
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") || "";
 const ADMIN_REPORTS_EMAIL = "info@kylelamsoundhealing.com";
+const DEFAULT_EVENT_TIMEZONE = "America/Los_Angeles";
 async function sendBrevoEmail(toEmail: string, toName: string, subject: string, html: string) {
   const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "no-reply@example.com";
   const senderName = Deno.env.get("BREVO_SENDER_NAME") || "Notifications";
@@ -40,6 +41,7 @@ interface Payload {
   eventTitle?: string;
   eventDescription?: string;
   eventDate?: string;
+  eventTimezone?: string;
   eventVenue?: string;
   instructions?: string;
   confirmationCode?: string;
@@ -69,6 +71,43 @@ interface Payload {
   };
 }
 
+const normalizeTimezone = (timezone?: string): string => {
+  if (!timezone) return DEFAULT_EVENT_TIMEZONE;
+
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
+    return timezone;
+  } catch {
+    return DEFAULT_EVENT_TIMEZONE;
+  }
+};
+
+const formatGoogleCalendarDateUTC = (date: Date): string =>
+  date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+const buildGoogleCalendarUrl = ({
+  title,
+  description,
+  venue,
+  date,
+  timezone,
+}: {
+  title: string;
+  description: string;
+  venue: string;
+  date: string;
+  timezone: string;
+}): string | null => {
+  const start = new Date(date);
+  if (Number.isNaN(start.getTime())) return null;
+
+  const end = new Date(start.getTime() + 90 * 60 * 1000);
+  const startStr = formatGoogleCalendarDateUTC(start);
+  const endStr = formatGoogleCalendarDateUTC(end);
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startStr}/${endStr}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(venue)}&ctz=${encodeURIComponent(timezone)}`;
+};
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -84,6 +123,7 @@ serve(async (req: Request) => {
       eventTitle, 
       eventDescription, 
       eventDate, 
+      eventTimezone,
       eventVenue, 
       instructions, 
       confirmationCode,
@@ -98,9 +138,12 @@ serve(async (req: Request) => {
       name, 
       email, 
       eventTitle, 
+      eventTimezone,
       hasOrderDetails: !!orderDetails,
       is_comped 
     });
+
+    const resolvedEventTimezone = normalizeTimezone(eventTimezone);
 
     if (!email || !name) {
       console.error("[send-confirmation] ERROR - Missing required fields:", { name, email });
@@ -140,21 +183,29 @@ serve(async (req: Request) => {
     const formatEventDate = (dateStr: string) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
+      if (Number.isNaN(date.getTime())) return dateStr;
       
-      // Use the timezone from the event data or default to PST
-      const timezone = 'America/Los_Angeles'; // PST/PDT timezone
-      
-      return date.toLocaleDateString('en-US', {
+      return new Intl.DateTimeFormat('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: timezone,
+        timeZone: resolvedEventTimezone,
         timeZoneName: 'short'
-      });
+      }).format(date);
     };
+
+    const googleCalendarUrl = eventDate
+      ? buildGoogleCalendarUrl({
+          title: eventTitle || '',
+          description: eventDescription || '',
+          venue: eventVenue || '',
+          date: eventDate,
+          timezone: resolvedEventTimezone,
+        })
+      : null;
 
     // Format currency amount
     const formatAmount = (cents: number, currency: string = 'usd') => {
@@ -203,16 +254,16 @@ serve(async (req: Request) => {
               ${eventDate ? `
               <div style="margin-bottom:16px;text-align:center;">
                 <p style="margin:0 0 4px 0;color:#8a7766;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">Date & Time</p>
-                <p style="margin:0;color:#2c1810;font-weight:400;font-size:16px;">${formatEventDate(eventDate)}</p>
-                <div style="margin-top:12px;">
-                  <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle || '')}&dates=${eventDate ? eventDate.replace(/[-:]/g, '').replace(/\.\d{3}/, '') : ''}/${eventDate ? new Date(new Date(eventDate).getTime() + 90*60*1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : ''}&details=${encodeURIComponent(eventDescription || '')}&location=${encodeURIComponent(eventVenue || '')}&ctz=America/Los_Angeles" 
+                 <p style="margin:0;color:#2c1810;font-weight:400;font-size:16px;">${formatEventDate(eventDate)}</p>
+                 <div style="margin-top:12px;">
+                  ${googleCalendarUrl ? `<a href="${googleCalendarUrl}" 
                      target="_blank" 
                      style="display:inline-block;background:#a0662f;color:#ffffff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500;margin-right:8px;">
                     Add to Google Calendar
-                  </a>
-                </div>
-              </div>
-              ` : ''}
+                  </a>` : ''}
+                 </div>
+               </div>
+               ` : ''}
               
               ${eventVenue ? `
               <div style="text-align:center;${eventDate ? 'border-top:1px solid #f0ede8;padding-top:16px;' : ''}">

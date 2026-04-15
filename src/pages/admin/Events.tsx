@@ -872,7 +872,7 @@ const AdminEvents = () => {
     try {
       const { data: event, error: eventError } = await supabase
         .from('events')
-        .select('id,title,short_description,starts_at,slug,image_url,instructions,venue_id')
+        .select('id,title,short_description,starts_at,timezone,slug,image_url,instructions,venue_id')
         .eq('id', ticketsEventId)
         .maybeSingle();
 
@@ -894,6 +894,7 @@ const AdminEvents = () => {
           eventTitle: event.title,
           eventDescription: event.short_description,
           eventDate: event.starts_at,
+          eventTimezone: event.timezone,
           eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
           instructions: instructionsForPreview,
           confirmationCode: `PREVIEW-${ticket.id.slice(0, 6).toUpperCase()}`,

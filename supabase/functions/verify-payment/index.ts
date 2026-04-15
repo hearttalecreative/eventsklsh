@@ -326,6 +326,7 @@ serve(async (req) => {
               eventTitle: event.title,
               eventDescription: event.short_description,
               eventDate: event.starts_at,
+              eventTimezone: event.timezone,
               eventVenue: venue ? `${venue.name}${venue.address ? ` — ${venue.address}` : ''}` : 'Location TBD',
               instructions: postPurchaseInstructions,
               confirmationCode: attendee?.confirmation_code,

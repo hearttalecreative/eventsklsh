@@ -207,6 +207,7 @@ serve(async (req) => {
             eventTitle: event.title,
             eventDescription: event.short_description || event.description,
             eventDate: event.starts_at,
+            eventTimezone: event.timezone,
             eventVenue: venueInfo,
             eventImageUrl: event.image_url,
             eventSlug: event.slug,

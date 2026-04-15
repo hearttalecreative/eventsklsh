@@ -8,6 +8,18 @@ const corsHeaders = {
 };
 
 const ADMIN_REPORTS_EMAIL = 'info@kylelamsoundhealing.com';
+const DEFAULT_EVENT_TIMEZONE = 'America/Los_Angeles';
+
+const normalizeTimezone = (timezone?: string | null): string => {
+  if (!timezone) return DEFAULT_EVENT_TIMEZONE;
+
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
+    return timezone;
+  } catch {
+    return DEFAULT_EVENT_TIMEZONE;
+  }
+};
 
 interface ResendTicketEmailRequest {
   attendeeId: string;
@@ -140,15 +152,22 @@ serve(async (req) => {
     // Generate QR code for check-in (reusing existing confirmation code)
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${attendeeData.confirmation_code}`;
 
-    // Format event date
-    const eventDate = new Date(attendeeData.events.starts_at).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const eventTimezone = normalizeTimezone(attendeeData.events.timezone);
+
+    // Format event date in the event timezone
+    const eventDateValue = new Date(attendeeData.events.starts_at);
+    const eventDate = Number.isNaN(eventDateValue.getTime())
+      ? String(attendeeData.events.starts_at)
+      : new Intl.DateTimeFormat('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: eventTimezone,
+          timeZoneName: 'short',
+        }).format(eventDateValue);
 
     // Prepare email content
     const emailSubject = `Your Ticket for ${attendeeData.events.title}`;
@@ -156,6 +175,14 @@ serve(async (req) => {
     const firstOrderItem = Array.isArray(attendeeData.order_items) ? attendeeData.order_items[0] : null;
     const order = firstOrderItem?.orders ?? null;
     const venue = attendeeData.events.venues;
+    const orderDate = order?.created_at
+      ? new Date(order.created_at).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: eventTimezone,
+        })
+      : null;
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -196,7 +223,7 @@ serve(async (req) => {
             <div class="ticket-detail"><strong>Event Date:</strong> ${eventDate}</div>
             ${venue ? `<div class="ticket-detail"><strong>Venue:</strong> ${venue.name}${venue.address ? `, ${venue.address}` : ''}</div>` : ''}
             <div class="ticket-detail"><strong>Ticket Type:</strong> ${firstOrderItem?.tickets?.name || 'Standard'}</div>
-            ${order ? `<div class="ticket-detail"><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</div>` : ''}
+            ${orderDate ? `<div class="ticket-detail"><strong>Order Date:</strong> ${orderDate}</div>` : ''}
           </div>
 
           ${attendeeData.events.instructions ? `
