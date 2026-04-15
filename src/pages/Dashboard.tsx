@@ -47,6 +47,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 
+const LAST_SELECTED_EVENT_STORAGE_KEY = "admin:event-attendees:last-event-id";
+
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -74,6 +76,11 @@ interface MonthlyRevenue {
 
 const Dashboard = () => {
   const { data: events } = useSupabaseEventsList();
+  const attendeesPath = useMemo(() => {
+    if (typeof window === "undefined") return "/admin/attendees";
+    const savedEventId = window.localStorage.getItem(LAST_SELECTED_EVENT_STORAGE_KEY);
+    return savedEventId ? `/admin/events/${savedEventId}/attendees` : "/admin/attendees";
+  }, []);
   
   const [venueFilter, setVenueFilter] = useState<string>("all");
   const [compareVenue, setCompareVenue] = useState<string>("all");
@@ -769,7 +776,7 @@ const Dashboard = () => {
                   <Link to="/admin/events">Manage events <ArrowUpRight className="h-4 w-4" /></Link>
                 </Button>
                 <Button asChild variant="outline" className="justify-between min-h-11">
-                  <Link to="/admin/attendees">Attendees & check-in <ArrowUpRight className="h-4 w-4" /></Link>
+                  <Link to={attendeesPath}>Attendees & check-in <ArrowUpRight className="h-4 w-4" /></Link>
                 </Button>
                 <Button asChild variant="outline" className="justify-between min-h-11">
                   <Link to="/admin/ticket-sales">Sales analytics <ArrowUpRight className="h-4 w-4" /></Link>

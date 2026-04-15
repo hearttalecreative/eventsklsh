@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
-import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import AdminRoute from "@/routes/AdminRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CheckCircle, XCircle, Search, Filter, ArrowLeft, Trash2, Download, Edit } from "lucide-react";
+import { CheckCircle, XCircle, Search, Filter, Trash2, Download, Edit } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,8 +48,34 @@ interface Attendee {
   }>;
 }
 
+const LAST_SELECTED_EVENT_STORAGE_KEY = "admin:event-attendees:last-event-id";
+
+const getDefaultEventId = (events: Event[]): string => {
+  if (!events.length) return "";
+
+  const now = Date.now();
+  const nearestUpcoming = events.find((event) => {
+    const startsAt = new Date(event.starts_at).getTime();
+    return !Number.isNaN(startsAt) && startsAt >= now;
+  });
+
+  return nearestUpcoming?.id || events[events.length - 1].id;
+};
+
+const sortAttendeesByName = (attendeesData: any[]): Attendee[] => {
+  return [...attendeesData].sort((a, b) => {
+    const nameA = (a.name || "").toLowerCase();
+    const nameB = (b.name || "").toLowerCase();
+    if (!nameA && !nameB) return 0;
+    if (!nameA) return 1;
+    if (!nameB) return -1;
+    return nameA.localeCompare(nameB);
+  }) as Attendee[];
+};
+
 const EventAttendeesPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>(eventId || "");
@@ -66,68 +92,117 @@ const EventAttendeesPage = () => {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
-  // Load events for selector
+  const loadAttendees = useCallback(async (targetEventId: string, options?: { showLoader?: boolean }) => {
+    const showLoader = options?.showLoader ?? true;
+    if (!targetEventId) return;
+
+    if (showLoader) setLoading(true);
+
+    try {
+      // Fetch attendees via admin edge function (bypasses RLS safely)
+      const { data, error } = await supabase.functions.invoke("admin-list-attendees", {
+        body: { eventId: targetEventId },
+      });
+      if (error) throw error as any;
+
+      const attendeesData = (data?.attendees || []) as any[];
+      setAttendees(sortAttendeesByName(attendeesData));
+
+      // Load total capacity for this event
+      const { data: ticketsData } = await supabase
+        .from("tickets")
+        .select("capacity_total")
+        .eq("event_id", targetEventId);
+
+      const capacity = ticketsData?.reduce((sum, ticket) => sum + (ticket.capacity_total || 0), 0) || 0;
+      setTotalCapacity(capacity);
+    } catch (error) {
+      console.error("Failed to load attendees:", error);
+    } finally {
+      if (showLoader) setLoading(false);
+    }
+  }, []);
+
+  // Load events for selector and choose default event context
   useEffect(() => {
     const loadEvents = async () => {
       const { data } = await supabase
         .from("events")
         .select("id, title, starts_at, venues:venue_id(name)")
         .order("starts_at", { ascending: true });
-      
-      setEvents(data || []);
-      if (!eventId && data && data.length > 0) {
-        setSelectedEventId(data[0].id);
+
+      const loadedEvents = (data || []) as Event[];
+      setEvents(loadedEvents);
+
+      if (!loadedEvents.length) {
+        setSelectedEventId("");
+        return;
       }
+
+      const eventIdFromUrl = eventId && loadedEvents.some((event) => event.id === eventId) ? eventId : "";
+      if (eventIdFromUrl) {
+        setSelectedEventId(eventIdFromUrl);
+        return;
+      }
+
+      const persistedEventId = typeof window !== "undefined"
+        ? window.localStorage.getItem(LAST_SELECTED_EVENT_STORAGE_KEY)
+        : null;
+
+      const validPersistedEventId = persistedEventId && loadedEvents.some((event) => event.id === persistedEventId)
+        ? persistedEventId
+        : "";
+
+      setSelectedEventId(validPersistedEventId || getDefaultEventId(loadedEvents));
     };
+
     loadEvents();
   }, [eventId]);
+
+  // Keep URL and local storage in sync with selected event
+  useEffect(() => {
+    if (!selectedEventId) return;
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LAST_SELECTED_EVENT_STORAGE_KEY, selectedEventId);
+    }
+
+    if (eventId !== selectedEventId) {
+      navigate(`/admin/events/${selectedEventId}/attendees`, { replace: true });
+    }
+  }, [selectedEventId, eventId, navigate]);
 
   // Load attendees for selected event
   useEffect(() => {
     if (!selectedEventId) return;
 
-    const loadAttendees = async () => {
-      setLoading(true);
-      
-      try {
-        // Fetch attendees via admin edge function (bypasses RLS safely)
-        const { data, error } = await supabase.functions.invoke("admin-list-attendees", {
-          body: { eventId: selectedEventId },
-        });
-        if (error) throw error as any;
+    void loadAttendees(selectedEventId);
+  }, [selectedEventId, loadAttendees]);
 
-        const attendeesData = (data?.attendees || []) as any[];
-        console.log("Loaded attendees via function:", attendeesData.length);
+  // Keep attendee list live across multiple browser windows/admins
+  useEffect(() => {
+    if (!selectedEventId) return;
 
-        // Sort alphabetically by name in JavaScript to handle nulls properly
-        const sortedAttendees = attendeesData.sort((a, b) => {
-          const nameA = (a.name || "").toLowerCase();
-          const nameB = (b.name || "").toLowerCase();
-          if (!nameA && !nameB) return 0;
-          if (!nameA) return 1;
-          if (!nameB) return -1;
-          return nameA.localeCompare(nameB);
-        });
-        
-        // Load total capacity for this event
-        const { data: ticketsData } = await supabase
-          .from("tickets")
-          .select("capacity_total")
-          .eq("event_id", selectedEventId);
-        
-        const capacity = ticketsData?.reduce((sum, ticket) => sum + (ticket.capacity_total || 0), 0) || 0;
-        
-        setAttendees(sortedAttendees as any);
-        setTotalCapacity(capacity);
-      } catch (error) {
-        console.error("Failed to load attendees:", error);
-      } finally {
-        setLoading(false);
-      }
+    const channel = supabase
+      .channel(`admin-attendees-${selectedEventId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "attendees",
+          filter: `event_id=eq.${selectedEventId}`,
+        },
+        () => {
+          void loadAttendees(selectedEventId, { showLoader: false });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
     };
-
-    loadAttendees();
-  }, [selectedEventId]);
+  }, [selectedEventId, loadAttendees]);
 
   const filteredAttendees = useMemo(() => {
     let filtered = attendees;
@@ -205,36 +280,9 @@ const EventAttendeesPage = () => {
   };
 
   const handleEditSuccess = () => {
-    // Reload attendees to reflect changes
     if (!selectedEventId) return;
-    
-    setLoading(true);
-    const loadAttendees = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("admin-list-attendees", {
-          body: { eventId: selectedEventId },
-        });
-        if (error) throw error as any;
 
-        const attendeesData = (data?.attendees || []) as any[];
-        const sortedAttendees = attendeesData.sort((a, b) => {
-          const nameA = (a.name || "").toLowerCase();
-          const nameB = (b.name || "").toLowerCase();
-          if (!nameA && !nameB) return 0;
-          if (!nameA) return 1;
-          if (!nameB) return -1;
-          return nameA.localeCompare(nameB);
-        });
-        
-        setAttendees(sortedAttendees as any);
-      } catch (error) {
-        console.error("Failed to reload attendees:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAttendees();
+    void loadAttendees(selectedEventId);
   };
 
   const handleDeleteConfirm = async () => {
@@ -250,30 +298,10 @@ const EventAttendeesPage = () => {
       
       setDeleteDialogOpen(false);
       setAttendeeToDelete(null);
-      
-      // Reload attendees to reflect updated counts
-      setLoading(true);
-      const { data: attendeesData, error: reloadError } = await supabase.functions.invoke("admin-list-attendees", {
-        body: { eventId: selectedEventId },
-      });
-      
-      if (reloadError) throw reloadError;
-      
-      const attendeesList = (attendeesData?.attendees || []) as any[];
-      const sortedAttendees = attendeesList.sort((a, b) => {
-        const nameA = (a.name || "").toLowerCase();
-        const nameB = (b.name || "").toLowerCase();
-        if (!nameA && !nameB) return 0;
-        if (!nameA) return 1;
-        if (!nameB) return -1;
-        return nameA.localeCompare(nameB);
-      });
-      
-      setAttendees(sortedAttendees as any);
-      setLoading(false);
+
+      await loadAttendees(selectedEventId);
     } catch (error: any) {
       alert(`Failed to delete attendee: ${error.message}`);
-      setLoading(false);
     }
   };
 

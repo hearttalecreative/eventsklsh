@@ -26,6 +26,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+const LAST_SELECTED_EVENT_STORAGE_KEY = "admin:event-attendees:last-event-id";
+
 const AdminHeader = () => {
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -37,8 +39,22 @@ const AdminHeader = () => {
   };
 
   const closeSheet = () => setIsSheetOpen(false);
+  const attendeeNavPath = typeof window !== "undefined"
+    ? (() => {
+        const savedEventId = window.localStorage.getItem(LAST_SELECTED_EVENT_STORAGE_KEY);
+        return savedEventId ? `/admin/events/${savedEventId}/attendees` : "/admin/attendees";
+      })()
+    : "/admin/attendees";
 
-  const isActive = (path: string) => location.pathname === path;
+  const isEventAttendeesPath = /^\/admin\/events\/[^/]+\/attendees$/.test(location.pathname);
+
+  const isActive = (path: string) => {
+    if (path === "/admin/attendees" || /^\/admin\/events\/[^/]+\/attendees$/.test(path)) {
+      return location.pathname === "/admin/attendees" || isEventAttendeesPath;
+    }
+
+    return location.pathname === path;
+  };
 
   // Navigation items grouped logically
   const mainNavItems = [
@@ -50,7 +66,7 @@ const AdminHeader = () => {
 
   const peopleNavItems = [
     { path: "/admin/people", label: "People", icon: Users },
-    { path: "/admin/attendees", label: "Event Attendees", icon: UserCheck },
+    { path: attendeeNavPath, label: "Event Attendees", icon: UserCheck },
     { path: "/admin/attendees/add", label: "Add Attendee", icon: UserPlus },
   ];
 
