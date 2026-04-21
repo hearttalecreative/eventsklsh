@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") || "";
 const SENDER_EMAIL = Deno.env.get("BREVO_SENDER_EMAIL") || "no-reply@example.com";
 const SENDER_NAME = Deno.env.get("BREVO_SENDER_NAME") || "Event Admin";
-const TRAINING_PENDING_EMAIL = "privates@kylelamsoundhealing.com";
+const TRAINING_PENDING_EMAIL = "info@kylelamsoundhealing.com";
 const TRAINING_PENDING_TYPE = "training_pending";
 
 const corsHeaders = {
@@ -79,26 +79,19 @@ serve(async (req) => {
       if (!allRecipientsAreTrainingMailbox) {
         return new Response(JSON.stringify({
           ok: false,
-          error: "training_pending notifications can only be sent to privates@kylelamsoundhealing.com",
+          error: "training_pending notifications can only be sent to info@kylelamsoundhealing.com",
         }), {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
-    } else if (includesTrainingPendingMailbox) {
-      return new Response(JSON.stringify({
-        ok: false,
-        error: "privates@kylelamsoundhealing.com is reserved for training pending payment notifications only",
-      }), {
-        status: 403,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
     }
 
     console.log("[send-admin-email] sending to", {
       count: toArray.length,
       isBulk: !!isBulk,
       notificationType: notificationType || "general",
+      includesTrainingPendingMailbox,
     });
 
     const results: { email: string; ok: boolean; error?: string }[] = [];

@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TRAINING_PENDING_EMAIL = "privates@kylelamsoundhealing.com";
+const TRAINING_PENDING_EMAIL = "info@kylelamsoundhealing.com";
 
 interface RequestPayload {
   programId: string;

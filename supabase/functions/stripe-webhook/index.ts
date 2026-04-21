@@ -175,19 +175,29 @@ Please follow up with the customer to confirm training dates.`;
       let cart: any | null = null;
       let checkoutId = metadata.checkout_id;
 
-      // Fallback for Event Ticket: Match by email in pending_checkouts if metadata was lost
-      if (!checkoutId && !metadata.cart_data && session.customer_details?.email) {
-        console.log(`[stripe-webhook] Missing checkout_id, attempting fallback for ${session.customer_details.email}`);
-        const { data: matchedCheckouts } = await supabase
+      // Fallback for Event Ticket: use Stripe session ID only (never by email)
+      if (!checkoutId && !metadata.cart_data) {
+        console.log(`[stripe-webhook] Missing checkout_id, attempting fallback by stripe_session_id=${session.id}`);
+        const { data: matchedCheckouts, error: fallbackLookupError } = await supabase
           .from("pending_checkouts")
           .select("id, cart")
-          .eq("buyer_email", session.customer_details.email)
+          .eq("stripe_session_id", session.id)
           .order("created_at", { ascending: false });
+
+        if (fallbackLookupError) {
+          console.error('[stripe-webhook] Failed fallback lookup by stripe_session_id:', fallbackLookupError);
+          await notifyAdminOfError(`Failed fallback lookup by stripe_session_id: ${fallbackLookupError.message}`);
+          return new Response(JSON.stringify({ received: true, reason: 'pending_checkout_fallback_lookup_failed' }), { status: 200 });
+        }
 
         if (matchedCheckouts && matchedCheckouts.length === 1) {
           checkoutId = matchedCheckouts[0].id;
           cart = matchedCheckouts[0].cart;
-          console.log(`[stripe-webhook] Fallback matched event checkout: ${checkoutId}`);
+          console.log(`[stripe-webhook] Fallback matched event checkout by stripe_session_id: ${checkoutId}`);
+        } else if (matchedCheckouts && matchedCheckouts.length > 1) {
+          console.error(`[stripe-webhook] Multiple pending_checkouts found for stripe_session_id=${session.id}`);
+          await notifyAdminOfError(`Multiple pending_checkouts found for stripe_session_id=${session.id}`);
+          return new Response(JSON.stringify({ received: true, reason: 'ambiguous_pending_checkout' }), { status: 200 });
         }
       }
 
