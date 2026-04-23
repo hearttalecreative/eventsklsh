@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Search, ShoppingCart, Calendar, DollarSign, Mail, Send } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,6 +36,24 @@ interface PurchaseDetail {
   is_comped: boolean;
 }
 
+const getUniqueRecipientEmails = (purchaseRows: PurchaseDetail[]) => {
+  const uniqueEmails: string[] = [];
+  const seen = new Set<string>();
+
+  for (const purchase of purchaseRows) {
+    const email = purchase.attendee_email?.trim();
+    if (!email) continue;
+
+    const normalized = email.toLowerCase();
+    if (seen.has(normalized)) continue;
+
+    seen.add(normalized);
+    uniqueEmails.push(email);
+  }
+
+  return uniqueEmails;
+};
+
 const EventPurchaseDetails = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const isMobile = useIsMobile();
@@ -44,6 +63,7 @@ const EventPurchaseDetails = () => {
   const [purchases, setPurchases] = useState<PurchaseDetail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAttendeeIds, setSelectedAttendeeIds] = useState<string[]>([]);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<{ email: string | string[]; name: string | null; isBulk: boolean }>({ 
     email: "", 
@@ -56,6 +76,20 @@ const EventPurchaseDetails = () => {
       fetchPurchaseDetails();
     }
   }, [eventId]);
+
+  useEffect(() => {
+    setSelectedAttendeeIds([]);
+  }, [eventId]);
+
+  useEffect(() => {
+    setSelectedAttendeeIds((prev) => {
+      if (prev.length === 0) return prev;
+
+      const validIds = new Set(purchases.map((purchase) => purchase.attendee_id));
+      const next = prev.filter((id) => validIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [purchases]);
 
   const fetchPurchaseDetails = async () => {
     try {
@@ -415,6 +449,35 @@ const EventPurchaseDetails = () => {
     );
   }, [purchases, searchQuery]);
 
+  const selectedAttendeeIdSet = useMemo(() => new Set(selectedAttendeeIds), [selectedAttendeeIds]);
+
+  const allRecipientEmails = useMemo(() => {
+    return getUniqueRecipientEmails(purchases);
+  }, [purchases]);
+
+  const filteredSelectableAttendeeIds = useMemo(() => {
+    return filteredPurchases
+      .filter((purchase) => Boolean(purchase.attendee_email?.trim()))
+      .map((purchase) => purchase.attendee_id);
+  }, [filteredPurchases]);
+
+  const selectedFilteredCount = useMemo(() => {
+    return filteredSelectableAttendeeIds.reduce((count, attendeeId) => {
+      return count + (selectedAttendeeIdSet.has(attendeeId) ? 1 : 0);
+    }, 0);
+  }, [filteredSelectableAttendeeIds, selectedAttendeeIdSet]);
+
+  const allFilteredSelected =
+    filteredSelectableAttendeeIds.length > 0 && selectedFilteredCount === filteredSelectableAttendeeIds.length;
+  const someFilteredSelected = selectedFilteredCount > 0 && !allFilteredSelected;
+
+  const selectedRecipientEmails = useMemo(() => {
+    if (selectedAttendeeIdSet.size === 0) return [];
+
+    const selectedPurchases = purchases.filter((purchase) => selectedAttendeeIdSet.has(purchase.attendee_id));
+    return getUniqueRecipientEmails(selectedPurchases);
+  }, [purchases, selectedAttendeeIdSet]);
+
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -494,20 +557,50 @@ const EventPurchaseDetails = () => {
   }, [purchases]);
 
   const handleEmailClick = (email: string, name: string | null) => {
-    setSelectedRecipient({ email, name, isBulk: false });
+    setSelectedRecipient({ email: email.trim(), name, isBulk: false });
     setEmailDialogOpen(true);
   };
 
   const handleBulkEmail = () => {
-    const allEmails = purchases
-      .filter(p => p.attendee_email)
-      .map(p => p.attendee_email!);
-    
-    if (allEmails.length === 0) {
+    if (allRecipientEmails.length === 0) {
       return;
     }
     
-    setSelectedRecipient({ email: allEmails, name: null, isBulk: true });
+    setSelectedRecipient({ email: allRecipientEmails, name: null, isBulk: true });
+    setEmailDialogOpen(true);
+  };
+
+  const handleToggleAttendeeSelection = (attendeeId: string, checked: boolean) => {
+    setSelectedAttendeeIds((prev) => {
+      if (checked) {
+        if (prev.includes(attendeeId)) return prev;
+        return [...prev, attendeeId];
+      }
+
+      return prev.filter((id) => id !== attendeeId);
+    });
+  };
+
+  const handleToggleSelectAllFiltered = (checked: boolean) => {
+    setSelectedAttendeeIds((prev) => {
+      const next = new Set(prev);
+
+      if (checked) {
+        filteredSelectableAttendeeIds.forEach((id) => next.add(id));
+      } else {
+        filteredSelectableAttendeeIds.forEach((id) => next.delete(id));
+      }
+
+      return Array.from(next);
+    });
+  };
+
+  const handleEmailSelected = () => {
+    if (selectedRecipientEmails.length === 0) {
+      return;
+    }
+
+    setSelectedRecipient({ email: selectedRecipientEmails, name: null, isBulk: true });
     setEmailDialogOpen(true);
   };
 
@@ -556,11 +649,11 @@ const EventPurchaseDetails = () => {
           
           <Button 
             onClick={handleBulkEmail}
-            disabled={purchases.filter(p => p.attendee_email).length === 0}
+            disabled={allRecipientEmails.length === 0}
             className="self-start sm:self-auto w-full sm:w-auto min-h-10"
           >
             <Send className="h-4 w-4 mr-2" />
-            Email All Attendees
+            Email All Attendees ({allRecipientEmails.length})
           </Button>
         </header>
 
@@ -728,7 +821,37 @@ const EventPurchaseDetails = () => {
         {/* Purchase Details Table/Cards */}
         <Card className="bg-white/85 border-primary/10">
           <CardHeader>
-            <CardTitle>Purchase Details ({filteredPurchases.length})</CardTitle>
+            <div className="flex flex-col gap-3">
+              <CardTitle>Purchase Details ({filteredPurchases.length})</CardTitle>
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
+                    onCheckedChange={(checked) => handleToggleSelectAllFiltered(checked === true)}
+                    disabled={filteredSelectableAttendeeIds.length === 0}
+                    aria-label="Select all filtered attendees"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    Select filtered attendees ({selectedFilteredCount}/{filteredSelectableAttendeeIds.length})
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedAttendeeIds([])}
+                    disabled={selectedAttendeeIds.length === 0}
+                  >
+                    Clear Selection
+                  </Button>
+                  <Button size="sm" onClick={handleEmailSelected} disabled={selectedRecipientEmails.length === 0}>
+                    <Send className="h-4 w-4 mr-2" />
+                    Email Selected ({selectedRecipientEmails.length})
+                  </Button>
+                </div>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {filteredPurchases.length === 0 ? (
@@ -763,9 +886,24 @@ const EventPurchaseDetails = () => {
                         )}
                         <p className="text-xs text-muted-foreground mt-0.5">{purchase.attendee_phone || 'No phone'}</p>
                       </div>
-                      <Badge variant="secondary" className="font-mono shrink-0 text-xs">
-                        {purchase.is_comped ? 'Free' : formatCurrency(purchase.ticket_amount_cents + purchase.addons_amount_cents)}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        {purchase.attendee_email?.trim() ? (
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={selectedAttendeeIdSet.has(purchase.attendee_id)}
+                              onCheckedChange={(checked) => handleToggleAttendeeSelection(purchase.attendee_id, checked === true)}
+                              aria-label={`Select ${purchase.attendee_name || 'attendee'}`}
+                            />
+                            <span className="text-[11px] text-muted-foreground">Select</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">No email</span>
+                        )}
+
+                        <Badge variant="secondary" className="font-mono text-xs">
+                          {purchase.is_comped ? 'Free' : formatCurrency(purchase.ticket_amount_cents + purchase.addons_amount_cents)}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2">
@@ -790,6 +928,7 @@ const EventPurchaseDetails = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b text-left">
+                      <th className="pb-3 font-medium w-16">Select</th>
                       <th className="pb-3 font-medium">Name</th>
                       <th className="pb-3 font-medium">Email</th>
                       <th className="pb-3 font-medium">Phone</th>
@@ -802,6 +941,14 @@ const EventPurchaseDetails = () => {
                   <tbody>
                     {filteredPurchases.map((purchase) => (
                       <tr key={purchase.attendee_id} className="border-b">
+                        <td className="py-3">
+                          <Checkbox
+                            checked={selectedAttendeeIdSet.has(purchase.attendee_id)}
+                            onCheckedChange={(checked) => handleToggleAttendeeSelection(purchase.attendee_id, checked === true)}
+                            disabled={!purchase.attendee_email?.trim()}
+                            aria-label={`Select ${purchase.attendee_name || 'attendee'}`}
+                          />
+                        </td>
                         <td className="py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-sm md:text-base">{purchase.attendee_name || '-'}</span>

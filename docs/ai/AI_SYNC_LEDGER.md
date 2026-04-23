@@ -14,18 +14,18 @@ Archivo compartido entre IA integrada de Antigravity y OpenCode para mantener co
 
 - schema_version: `2.0`
 - revision: 2
-- last_updated_utc: 2026-04-10T15:33:03Z
-- last_actor: `OPENCODE`
+- last_updated_utc: 2026-04-21T19:05:00Z
+- last_actor: `ANTIGRAVITY`
 - project: `eventsklsh`
-- current_objective: `Operar con metodologia v2 de sincronizacion entre AIs`
+- current_objective: `Desplegar Supabase Functions (send-admin-email, create-training-payment, stripe-webhook)`
 - current_branch: `main`
-- repo_status: `dirty`
+- repo_status: `clean`
 - active_prs: `UNKNOWN`
 - active_issues: `UNKNOWN`
 - blockers: `none`
-- risks: `Si no se actualiza este ledger en cada switch se pierde continuidad`
+- risks: `La CLI local de Supabase (v2.72.7) no soporta el comando 'functions logs'`
 - sync_health: `good`
-- next_best_action: `Usar este ledger como punto de inicio/cierre en todas las sesiones`
+- next_best_action: `Verificar el correcto funcionamiento de las funciones en el Dashboard de Supabase`
 
 ## Convenciones y Reglas Vigentes
 
@@ -40,7 +40,9 @@ Archivo compartido entre IA integrada de Antigravity y OpenCode para mantener co
 - [x] Definir metodologia de bridge entre AIs
 - [x] Crear guia formal de proceso
 - [x] Activar regla always_on en `.agents/rules/data.md`
-- [ ] Mantener este ledger en cada cierre y switch
+- [x] Mantener este ledger en cada cierre y switch
+- [x] Desplegar Edge Functions actualizadas (send-admin-email, create-training-payment, stripe-webhook)
+- [ ] Validar logs en producción
 
 ## Checklist de cierre (ultima sesion)
 
@@ -56,27 +58,27 @@ Archivo compartido entre IA integrada de Antigravity y OpenCode para mantener co
 <ANTIGRAVITY_CONTEXT_DELTA v="2.0">
 META:
 - based_on_pack_version: 2.0
-- based_on_revision: 1
-- generated_at: 2026-04-10T15:33:03Z
-- session_id: bridge-v2-bootstrap
-- actor: OPENCODE
+- based_on_revision: 2
+- generated_at: 2026-04-21T19:05:00Z
+- session_id: deploy-functions-20260421
+- actor: ANTIGRAVITY
 - branch: main
 
 CHANGES:
-- repo_state_changes: Se actualiza .agents/rules/data.md y se migran docs/ai/* a formato v2
-- new_or_closed_prs: UNKNOWN
-- new_or_closed_issues: UNKNOWN
+- repo_state_changes: Se desplegaron 3 Edge Functions a Supabase (iorxmepjaqagfxnyptvb). Repositorio local sin cambios de archivos.
+- new_or_closed_prs: No aplica
+- new_or_closed_issues: No aplica
 - architecture_changes: none
-- rules_or_workflow_changes: Se agrega checklist de cierre obligatorio y schema v2
-- decision_log_changes: data.md queda como regla always_on oficial
-- active_work_changes: Metodologia v2 lista para uso diario
-- validation_changes: No aplica (cambio documental)
-- risk_changes: Menor riesgo de desalineacion por formato unico de ledger
+- rules_or_workflow_changes: none
+- decision_log_changes: Se detectó que la CLI de Supabase local (v2.72.7) no soporta el comando 'logs'. Se recomienda usar el Dashboard.
+- active_work_changes: Despliegue completado.
+- validation_changes: Intentada validacion vía CLI (fallido por versión), requiere validación manual.
+- risk_changes: Riesgo bajo, las funciones se subieron correctamente.
 
 NEXT_ACTIONS_FOR_OPENCODE:
-- immediate_steps: En cada switch, actualizar Snapshot + Delta + Handoff + Session Log
-- validations_needed: Confirmar que la IA integrada escribe en este mismo formato
-- expected_artifacts: Entradas incrementales de Session Log y deltas cortos
+- immediate_steps: Monitorear errores en el Dashboard de Supabase para las nuevas versiones de las funciones.
+- validations_needed: Confirmar que el webhook de Stripe y el envío de emails operan según lo esperado.
+- expected_artifacts: Logs de ejecución en el Dashboard.
 </ANTIGRAVITY_CONTEXT_DELTA>
 ```
 
@@ -84,17 +86,36 @@ NEXT_ACTIONS_FOR_OPENCODE:
 
 ```txt
 <SESSION_HANDOFF v="2.0">
-- done: Se preparo la version v2 del bridge y del ledger
-- in_progress: Operativizar actualizacion continua por ambas IAs
+- done: Despliegue de send-admin-email, create-training-payment, stripe-webhook a Supabase (iorxmepjaqagfxnyptvb).
+- in_progress: Testing de las funciones en producción.
 - blocked_by: none
-- decisions_taken: `.agents/rules/data.md` es la regla always_on de referencia
-- files_touched: .agents/rules/data.md, docs/ai/ANTIGRAVITY_OPENCODE_BRIDGE.md, docs/ai/AI_SYNC_LEDGER.md
-- tests_status: No aplica (metodologia/documentacion)
-- next_best_step: La IA integrada debe registrar su siguiente sesion en Session Log
+- decisions_taken: Saltar comando 'supabase login' ya que la sesión estaba activa; omitir comando 'logs' local por incompatibilidad de versión CLI.
+- files_touched: [none] (solo despliegue)
+- tests_status: Despliegue exitoso (CLI reportó éxito).
+- next_best_step: Verificar logs en el Dashboard de Supabase.
 </SESSION_HANDOFF>
 ```
 
 ## Session Log (append-only)
+
+### ENTRY-20260421-1405-003
+
+- actor: `ANTIGRAVITY`
+- timestamp_utc: `2026-04-21T19:05:00Z`
+- branch: `main`
+- intent: `Desplegar Edge Functions según instrucciones del usuario`
+- changes_summary: `Se ejecutó npx supabase functions deploy para las 3 funciones especificadas. Se verificó que la sesión ya estaba activa.`
+- files_touched:
+  - `docs/ai/AI_SYNC_LEDGER.md` (metadata)
+- decisions_taken:
+  - `Usar persistent shell para manejar el path de npx en macOS (/opt/homebrew/bin)`
+  - `No re-ejecutar login ya que projects list confirmó sesión activa`
+- tests_run:
+  - `supabase functions deploy (reportó éxito para las 3)`
+- pending:
+  - `Validar funcionalidad en producción (logs en Dashboard)`
+- handoff_for_next_ai: `Continuar con el monitoreo en el Dashboard de Supabase. La CLI local v2.72.7 no tiene comando 'logs'.`
+
 
 ### ENTRY-20260410-1533-002
 
