@@ -13,19 +13,19 @@ Archivo compartido entre IA integrada de Antigravity y OpenCode para mantener co
 ## Snapshot Actual
 
 - schema_version: `2.0`
-- revision: 2
-- last_updated_utc: 2026-04-21T19:05:00Z
+- revision: 3
+- last_updated_utc: 2026-04-24T15:53:00Z
 - last_actor: `ANTIGRAVITY`
 - project: `eventsklsh`
-- current_objective: `Desplegar Supabase Functions (send-admin-email, create-training-payment, stripe-webhook)`
+- current_objective: `Implementar ventanas de disponibilidad independientes por ticket (sale_start_at / sale_end_at)`
 - current_branch: `main`
-- repo_status: `clean`
+- repo_status: `modified (sin commit)`
 - active_prs: `UNKNOWN`
 - active_issues: `UNKNOWN`
-- blockers: `none`
-- risks: `La CLI local de Supabase (v2.72.7) no soporta el comando 'functions logs'`
+- blockers: `Migration CLI desincronizada — aplicar SQL manualmente via Supabase Dashboard`
+- risks: `Columnas sale_start_at/sale_end_at en DB aun no creadas hasta que el usuario ejecute el SQL en Dashboard`
 - sync_health: `good`
-- next_best_action: `Verificar el correcto funcionamiento de las funciones en el Dashboard de Supabase`
+- next_best_action: `Ejecutar SQL de migracion en Dashboard > SQL Editor, luego commit y verificar en produccion`
 
 ## Convenciones y Reglas Vigentes
 
@@ -42,7 +42,11 @@ Archivo compartido entre IA integrada de Antigravity y OpenCode para mantener co
 - [x] Activar regla always_on en `.agents/rules/data.md`
 - [x] Mantener este ledger en cada cierre y switch
 - [x] Desplegar Edge Functions actualizadas (send-admin-email, create-training-payment, stripe-webhook)
-- [ ] Validar logs en producción
+- [x] Implementar ventana de venta por ticket (sale_start_at / sale_end_at) — código completo
+- [x] Desplegar check-ticket-availability y create-payment con validación de ventana de venta
+- [ ] Aplicar migración SQL en Supabase Dashboard (columnas sale_start_at, sale_end_at en tickets)
+- [ ] Commit y push de todos los archivos modificados
+- [ ] Verificar visibilidad de tickets en producción
 
 ## Checklist de cierre (ultima sesion)
 
@@ -58,27 +62,38 @@ Archivo compartido entre IA integrada de Antigravity y OpenCode para mantener co
 <ANTIGRAVITY_CONTEXT_DELTA v="2.0">
 META:
 - based_on_pack_version: 2.0
-- based_on_revision: 2
-- generated_at: 2026-04-21T19:05:00Z
-- session_id: deploy-functions-20260421
+- based_on_revision: 3
+- generated_at: 2026-04-24T15:53:00Z
+- session_id: ticket-sale-window-20260424
 - actor: ANTIGRAVITY
 - branch: main
 
 CHANGES:
-- repo_state_changes: Se desplegaron 3 Edge Functions a Supabase (iorxmepjaqagfxnyptvb). Repositorio local sin cambios de archivos.
+- repo_state_changes: Implementación completa del sistema de ventana de venta por ticket. 7 archivos modificados, 1 migración SQL creada, 2 edge functions desplegadas.
 - new_or_closed_prs: No aplica
 - new_or_closed_issues: No aplica
-- architecture_changes: none
-- rules_or_workflow_changes: none
-- decision_log_changes: Se detectó que la CLI de Supabase local (v2.72.7) no soporta el comando 'logs'. Se recomienda usar el Dashboard.
-- active_work_changes: Despliegue completado.
-- validation_changes: Intentada validacion vía CLI (fallido por versión), requiere validación manual.
-- risk_changes: Riesgo bajo, las funciones se subieron correctamente.
+- architecture_changes: |
+    - Tabla tickets: +sale_start_at (timestamptz), +sale_end_at (timestamptz), +trigger validate_ticket_sale_window
+    - Frontend: isTicketVisible() filtra tickets antes de renderizar; effectiveUnitAmount() simplificado (sin auto-conversión early-bird)
+    - Backend: check-ticket-availability y create-payment validan ventana de venta antes de procesar
+    - Admin: UI con sección "Sale Window" (azul) por encima de la sección legacy "Early bird"
+- rules_or_workflow_changes: Early-bird deprecated — ahora se usa un ticket independiente por fase con su propio sale window
+- decision_log_changes: |
+    - No auto-conversión de precio early-bird; cada tipo de ticket tiene precio fijo
+    - Tickets sin sale_start_at/sale_end_at son siempre visibles (backward compatible)
+    - Migración CLI bloqueada por desincronización; SQL debe aplicarse manualmente en Dashboard
+- active_work_changes: Implementación completa pendiente de migración DB y commit.
+- validation_changes: Edge functions desplegadas exitosamente (CLI v2.72.7)
+- risk_changes: Riesgo: la app fallará al leer sale_start_at/sale_end_at hasta que se aplique la migración en DB.
 
 NEXT_ACTIONS_FOR_OPENCODE:
-- immediate_steps: Monitorear errores en el Dashboard de Supabase para las nuevas versiones de las funciones.
-- validations_needed: Confirmar que el webhook de Stripe y el envío de emails operan según lo esperado.
-- expected_artifacts: Logs de ejecución en el Dashboard.
+- immediate_steps: |
+    1. Ir a https://supabase.com/dashboard/project/iorxmepjaqagfxnyptvb/sql/new
+    2. Ejecutar contenido de supabase/migrations/20260424120000_add_ticket_sale_window.sql
+    3. git add -A && git commit -m "feat: ticket sale windows (sale_start_at / sale_end_at)"
+    4. Verificar que tickets con sale_end_at pasado no aparecen en EventDetail.tsx
+- validations_needed: Abrir un evento en producción y confirmar que tickets sin ventana configurada siguen visibles.
+- expected_artifacts: Columnas sale_start_at y sale_end_at en tabla tickets; UI "Sale Window" en admin.
 </ANTIGRAVITY_CONTEXT_DELTA>
 ```
 
@@ -86,19 +101,66 @@ NEXT_ACTIONS_FOR_OPENCODE:
 
 ```txt
 <SESSION_HANDOFF v="2.0">
-- done: Despliegue de send-admin-email, create-training-payment, stripe-webhook a Supabase (iorxmepjaqagfxnyptvb).
-- in_progress: Testing de las funciones en producción.
-- blocked_by: none
-- decisions_taken: Saltar comando 'supabase login' ya que la sesión estaba activa; omitir comando 'logs' local por incompatibilidad de versión CLI.
-- files_touched: [none] (solo despliegue)
-- tests_status: Despliegue exitoso (CLI reportó éxito).
-- next_best_step: Verificar logs en el Dashboard de Supabase.
+- done: |
+    - Migración SQL creada: supabase/migrations/20260424120000_add_ticket_sale_window.sql
+    - 7 archivos de código modificados (types, hooks, EventDetail, admin Events, 2 edge functions)
+    - check-ticket-availability y create-payment desplegados con validación de ventana de venta
+- in_progress: Aplicación de la migración DB (bloqueada por desincronización CLI)
+- blocked_by: Migración CLI falla — remote tiene versiones no encontradas localmente
+- decisions_taken: |
+    - No auto-conversión early-bird → cada ticket tiene precio fijo + ventana de venta propia
+    - Backward compatible: tickets sin sale_start_at/sale_end_at siempre son visibles
+    - Early-bird legacy UI permanece pero marcada como "Deprecated"
+- files_touched:
+    - supabase/migrations/20260424120000_add_ticket_sale_window.sql (NUEVA)
+    - src/types/events.ts (saleStartAt, saleEndAt añadidos)
+    - src/hooks/useSupabaseEvents.ts (mapTicket + queries actualizados)
+    - src/pages/EventDetail.tsx (isTicketVisible + visibleTickets + ticket list)
+    - supabase/functions/check-ticket-availability/index.ts (sale window check)
+    - supabase/functions/create-payment/index.ts (sale window guard + effectiveUnitAmount)
+    - src/pages/admin/Events.tsx (Sale Window UI + select queries + patch type)
+- tests_status: Edge functions desplegadas OK. Frontend requiere migración DB para funcionar.
+- next_best_step: |
+    1. Ejecutar SQL en Dashboard: https://supabase.com/dashboard/project/iorxmepjaqagfxnyptvb/sql/new
+    2. git add -A && git commit -m "feat: ticket sale windows"
+    3. Probar en producción con un ticket con sale_end_at en el pasado
 </SESSION_HANDOFF>
 ```
 
 ## Session Log (append-only)
 
-### ENTRY-20260421-1405-003
+### ENTRY-20260424-1053-004
+
+- actor: `ANTIGRAVITY`
+- timestamp_utc: `2026-04-24T15:53:00Z`
+- branch: `main`
+- intent: `Implementar ventanas de disponibilidad independientes por tipo de ticket (sale_start_at / sale_end_at)`
+- changes_summary: |
+    Migración SQL añade sale_start_at y sale_end_at a tabla tickets con trigger de validación.
+    Frontend filtra tickets visibles por ventana de venta. Backend (2 edge functions) valida ventana antes de permitir compra.
+    Admin UI muestra sección "Sale Window" en azul por encima de la sección legacy "Early bird".
+    Ambas edge functions desplegadas exitosamente.
+- files_touched:
+  - `supabase/migrations/20260424120000_add_ticket_sale_window.sql` (nueva)
+  - `src/types/events.ts`
+  - `src/hooks/useSupabaseEvents.ts`
+  - `src/pages/EventDetail.tsx`
+  - `supabase/functions/check-ticket-availability/index.ts`
+  - `supabase/functions/create-payment/index.ts`
+  - `src/pages/admin/Events.tsx`
+- decisions_taken:
+  - `No auto-conversión de early-bird a regular; cada ticket es independiente`
+  - `Tickets sin ventana configurada = siempre visibles (backward compatible)`
+  - `CLI db push bloqueado por desincronización; migración debe aplicarse manualmente`
+- tests_run:
+  - `npx supabase functions deploy check-ticket-availability → OK`
+  - `npx supabase functions deploy create-payment → OK`
+- pending:
+  - `Ejecutar SQL de migración en Supabase Dashboard`
+  - `git commit -m "feat: ticket sale windows"`
+  - `Validar en producción`
+- handoff_for_next_ai: `Aplicar migración SQL manual en Dashboard. Ver bloqueadores en Snapshot.`
+
 
 - actor: `ANTIGRAVITY`
 - timestamp_utc: `2026-04-21T19:05:00Z`

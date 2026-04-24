@@ -24,15 +24,46 @@ serve(async (req) => {
       throw new Error("Invalid request: ticketId and requestedQty required");
     }
 
-    // Fetch ticket info
+    // Fetch ticket info including sale window columns
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")
-      .select("id, event_id, capacity_total, participants_per_ticket")
+      .select("id, event_id, capacity_total, participants_per_ticket, sale_start_at, sale_end_at")
       .eq("id", ticketId)
       .single();
 
     if (ticketErr) throw ticketErr;
     if (!ticket) throw new Error("Ticket not found");
+
+    // ── Sale window check ──────────────────────────────────────────────────
+    const now = new Date();
+    if (ticket.sale_start_at && now < new Date(ticket.sale_start_at)) {
+      console.log(`[check-ticket-availability] Ticket ${ticketId} sale has not started yet (starts ${ticket.sale_start_at})`);
+      return new Response(JSON.stringify({
+        available: false,
+        remaining: 0,
+        requestedQty,
+        reason: "sale_not_started",
+        message: "Ticket sales have not started yet.",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    if (ticket.sale_end_at && now > new Date(ticket.sale_end_at)) {
+      console.log(`[check-ticket-availability] Ticket ${ticketId} sale has ended (ended ${ticket.sale_end_at})`);
+      return new Response(JSON.stringify({
+        available: false,
+        remaining: 0,
+        requestedQty,
+        reason: "sale_ended",
+        message: "Ticket sales for this ticket type have ended.",
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     // Count sold UNITS from paid orders (capacity_total is in units, not attendees)
     const { data: paidOrders } = await supabase
@@ -80,3 +111,4 @@ serve(async (req) => {
     });
   }
 });
+

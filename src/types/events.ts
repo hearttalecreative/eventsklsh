@@ -8,15 +8,22 @@ export interface Venue {
 
 export interface TicketType {
   id: string;
-  name: string; // e.g., General, Platea A, 2-Pack
+  name: string; // e.g., General, Early Bird 1, Early Bird 2, Regular
   unitAmountCents: number;
   currency: Currency;
   capacityTotal: number; // seats/standing spots available for this ticket
   zone?: string; // location/sector in venue
   participantsPerTicket: number; // 1 for single, 2 for 2-Pack
-  earlyBirdAmountCents?: number; // optional discounted price
-  earlyBirdStart?: string; // ISO
-  earlyBirdEnd?: string; // ISO
+  /** ISO timestamp — ticket becomes visible/purchasable on or after this time. Null = no start restriction. */
+  saleStartAt?: string;
+  /** ISO timestamp — ticket stops being visible/purchasable after this time. Null = no end restriction. */
+  saleEndAt?: string;
+  /** @deprecated Use saleStartAt/saleEndAt on a separate ticket instead of early-bird pricing. */
+  earlyBirdAmountCents?: number;
+  /** @deprecated Use saleStartAt/saleEndAt on a separate ticket instead. */
+  earlyBirdStart?: string;
+  /** @deprecated Use saleStartAt/saleEndAt on a separate ticket instead. */
+  earlyBirdEnd?: string;
   description?: string; // optional description shown under each ticket
 }
 

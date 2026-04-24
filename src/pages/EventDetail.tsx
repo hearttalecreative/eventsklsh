@@ -20,16 +20,22 @@ import whatsappIcon from '@/assets/whatsapp.svg';
 import GoogleMapDisplay from '@/components/GoogleMapDisplay';
 import { EmailCaptureModal } from '@/components/EmailCaptureModal';
 
-function effectiveUnitAmount(ticket: TicketType, now = new Date()): number {
-  if (
-    ticket.earlyBirdAmountCents &&
-    ticket.earlyBirdStart &&
-    ticket.earlyBirdEnd &&
-    now >= new Date(ticket.earlyBirdStart) &&
-    now <= new Date(ticket.earlyBirdEnd)
-  ) {
-    return ticket.earlyBirdAmountCents;
-  }
+/**
+ * Returns true if the current moment is within the ticket's sale window.
+ * Tickets with no sale window configured (saleStartAt/saleEndAt both null)
+ * are always considered visible — this preserves backward compatibility.
+ */
+function isTicketVisible(ticket: TicketType, now = new Date()): boolean {
+  if (ticket.saleStartAt && now < new Date(ticket.saleStartAt)) return false;
+  if (ticket.saleEndAt && now > new Date(ticket.saleEndAt)) return false;
+  return true;
+}
+
+/**
+ * Returns the effective unit price for a ticket.
+ * No automatic early-bird conversion — each ticket type is independent.
+ */
+function effectiveUnitAmount(ticket: TicketType): number {
   return ticket.unitAmountCents;
 }
 
@@ -73,14 +79,20 @@ const EventDetail = () => {
   // Only use mock data if loading is complete and no real data exists
   const event: EventItem | undefined = loading ? undefined : (dbEvent ?? mockEvent);
 
-  const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(event?.tickets[0]?.id);
-  const selectedTicket = useMemo(() => event?.tickets.find((t) => t.id === selectedTicketId), [event, selectedTicketId]);
+  const now = useMemo(() => new Date(), []);
+  const visibleTickets = useMemo(
+    () => (event?.tickets ?? []).filter((t) => isTicketVisible(t, now)),
+    [event?.tickets, now]
+  );
+
+  const [selectedTicketId, setSelectedTicketId] = useState<string | undefined>(visibleTickets[0]?.id);
+  const selectedTicket = useMemo(() => visibleTickets.find((t) => t.id === selectedTicketId), [visibleTickets, selectedTicketId]);
   const [quantityTickets, setQuantityTickets] = useState<number>(1);
   const participantsPerTicket = selectedTicket?.participantsPerTicket ?? 1;
   const participantsCount = quantityTickets * participantsPerTicket;
 
   useEffect(() => {
-    if (event?.tickets?.[0]?.id) setSelectedTicketId(event.tickets[0].id);
+    if (visibleTickets[0]?.id) setSelectedTicketId(visibleTickets[0].id);
   }, [event?.id]);
 
   // Check ticket availability when ticket or quantity changes
@@ -179,7 +191,7 @@ const EventDetail = () => {
   const hasNoTicketsAndNotSpecialStatus = !selectedTicket && !['sold_out', 'paused'].includes(event.status);
 
   const endOrStart = new Date(event.endsAt || event.startsAt);
-  const hasTickets = Array.isArray(event.tickets) && event.tickets.length > 0;
+  const hasTickets = visibleTickets.length > 0;
   const isPast = endOrStart < new Date();
   const isPaused = event.status === 'paused';
   const isSoldOut = event.status === 'sold_out';
@@ -555,7 +567,7 @@ const proceed = async () => {
               <>
                 <h2 className="text-xl font-semibold mb-4">1. Choose tickets</h2>
                 <div className="space-y-3">
-                  {event.tickets.map((t) => {
+                  {visibleTickets.map((t) => {
                     const unit = effectiveUnitAmount(t);
                     const isSelected = selectedTicketId === t.id;
                     return (
@@ -578,13 +590,15 @@ const proceed = async () => {
                                 ⚠️ Sold out
                               </div>
                             )}
+                            {t.saleEndAt && (
+                              <div className="text-xs text-amber-600 mt-1">
+                                ⏰ Sale ends {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(t.saleEndAt))}
+                              </div>
+                            )}
                             <div className="text-xs text-muted-foreground mt-1">Includes {t.participantsPerTicket || 1} participant{(t.participantsPerTicket || 1) > 1 ? 's' : ''} per ticket</div>
                           </div>
                           <div className="text-left sm:text-right shrink-0">
                             <div className="font-semibold">{formatCurrency(unit, 'USD')}</div>
-                            {t.earlyBirdAmountCents && t.earlyBirdEnd && new Date() <= new Date(t.earlyBirdEnd) && (
-                              <div className="text-xs text-accent-foreground bg-accent/20 inline-block px-2 py-0.5 rounded">Early bird</div>
-                            )}
                           </div>
                         </div>
                       </button>

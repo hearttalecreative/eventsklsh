@@ -527,6 +527,8 @@ const AdminEvents = () => {
           participants_per_ticket: ticket.participants_per_ticket,
           zone: ticket.zone,
           currency: ticket.currency,
+          sale_start_at: ticket.sale_start_at,
+          sale_end_at: ticket.sale_end_at,
           early_bird_amount_cents: ticket.early_bird_amount_cents,
           early_bird_start: ticket.early_bird_start,
           early_bird_end: ticket.early_bird_end,
@@ -651,7 +653,7 @@ const AdminEvents = () => {
     setTicketsEventId(eventId);
     const { data } = await supabase
       .from('tickets')
-      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,early_bird_amount_cents,early_bird_start,early_bird_end,description,post_purchase_instructions,internal_notes,display_order,hidden')
+      .select('id,name,unit_amount_cents,capacity_total,participants_per_ticket,zone,currency,sale_start_at,sale_end_at,early_bird_amount_cents,early_bird_start,early_bird_end,description,post_purchase_instructions,internal_notes,display_order,hidden')
       .eq('event_id', eventId)
       .order('display_order', { ascending: true });
     setTickets(data || []);
@@ -732,6 +734,8 @@ const AdminEvents = () => {
       capacity_total: number;
       participants_per_ticket: number;
       zone: string | null;
+      sale_start_at: string | null;
+      sale_end_at: string | null;
       early_bird_amount_cents: number | null;
       early_bird_start: string | null;
       early_bird_end: string | null;
@@ -1520,11 +1524,55 @@ const AdminEvents = () => {
                             />
                           </div>
                         </div>
+                        {/* ── Sale Window (controls public visibility) ── */}
+                        <div className="rounded-md border bg-blue-50/60 border-blue-200 p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-blue-800">Sale Window</Label>
+                              <p className="text-xs text-blue-600">Controls when this ticket is visible &amp; purchasable on the public page</p>
+                            </div>
+                            {(() => {
+                              const now = new Date();
+                              const start = t.sale_start_at ? new Date(t.sale_start_at) : null;
+                              const end = t.sale_end_at ? new Date(t.sale_end_at) : null;
+                              const active = (!start || now >= start) && (!end || now <= end);
+                              return (
+                                <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
+                                  active
+                                    ? 'border-green-300 bg-green-50 text-green-700'
+                                    : 'border-orange-300 bg-orange-50 text-orange-700'
+                                }`}>
+                                  {active ? '● On sale' : '○ Not on sale'}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-blue-700">Sale starts (leave blank = immediately)</Label>
+                              <Input
+                                type="datetime-local"
+                                defaultValue={t.sale_start_at ? new Date(t.sale_start_at).toISOString().slice(0, 16) : ''}
+                                onBlur={(e) => updateTicketField(t.id, { sale_start_at: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-blue-700">Sale ends (leave blank = no end)</Label>
+                              <Input
+                                type="datetime-local"
+                                defaultValue={t.sale_end_at ? new Date(t.sale_end_at).toISOString().slice(0, 16) : ''}
+                                onBlur={(e) => updateTicketField(t.id, { sale_end_at: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ── Early Bird (legacy, hidden by default) ── */}
                         <div className="rounded-md border bg-muted/30 p-3 space-y-3">
                           <div className="flex items-center justify-between">
                             <div>
-                              <Label>Early bird</Label>
-                              <p className="text-xs text-muted-foreground">Limited-time promotional price</p>
+                              <Label>Early bird (legacy)</Label>
+                              <p className="text-xs text-muted-foreground">Deprecated — use separate ticket types with a Sale Window instead</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Active' : 'Inactive'}</span>
@@ -2242,12 +2290,55 @@ const AdminEvents = () => {
                       </div>
                     </div>
 
-                    {/* Early bird */}
+                    {/* Sale Window */}
+                    <div className="rounded-md border bg-blue-50/60 border-blue-200 p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-blue-800">Sale Window</Label>
+                          <p className="text-xs text-blue-600">Controls when this ticket is visible &amp; purchasable on the public page</p>
+                        </div>
+                        {(() => {
+                          const now = new Date();
+                          const start = t.sale_start_at ? new Date(t.sale_start_at) : null;
+                          const end = t.sale_end_at ? new Date(t.sale_end_at) : null;
+                          const active = (!start || now >= start) && (!end || now <= end);
+                          return (
+                            <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
+                              active
+                                ? 'border-green-300 bg-green-50 text-green-700'
+                                : 'border-orange-300 bg-orange-50 text-orange-700'
+                            }`}>
+                              {active ? '● On sale' : '○ Not on sale'}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-blue-700">Sale starts (leave blank = immediately)</Label>
+                          <Input
+                            type="datetime-local"
+                            defaultValue={t.sale_start_at ? new Date(t.sale_start_at).toISOString().slice(0, 16) : ''}
+                            onBlur={(e) => updateTicketField(t.id, { sale_start_at: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-blue-700">Sale ends (leave blank = no end)</Label>
+                          <Input
+                            type="datetime-local"
+                            defaultValue={t.sale_end_at ? new Date(t.sale_end_at).toISOString().slice(0, 16) : ''}
+                            onBlur={(e) => updateTicketField(t.id, { sale_end_at: e.currentTarget.value ? new Date(e.currentTarget.value).toISOString() : null })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Early bird (legacy) */}
                     <div className="rounded-md border bg-muted/30 p-3 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <Label>Early bird</Label>
-                          <p className="text-xs text-muted-foreground">Limited-time promotional price</p>
+                          <Label>Early bird (legacy)</Label>
+                          <p className="text-xs text-muted-foreground">Deprecated — use separate ticket types with a Sale Window instead</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">{earlyEnabled ? 'Active' : 'Inactive'}</span>

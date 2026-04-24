@@ -31,22 +31,15 @@ interface CreatePaymentRequest {
   cart: CartPayload;
 }
 
+/**
+ * Returns the authoritative unit price for a ticket.
+ * Each ticket type (Early Bird 1, Early Bird 2, Regular, etc.) has its own
+ * independent price set in unit_amount_cents. The sale window (sale_start_at /
+ * sale_end_at) controls when it is purchasable — no automatic price switching.
+ */
 function effectiveUnitAmount(ticket: {
   unit_amount_cents: number;
-  early_bird_amount_cents: number | null;
-  early_bird_start: string | null;
-  early_bird_end: string | null;
 }): number {
-  const now = new Date();
-  if (
-    ticket.early_bird_amount_cents &&
-    ticket.early_bird_start &&
-    ticket.early_bird_end &&
-    now >= new Date(ticket.early_bird_start) &&
-    now <= new Date(ticket.early_bird_end)
-  ) {
-    return ticket.early_bird_amount_cents;
-  }
   return ticket.unit_amount_cents;
 }
 
@@ -133,12 +126,22 @@ serve(async (req) => {
     // 1) Load event + ticket + addons from DB to compute authoritative totals
     const { data: ticket, error: ticketErr } = await supabase
       .from("tickets")
-      .select("id, event_id, name, zone, unit_amount_cents, early_bird_amount_cents, early_bird_start, early_bird_end, participants_per_ticket, capacity_total")
+      .select("id, event_id, name, zone, unit_amount_cents, early_bird_amount_cents, early_bird_start, early_bird_end, participants_per_ticket, capacity_total, sale_start_at, sale_end_at")
       .eq("id", cart.ticketId)
       .maybeSingle();
     if (ticketErr) throw ticketErr;
     if (!ticket) throw new Error("Ticket not found");
     if (ticket.event_id !== cart.eventId) throw new Error("Ticket does not belong to event");
+
+    // ── Sale window validation (backend authoritative check) ─────────────
+    const nowCheck = new Date();
+    if (ticket.sale_start_at && nowCheck < new Date(ticket.sale_start_at)) {
+      throw new Error("Ticket sales have not started yet. Please check back later.");
+    }
+    if (ticket.sale_end_at && nowCheck > new Date(ticket.sale_end_at)) {
+      throw new Error("Ticket sales for this ticket type have ended and are no longer available for purchase.");
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     // Check ticket availability - capacity_total is in UNITS (purchasable tickets), not attendees
     const { data: paidOrders } = await supabase
