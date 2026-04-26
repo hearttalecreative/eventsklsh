@@ -23,10 +23,13 @@ import {
   Copy,
   GripVertical,
   ImageUp,
+  Loader2,
   Mail,
   Monitor,
   Plus,
+  RefreshCw,
   Save,
+  Send,
   Smartphone,
   Trash2,
   WandSparkles,
@@ -248,6 +251,14 @@ const SortableModuleCard = ({
   );
 };
 
+interface BrevoList {
+  id: number;
+  name: string;
+  totalSubscribers: number;
+  uniqueSubscribers: number;
+  totalBlacklisted: number;
+}
+
 const NewslettersPage = () => {
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -268,6 +279,10 @@ const NewslettersPage = () => {
   const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>([]);
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [eventMonthFilter, setEventMonthFilter] = useState<string>("all");
+  const [brevoLists, setBrevoLists] = useState<BrevoList[]>([]);
+  const [loadingBrevoLists, setLoadingBrevoLists] = useState(false);
+  const [selectedBrevoListIds, setSelectedBrevoListIds] = useState<number[]>([]);
+  const [sendingToBrevo, setSendingToBrevo] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -288,6 +303,8 @@ const NewslettersPage = () => {
       }),
     [newsletterSubject, newsletterTitle, modules, events, baseUrl],
   );
+
+  const htmlForBrevo = useMemo(() => generatedHtml || previewHtml, [generatedHtml, previewHtml]);
 
   const selectedNewsletter = useMemo(
     () => newsletters.find((item) => item.id === selectedNewsletterId) || null,
@@ -441,9 +458,43 @@ const NewslettersPage = () => {
     setLoadingEvents(false);
   };
 
+  const loadBrevoLists = async () => {
+    setLoadingBrevoLists(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("brevo-newsletters", {
+        body: { action: "lists" },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const incoming = Array.isArray(data?.lists) ? data.lists : [];
+      const mapped = incoming
+        .map((item: any) => ({
+          id: Number(item?.id),
+          name: typeof item?.name === "string" ? item.name : `List ${item?.id}`,
+          totalSubscribers: Number(item?.totalSubscribers || 0),
+          uniqueSubscribers: Number(item?.uniqueSubscribers || 0),
+          totalBlacklisted: Number(item?.totalBlacklisted || 0),
+        }))
+        .filter((item) => Number.isInteger(item.id) && item.id > 0)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setBrevoLists(mapped);
+      setSelectedBrevoListIds((current) => current.filter((id) => mapped.some((list) => list.id === id)));
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to load Brevo lists");
+    } finally {
+      setLoadingBrevoLists(false);
+    }
+  };
+
   useEffect(() => {
     loadNewsletters();
     loadEvents();
+    loadBrevoLists();
   }, []);
 
   useEffect(() => {
@@ -687,6 +738,67 @@ const NewslettersPage = () => {
     toast.success("Image uploaded");
   };
 
+  const toggleBrevoListSelection = (listId: number, checked: boolean) => {
+    setSelectedBrevoListIds((current) => {
+      if (checked) {
+        if (current.includes(listId)) return current;
+        return [...current, listId];
+      }
+
+      return current.filter((id) => id !== listId);
+    });
+  };
+
+  const handleSendToBrevo = async () => {
+    const subject = newsletterSubject.trim() || newsletterTitle.trim();
+    const htmlContent = htmlForBrevo.trim();
+    const listIds = Array.from(new Set(selectedBrevoListIds));
+
+    if (!subject) {
+      toast.error("Please add an email subject before sending");
+      return;
+    }
+
+    if (!htmlContent) {
+      toast.error("Please generate newsletter HTML before sending");
+      return;
+    }
+
+    if (listIds.length === 0) {
+      toast.error("Select at least one Brevo list");
+      return;
+    }
+
+    setSendingToBrevo(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("brevo-newsletters", {
+        body: {
+          action: "send",
+          campaignName: newsletterTitle.trim() || undefined,
+          subject,
+          htmlContent,
+          listIds,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const campaignId = data?.campaignId;
+      toast.success(
+        campaignId
+          ? `Newsletter sent to Brevo. Campaign #${campaignId}`
+          : "Newsletter sent to Brevo successfully",
+      );
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to send newsletter to Brevo");
+    } finally {
+      setSendingToBrevo(false);
+    }
+  };
+
   return (
     <AdminRoute>
       <AdminHeader />
@@ -831,6 +943,101 @@ const NewslettersPage = () => {
                   <span className="text-xs text-muted-foreground ml-auto">
                     Status: <strong>{newsletterStatus === "ready" ? "Ready" : "Draft"}</strong>
                     {dirty ? " (unsaved changes)" : ""}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/70 bg-gradient-to-b from-card to-card/95 shadow-sm">
+              <CardHeader>
+                <CardTitle>Send to Brevo Lists</CardTitle>
+                <CardDescription>
+                  Select one or more contact lists and send this newsletter directly from admin.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/20 p-2">
+                  <Button type="button" variant="outline" onClick={loadBrevoLists} disabled={loadingBrevoLists || sendingToBrevo}>
+                    {loadingBrevoLists ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Refresh Lists
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedBrevoListIds(brevoLists.map((list) => list.id))}
+                    disabled={brevoLists.length === 0 || loadingBrevoLists || sendingToBrevo}
+                  >
+                    Select all
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedBrevoListIds([])}
+                    disabled={selectedBrevoListIds.length === 0 || sendingToBrevo}
+                  >
+                    Clear
+                  </Button>
+
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    Selected: <strong>{selectedBrevoListIds.length}</strong> / {brevoLists.length}
+                  </span>
+                </div>
+
+                <div className="rounded-md border p-3 max-h-64 overflow-y-auto space-y-2">
+                  {loadingBrevoLists ? (
+                    <p className="text-sm text-muted-foreground">Loading Brevo lists...</p>
+                  ) : brevoLists.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No Brevo lists found.</p>
+                  ) : (
+                    brevoLists.map((list) => {
+                      const checked = selectedBrevoListIds.includes(list.id);
+
+                      return (
+                        <label
+                          key={list.id}
+                          className="flex items-start gap-2 rounded-md border border-border/70 bg-background p-2"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(value) => toggleBrevoListSelection(list.id, Boolean(value))}
+                          />
+                          <span className="text-sm leading-relaxed">
+                            <span className="font-medium block">{list.name}</span>
+                            <span className="text-muted-foreground text-xs block">
+                              ID {list.id} | {list.totalSubscribers} subscribers
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleSendToBrevo}
+                    disabled={sendingToBrevo || loadingBrevoLists || brevoLists.length === 0}
+                  >
+                    {sendingToBrevo ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    {sendingToBrevo ? "Sending to Brevo..." : "Send Newsletter Now"}
+                  </Button>
+
+                  <span className="text-xs text-muted-foreground">
+                    Uses {generatedHtml ? "generated HTML" : "live preview HTML"} with subject from "Email Subject / Header
+                    Title".
                   </span>
                 </div>
               </CardContent>

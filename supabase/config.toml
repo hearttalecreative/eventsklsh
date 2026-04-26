@@ -50,3 +50,6 @@ verify_jwt = true
 
 [functions.admin-update-person-notes]
 verify_jwt = true
+
+[functions.brevo-newsletters]
+verify_jwt = true
