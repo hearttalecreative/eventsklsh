@@ -30,6 +30,10 @@ interface BrevoListRow {
   uniqueSubscribers?: number;
 }
 
+function containsEmbeddedImageDataUri(html: string) {
+  return /data:image\//i.test(html);
+}
+
 async function readJsonSafely(response: Response) {
   const text = await response.text();
   if (!text) return null;
@@ -243,6 +247,19 @@ serve(async (req) => {
       });
     }
 
+    if (containsEmbeddedImageDataUri(htmlContent)) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Embedded base64 images are not allowed. Please use image URLs (https://...) for newsletter images.",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        },
+      );
+    }
+
     if (listIds.length === 0) {
       return new Response(JSON.stringify({ error: "At least one Brevo list must be selected" }), {
         status: 400,
@@ -264,7 +281,7 @@ serve(async (req) => {
         recipients: {
           listIds,
         },
-        inlineImageActivation: true,
+        inlineImageActivation: false,
       }),
     })) as { id?: number };
 

@@ -274,6 +274,8 @@ const getEdgeFunctionErrorMessage = async (error: any, fallback: string) => {
   return error?.message || fallback;
 };
 
+const containsEmbeddedImageDataUri = (html: string) => /data:image\//i.test(html);
+
 interface BrevoList {
   id: number;
   name: string;
@@ -789,6 +791,11 @@ const NewslettersPage = () => {
 
     if (!htmlContent) {
       toast.error("Please generate newsletter HTML before sending");
+      return;
+    }
+
+    if (containsEmbeddedImageDataUri(htmlContent)) {
+      toast.error("Embedded base64 images are not allowed. Use image URLs instead.");
       return;
     }
 
