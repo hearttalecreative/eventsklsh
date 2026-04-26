@@ -251,6 +251,29 @@ const SortableModuleCard = ({
   );
 };
 
+const getEdgeFunctionErrorMessage = async (error: any, fallback: string) => {
+  if (!error) return fallback;
+
+  const response = error?.context;
+  if (response && typeof response === "object") {
+    try {
+      const payload = await (typeof response.clone === "function" ? response.clone() : response).json();
+      const apiMessage =
+        (payload && typeof payload.error === "string" && payload.error) ||
+        (payload && typeof payload.message === "string" && payload.message) ||
+        "";
+
+      if (apiMessage) return apiMessage;
+    } catch {}
+
+    if (typeof response.status === "number" && response.status >= 400) {
+      return `${fallback} (${response.status})`;
+    }
+  }
+
+  return error?.message || fallback;
+};
+
 interface BrevoList {
   id: number;
   name: string;
@@ -485,7 +508,8 @@ const NewslettersPage = () => {
       setBrevoLists(mapped);
       setSelectedBrevoListIds((current) => current.filter((id) => mapped.some((list) => list.id === id)));
     } catch (error: any) {
-      toast.error(error?.message || "Failed to load Brevo lists");
+      const message = await getEdgeFunctionErrorMessage(error, "Failed to load Brevo lists");
+      toast.error(message);
     } finally {
       setLoadingBrevoLists(false);
     }
@@ -793,7 +817,8 @@ const NewslettersPage = () => {
           : "Newsletter sent to Brevo successfully",
       );
     } catch (error: any) {
-      toast.error(error?.message || "Failed to send newsletter to Brevo");
+      const message = await getEdgeFunctionErrorMessage(error, "Failed to send newsletter to Brevo");
+      toast.error(message);
     } finally {
       setSendingToBrevo(false);
     }
