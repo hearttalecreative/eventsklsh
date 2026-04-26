@@ -352,6 +352,10 @@ function renderDividerModule(module: NewsletterDividerModule) {
 function renderHighlightButtonModule(module: NewsletterHighlightButtonModule) {
   const buttonText = module.buttonText.trim();
   const buttonUrl = module.buttonUrl.trim();
+  const styleVariant =
+    module.styleVariant === "outline" || module.styleVariant === "dark" || module.styleVariant === "solid"
+      ? module.styleVariant
+      : "solid";
 
   if (!buttonText || !isSafeUrl(buttonUrl)) {
     return `
@@ -369,13 +373,25 @@ function renderHighlightButtonModule(module: NewsletterHighlightButtonModule) {
     `;
   }
 
+  const cellStylesByVariant = {
+    solid: `border-radius:999px;background:${BRAND.copper};border:1px solid ${BRAND.copperDark};box-shadow:0 8px 20px rgba(141,94,48,0.26);`,
+    outline: `border-radius:999px;background:#f4efe7;border:2px solid ${BRAND.copper};box-shadow:0 6px 16px rgba(141,94,48,0.14);`,
+    dark: `border-radius:999px;background:${BRAND.dark};border:1px solid ${BRAND.copper};box-shadow:0 8px 22px rgba(47,52,67,0.28);`,
+  } as const;
+
+  const linkStylesByVariant = {
+    solid: "display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;text-align:center;",
+    outline: `display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:${BRAND.dark};text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.3px;text-align:center;`,
+    dark: "display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;text-align:center;",
+  } as const;
+
   return `
     <tr>
       <td style="padding:12px 30px 18px 30px;background:${BRAND.paper};text-align:center;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">
+        <table class="highlight-cta-wrap" role="presentation" width="50%" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;width:50%;max-width:100%;">
           <tr>
-            <td style="border-radius:999px;background:${BRAND.copper};border:1px solid ${BRAND.copperDark};box-shadow:0 8px 20px rgba(141,94,48,0.26);">
-              <a class="highlight-cta" href="${escapeHtml(buttonUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;">
+            <td style="${cellStylesByVariant[styleVariant]}">
+              <a class="highlight-cta" href="${escapeHtml(buttonUrl)}" target="_blank" rel="noopener noreferrer" style="${linkStylesByVariant[styleVariant]}">
                 ${escapeHtml(buttonText)}
               </a>
             </td>
@@ -448,7 +464,8 @@ export function buildNewsletterHtml({
       .event-title { font-size: 17px !important; line-height: 1.24 !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
       .event-meta { overflow-wrap: anywhere !important; word-break: break-word !important; }
       .event-cta { max-width: 100% !important; box-sizing: border-box !important; }
-      .highlight-cta { font-size: 14px !important; padding: 12px 22px !important; }
+      .highlight-cta-wrap { width: 100% !important; }
+      .highlight-cta { width: 100% !important; box-sizing: border-box !important; font-size: 14px !important; padding: 12px 18px !important; }
     }
   </style>
 </head>

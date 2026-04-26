@@ -1,4 +1,5 @@
 export type NewsletterModuleType = "custom" | "events" | "divider" | "highlight_button";
+export type NewsletterHighlightButtonVariant = "solid" | "outline" | "dark";
 
 export interface NewsletterBaseModule {
   id: string;
@@ -31,6 +32,7 @@ export interface NewsletterHighlightButtonModule extends NewsletterBaseModule {
   type: "highlight_button";
   buttonText: string;
   buttonUrl: string;
+  styleVariant: NewsletterHighlightButtonVariant;
 }
 
 export type NewsletterModule =

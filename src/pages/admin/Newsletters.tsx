@@ -101,6 +101,7 @@ const createHighlightButtonModule = (): NewsletterHighlightButtonModule => ({
   label: "",
   buttonText: "Discover More",
   buttonUrl: "",
+  styleVariant: "solid",
 });
 
 const formatDateTime = (iso: string) => {
@@ -176,6 +177,10 @@ const parseModuleList = (raw: unknown): NewsletterModule[] => {
           label,
           buttonText: typeof row.buttonText === "string" ? row.buttonText : "Discover More",
           buttonUrl: typeof row.buttonUrl === "string" ? row.buttonUrl : "",
+          styleVariant:
+            row.styleVariant === "outline" || row.styleVariant === "dark" || row.styleVariant === "solid"
+              ? row.styleVariant
+              : "solid",
         } as NewsletterHighlightButtonModule;
       }
 
@@ -1448,8 +1453,32 @@ const NewslettersPage = () => {
                                   </div>
                                 </div>
 
+                                <div className="space-y-1.5 max-w-xs">
+                                  <Label>Button Style</Label>
+                                  <Select
+                                    value={module.styleVariant}
+                                    onValueChange={(value) =>
+                                      updateModule<"highlight_button">(module.id, {
+                                        styleVariant:
+                                          value === "outline" || value === "dark" || value === "solid"
+                                            ? value
+                                            : "solid",
+                                      })
+                                    }
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select button style" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="solid">Solid Copper</SelectItem>
+                                      <SelectItem value="outline">Soft Outline</SelectItem>
+                                      <SelectItem value="dark">Dark Premium</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
                                 <p className="text-xs text-muted-foreground">
-                                  This CTA renders centered and slightly larger than event ticket buttons.
+                                  This CTA renders centered at 50% width on desktop and full width on mobile.
                                 </p>
                               </div>
                             </SortableModuleCard>
