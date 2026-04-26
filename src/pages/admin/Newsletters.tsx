@@ -266,6 +266,8 @@ const NewslettersPage = () => {
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>([]);
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [eventMonthFilter, setEventMonthFilter] = useState<string>("all");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -291,6 +293,58 @@ const NewslettersPage = () => {
     () => newsletters.find((item) => item.id === selectedNewsletterId) || null,
     [newsletters, selectedNewsletterId],
   );
+
+  const eventMonthOptions = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+    const optionsMap = new Map<string, string>();
+
+    events.forEach((event) => {
+      const date = new Date(event.starts_at);
+      if (Number.isNaN(date.getTime())) return;
+
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      if (!optionsMap.has(key)) {
+        optionsMap.set(key, formatter.format(date));
+      }
+    });
+
+    return Array.from(optionsMap.entries())
+      .sort((a, b) => {
+        const aTime = new Date(`${a[0]}-01T00:00:00`).getTime();
+        const bTime = new Date(`${b[0]}-01T00:00:00`).getTime();
+        return aTime - bTime;
+      })
+      .map(([value, label]) => ({ value, label }));
+  }, [events]);
+
+  const filteredEventsForPicker = useMemo(() => {
+    const query = eventSearchQuery.trim().toLowerCase();
+    const nowTs = Date.now();
+
+    return [...events]
+      .filter((event) => {
+        if (eventMonthFilter === "all") return true;
+        const date = new Date(event.starts_at);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        return key === eventMonthFilter;
+      })
+      .filter((event) => {
+        if (!query) return true;
+        const haystack = `${event.title} ${event.venue_name}`.toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort((a, b) => {
+        const aTs = new Date(a.starts_at).getTime();
+        const bTs = new Date(b.starts_at).getTime();
+        const aFuture = aTs >= nowTs;
+        const bFuture = bTs >= nowTs;
+
+        if (aFuture && bFuture) return aTs - bTs;
+        if (aFuture) return -1;
+        if (bFuture) return 1;
+        return bTs - aTs;
+      });
+  }, [events, eventSearchQuery, eventMonthFilter]);
 
   const markDirty = () => {
     setDirty(true);
@@ -1008,13 +1062,36 @@ const NewslettersPage = () => {
 
                                 <div className="space-y-2">
                                   <Label>Select Events</Label>
+
+                                  <div className="grid gap-2 md:grid-cols-2">
+                                    <Input
+                                      value={eventSearchQuery}
+                                      onChange={(event) => setEventSearchQuery(event.target.value)}
+                                      placeholder="Search by event name"
+                                    />
+
+                                    <Select value={eventMonthFilter} onValueChange={setEventMonthFilter}>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Filter by month" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="all">All months</SelectItem>
+                                        {eventMonthOptions.map((option) => (
+                                          <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
                                   <div className="rounded-md border p-3 max-h-64 overflow-y-auto space-y-2">
                                     {loadingEvents ? (
                                       <p className="text-sm text-muted-foreground">Loading events...</p>
-                                    ) : events.length === 0 ? (
+                                    ) : filteredEventsForPicker.length === 0 ? (
                                       <p className="text-sm text-muted-foreground">No events available.</p>
                                     ) : (
-                                      events.map((event) => {
+                                      filteredEventsForPicker.map((event) => {
                                         const checked = module.eventIds.includes(event.id);
 
                                         return (
@@ -1040,7 +1117,7 @@ const NewslettersPage = () => {
                                     )}
                                   </div>
                                   <p className="text-xs text-muted-foreground">
-                                    Selected: {module.eventIds.length} event(s). All selected events will be rendered.
+                                    Selected: {module.eventIds.length} event(s). Showing {filteredEventsForPicker.length} event(s) in list.
                                   </p>
                                 </div>
                               </div>

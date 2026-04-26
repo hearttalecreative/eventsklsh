@@ -24,16 +24,36 @@ const FOOTER_LOGO_URL =
   "https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg";
 
 const SOCIAL_LINKS = [
-  { label: "IG", name: "Instagram", href: "http://www.instagram.com/kylelamsoundhealing" },
-  { label: "FB", name: "Facebook", href: "http://www.facebook.com/kylelamsoundhealing" },
-  { label: "YT", name: "YouTube", href: "https://www.youtube.com/@kylelamsoundhealing" },
-  { label: "TT", name: "TikTok", href: "https://www.tiktok.com/@kylelamsoundhealing" },
   {
-    label: "SP",
+    name: "Instagram",
+    href: "http://www.instagram.com/kylelamsoundhealing",
+    iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/instagram-new.png",
+  },
+  {
+    name: "Facebook",
+    href: "http://www.facebook.com/kylelamsoundhealing",
+    iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/facebook-new.png",
+  },
+  {
+    name: "YouTube",
+    href: "https://www.youtube.com/@kylelamsoundhealing",
+    iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/youtube-play.png",
+  },
+  {
+    name: "TikTok",
+    href: "https://www.tiktok.com/@kylelamsoundhealing",
+    iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/tiktok--v1.png",
+  },
+  {
     name: "Spotify",
     href: "https://open.spotify.com/artist/4uXnIdQTkFkoT7TiHuSsl6?si=vmjmSZY6QPq6lBAC5fBbDA",
+    iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/spotify.png",
   },
-  { label: "AM", name: "Apple Music", href: "https://music.apple.com/us/artist/kyle-lam-sound-healing/1779560355" },
+  {
+    name: "Apple Music",
+    href: "https://music.apple.com/us/artist/kyle-lam-sound-healing/1779560355",
+    iconUrl: "https://img.icons8.com/ios-filled/50/ffffff/apple-music.png",
+  },
 ];
 
 const ALLOWED_RICH_TAGS = new Set(["P", "BR", "STRONG", "B", "EM", "I", "U", "A", "H3", "H4", "UL", "OL", "LI"]);
@@ -252,7 +272,7 @@ function renderEventsModule(module: NewsletterEventsModule, eventsById: Map<stri
             <td class="event-image-col" width="244" style="padding:0;vertical-align:top;">
               ${
                 event.image_url
-                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="244" style="display:block;width:244px;max-width:244px;height:auto;min-height:206px;border:0;border-radius:14px 0 0 14px;object-fit:cover;"/>`
+                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="244" style="display:block;width:244px;max-width:244px;height:auto;border:0;border-radius:14px 0 0 14px;"/>`
                   : `<div style="width:244px;background:${BRAND.bg};height:100%;min-height:206px;"></div>`
               }
             </td>
@@ -339,10 +359,10 @@ export function buildNewsletterHtml({
   const eventsById = new Map(events.map((event) => [event.id, event]));
   const contentRows = modules.map((module) => renderModule(module, eventsById, resolvedSiteUrl)).join("");
 
-  const socialBadges = SOCIAL_LINKS.map(
+  const socialIcons = SOCIAL_LINKS.map(
     (social) => `
-      <a href="${escapeHtml(social.href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 4px 8px 4px;text-decoration:none;">
-        <span style="display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.28);color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;line-height:1;padding:8px 10px;border-radius:999px;letter-spacing:0.4px;">${social.label}</span>
+      <a href="${escapeHtml(social.href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 4px 8px 4px;text-decoration:none;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.28);border-radius:999px;padding:8px;line-height:1;">
+        <img src="${escapeHtml(social.iconUrl)}" alt="${escapeHtml(social.name)}" width="16" height="16" style="display:block;width:16px;height:16px;border:0;" />
       </a>
     `,
   ).join("");
@@ -374,12 +394,16 @@ export function buildNewsletterHtml({
       <td align="center" style="padding:22px 10px;">
         <table role="presentation" class="newsletter-shell" width="640" cellspacing="0" cellpadding="0" border="0" style="width:640px;max-width:640px;background:${BRAND.paper};border-radius:24px;overflow:hidden;box-shadow:0 8px 24px rgba(59,48,38,0.07);">
           <tr>
-            <td class="newsletter-pad" style="padding:28px 34px 22px 34px;background:${BRAND.paper};text-align:center;border-bottom:1px solid #e5ded6;">
-              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="290" style="display:inline-block;width:290px;max-width:100%;height:auto;margin:0 auto;" />
+            <td class="newsletter-pad" style="padding:38px 34px 34px 34px;background:${BRAND.paper};text-align:center;border-bottom:1px solid #e5ded6;">
+              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="220" style="display:inline-block;width:220px;max-width:100%;height:auto;margin:0 auto;" />
             </td>
           </tr>
 
           ${contentRows}
+
+          <tr>
+            <td style="background:${BRAND.paper};height:40px;line-height:40px;font-size:0;">&nbsp;</td>
+          </tr>
 
           <tr>
             <td class="newsletter-pad" style="padding:34px 34px;background:${BRAND.dark};text-align:center;">
@@ -391,7 +415,7 @@ export function buildNewsletterHtml({
                 <a href="https://www.kylelamsoundhealing.com" target="_blank" rel="noopener noreferrer" style="color:#f5f2ed;text-decoration:none;">www.kylelamsoundhealing.com</a>
               </div>
 
-              <div style="margin:0 0 10px 0;">${socialBadges}</div>
+              <div style="margin:0 0 10px 0;">${socialIcons}</div>
 
               <div style="font-family:Arial,Helvetica,sans-serif;color:#d7cab9;font-size:11px;line-height:1.6;letter-spacing:0.25px;">
                 You are receiving this message from Kyle Lam Sound Healing.
