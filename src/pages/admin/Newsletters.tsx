@@ -45,6 +45,7 @@ import {
   NewsletterDividerModule,
   NewsletterEventItem,
   NewsletterEventsModule,
+  NewsletterHighlightButtonModule,
   NewsletterModule,
   NewsletterRecord,
 } from "@/types/newsletter";
@@ -92,6 +93,14 @@ const createDividerModule = (): NewsletterDividerModule => ({
   type: "divider",
   label: "",
   dividerStyle: "line",
+});
+
+const createHighlightButtonModule = (): NewsletterHighlightButtonModule => ({
+  id: createModuleId(),
+  type: "highlight_button",
+  label: "",
+  buttonText: "Discover More",
+  buttonUrl: "",
 });
 
 const formatDateTime = (iso: string) => {
@@ -158,6 +167,16 @@ const parseModuleList = (raw: unknown): NewsletterModule[] => {
           label,
           dividerStyle: row.dividerStyle === "spacer" ? "spacer" : "line",
         } as NewsletterDividerModule;
+      }
+
+      if (row.type === "highlight_button") {
+        return {
+          id,
+          type: "highlight_button",
+          label,
+          buttonText: typeof row.buttonText === "string" ? row.buttonText : "Discover More",
+          buttonUrl: typeof row.buttonUrl === "string" ? row.buttonUrl : "",
+        } as NewsletterHighlightButtonModule;
       }
 
       return null;
@@ -1083,7 +1102,7 @@ const NewslettersPage = () => {
               <CardHeader>
                 <CardTitle>Content Builder</CardTitle>
                 <CardDescription>
-                  Add custom content blocks, event modules, and optional divider lines. Drag to reorder.
+                  Add custom blocks, event modules, highlighted CTA buttons, and divider lines. Drag to reorder.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1117,6 +1136,21 @@ const NewslettersPage = () => {
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Events Module
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-primary/30 bg-primary/5 hover:bg-primary/10"
+                    onClick={() => {
+                      const module = createHighlightButtonModule();
+                      setModules((current) => [...current, module]);
+                      setExpandedModuleIds((current) => [...current, module.id]);
+                      markDirty();
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Highlight Button
                   </Button>
 
                   <Button
@@ -1363,6 +1397,60 @@ const NewslettersPage = () => {
                                     Selected: {module.eventIds.length} event(s). Showing {filteredEventsForPicker.length} event(s) in list.
                                   </p>
                                 </div>
+                              </div>
+                            </SortableModuleCard>
+                          );
+                        }
+
+                        if (module.type === "highlight_button") {
+                          return (
+                            <SortableModuleCard
+                              key={module.id}
+                              moduleId={module.id}
+                              title={module.label.trim() || `Highlight Button ${index + 1}`}
+                              subtitle="Standalone prominent CTA button"
+                              summary={module.buttonText || "No button text yet"}
+                              isOpen={isOpen}
+                              onToggle={() => toggleModuleOpen(module.id)}
+                              onDelete={() => deleteModule(module.id)}
+                            >
+                              <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                  <Label>Internal Block Name</Label>
+                                  <Input
+                                    value={module.label}
+                                    onChange={(event) => updateModule<"highlight_button">(module.id, { label: event.target.value })}
+                                    placeholder="Example: Primary CTA after events"
+                                  />
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  <div className="space-y-1.5">
+                                    <Label>Button Text</Label>
+                                    <Input
+                                      value={module.buttonText}
+                                      onChange={(event) =>
+                                        updateModule<"highlight_button">(module.id, { buttonText: event.target.value })
+                                      }
+                                      placeholder="Discover More"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    <Label>Button URL</Label>
+                                    <Input
+                                      value={module.buttonUrl}
+                                      onChange={(event) =>
+                                        updateModule<"highlight_button">(module.id, { buttonUrl: event.target.value })
+                                      }
+                                      placeholder="https://..."
+                                    />
+                                  </div>
+                                </div>
+
+                                <p className="text-xs text-muted-foreground">
+                                  This CTA renders centered and slightly larger than event ticket buttons.
+                                </p>
                               </div>
                             </SortableModuleCard>
                           );

@@ -3,6 +3,7 @@ import {
   NewsletterDividerModule,
   NewsletterEventItem,
   NewsletterEventsModule,
+  NewsletterHighlightButtonModule,
   NewsletterModule,
 } from "@/types/newsletter";
 
@@ -348,6 +349,43 @@ function renderDividerModule(module: NewsletterDividerModule) {
   `;
 }
 
+function renderHighlightButtonModule(module: NewsletterHighlightButtonModule) {
+  const buttonText = module.buttonText.trim();
+  const buttonUrl = module.buttonUrl.trim();
+
+  if (!buttonText || !isSafeUrl(buttonUrl)) {
+    return `
+      <tr>
+        <td style="padding:8px 30px 16px 30px;background:${BRAND.paper};">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px dashed ${BRAND.border};border-radius:10px;background:#ffffff;">
+            <tr>
+              <td style="padding:14px 16px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:${BRAND.muted};text-align:center;">
+                Add button text and a valid URL to render this highlighted CTA block.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    `;
+  }
+
+  return `
+    <tr>
+      <td style="padding:12px 30px 18px 30px;background:${BRAND.paper};text-align:center;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">
+          <tr>
+            <td style="border-radius:999px;background:${BRAND.copper};border:1px solid ${BRAND.copperDark};box-shadow:0 8px 20px rgba(141,94,48,0.26);">
+              <a class="highlight-cta" href="${escapeHtml(buttonUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;">
+                ${escapeHtml(buttonText)}
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `;
+}
+
 function renderModule(module: NewsletterModule, eventsById: Map<string, NewsletterEventItem>, siteUrl: string) {
   if (module.type === "custom") {
     return renderCustomModule(module);
@@ -355,6 +393,10 @@ function renderModule(module: NewsletterModule, eventsById: Map<string, Newslett
 
   if (module.type === "events") {
     return renderEventsModule(module, eventsById, siteUrl);
+  }
+
+  if (module.type === "highlight_button") {
+    return renderHighlightButtonModule(module);
   }
 
   return renderDividerModule(module);
@@ -406,6 +448,7 @@ export function buildNewsletterHtml({
       .event-title { font-size: 17px !important; line-height: 1.24 !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
       .event-meta { overflow-wrap: anywhere !important; word-break: break-word !important; }
       .event-cta { max-width: 100% !important; box-sizing: border-box !important; }
+      .highlight-cta { font-size: 14px !important; padding: 12px 22px !important; }
     }
   </style>
 </head>

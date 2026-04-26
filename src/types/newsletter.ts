@@ -1,4 +1,4 @@
-export type NewsletterModuleType = "custom" | "events" | "divider";
+export type NewsletterModuleType = "custom" | "events" | "divider" | "highlight_button";
 
 export interface NewsletterBaseModule {
   id: string;
@@ -27,10 +27,17 @@ export interface NewsletterDividerModule extends NewsletterBaseModule {
   dividerStyle: "line" | "spacer";
 }
 
+export interface NewsletterHighlightButtonModule extends NewsletterBaseModule {
+  type: "highlight_button";
+  buttonText: string;
+  buttonUrl: string;
+}
+
 export type NewsletterModule =
   | NewsletterCustomModule
   | NewsletterEventsModule
-  | NewsletterDividerModule;
+  | NewsletterDividerModule
+  | NewsletterHighlightButtonModule;
 
 export interface NewsletterRecord {
   id: string;
