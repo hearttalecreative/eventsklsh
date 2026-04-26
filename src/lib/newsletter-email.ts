@@ -18,6 +18,9 @@ const BRAND = {
 };
 
 const HEADER_LOGO_URL =
+  "https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg";
+
+const FOOTER_LOGO_URL =
   "https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg";
 
 const SOCIAL_LINKS = [
@@ -154,25 +157,18 @@ function styleNewsletterRichHtml(rawHtml: string) {
 
 function formatEventDateLabel(isoDate: string, timezone?: string | null) {
   const date = new Date(isoDate);
-  const month = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    timeZone: timezone || "America/Los_Angeles",
-  })
-    .format(date)
-    .toUpperCase();
-
-  const day = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
     timeZone: timezone || "America/Los_Angeles",
   }).format(date);
-
-  return `${month} ${day}`;
 }
 
 function formatEventTimeLine(isoDate: string, timezone?: string | null) {
   const date = new Date(isoDate);
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
@@ -251,19 +247,19 @@ function renderEventsModule(module: NewsletterEventsModule, eventsById: Map<stri
       const safeVenueLine = escapeHtml(venueLine || "Venue TBA");
 
       return `
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid ${BRAND.border};border-radius:12px;background:#fcfbf9;margin:0 0 18px 0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e3dcd4;border-radius:14px;background:#ffffff;margin:0 0 16px 0;">
           <tr>
-            <td class="event-image-col" width="196" style="padding:0;vertical-align:top;">
+            <td class="event-image-col" width="244" style="padding:0;vertical-align:top;">
               ${
                 event.image_url
-                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="196" style="display:block;width:196px;max-width:196px;height:auto;border:0;border-radius:12px 0 0 12px;"/>`
-                  : `<div style="width:196px;background:${BRAND.bg};height:100%;min-height:170px;"></div>`
+                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="244" style="display:block;width:244px;max-width:244px;height:auto;min-height:206px;border:0;border-radius:14px 0 0 14px;object-fit:cover;"/>`
+                  : `<div style="width:244px;background:${BRAND.bg};height:100%;min-height:206px;"></div>`
               }
             </td>
-            <td class="event-copy-col" style="padding:18px 18px 18px 20px;vertical-align:top;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:27px;line-height:1.05;font-weight:700;color:${BRAND.copper};margin:0 0 10px 0;letter-spacing:0.4px;">${escapeHtml(eventDate)}</div>
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.22;color:${BRAND.dark};margin:0 0 10px 0;">${escapeHtml(event.title)}</div>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:${BRAND.muted};margin:0 0 14px 0;">${escapeHtml(eventTime)}<br/>${safeVenueLine}</div>
+            <td class="event-copy-col" style="padding:20px 22px 20px 24px;vertical-align:top;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;font-weight:600;color:${BRAND.copperDark};margin:0 0 10px 0;letter-spacing:0.25px;">${escapeHtml(eventDate)}</div>
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.24;color:${BRAND.dark};margin:0 0 11px 0;">${escapeHtml(event.title)}</div>
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:${BRAND.muted};margin:0 0 15px 0;">${escapeHtml(eventTime)}<br/>${safeVenueLine}</div>
               ${renderButton(buttonText, purchaseLink)}
             </td>
           </tr>
@@ -368,7 +364,7 @@ export function buildNewsletterHtml({
       .newsletter-pad { padding-left: 18px !important; padding-right: 18px !important; }
       .event-image-col,
       .event-copy-col { display: block !important; width: 100% !important; max-width: 100% !important; }
-      .event-image-col img { width: 100% !important; max-width: 100% !important; border-radius: 10px 10px 0 0 !important; }
+      .event-image-col img { width: 100% !important; max-width: 100% !important; border-radius: 14px 14px 0 0 !important; }
     }
   </style>
 </head>
@@ -378,14 +374,8 @@ export function buildNewsletterHtml({
       <td align="center" style="padding:22px 10px;">
         <table role="presentation" class="newsletter-shell" width="640" cellspacing="0" cellpadding="0" border="0" style="width:640px;max-width:640px;background:${BRAND.paper};border-radius:24px;overflow:hidden;box-shadow:0 8px 24px rgba(59,48,38,0.07);">
           <tr>
-            <td class="newsletter-pad" style="padding:28px 34px 30px 34px;background:linear-gradient(118deg, #111827 0%, #2f3446 56%, #a97643 100%);text-align:center;">
-              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="292" style="display:inline-block;width:292px;max-width:100%;height:auto;margin:0 auto 20px auto;opacity:0.97;" />
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;color:#ffffff;letter-spacing:0.5px;margin:0 0 10px 0;">
-                ${escapeHtml(title || "Kyle Lam Sound Healing")}
-              </div>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.65;color:#eee5d8;max-width:490px;margin:0 auto;">
-                Sound healing experiences, upcoming events, and intentional updates from Kyle Lam.
-              </div>
+            <td class="newsletter-pad" style="padding:28px 34px 22px 34px;background:${BRAND.paper};text-align:center;border-bottom:1px solid #e5ded6;">
+              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="290" style="display:inline-block;width:290px;max-width:100%;height:auto;margin:0 auto;" />
             </td>
           </tr>
 
@@ -393,7 +383,7 @@ export function buildNewsletterHtml({
 
           <tr>
             <td class="newsletter-pad" style="padding:34px 34px;background:${BRAND.dark};text-align:center;">
-              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="230" style="display:inline-block;width:230px;max-width:100%;height:auto;margin:0 auto 16px auto;opacity:0.95;" />
+              <img src="${FOOTER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="230" style="display:inline-block;width:230px;max-width:100%;height:auto;margin:0 auto 16px auto;opacity:0.95;" />
 
               <div style="font-family:Arial,Helvetica,sans-serif;color:#f4efe7;font-size:14px;line-height:1.78;margin:0 0 16px 0;">
                 <a href="mailto:info@kylelamsoundhealing.com" style="color:#f5f2ed;text-decoration:none;">info@kylelamsoundhealing.com</a><br/>
