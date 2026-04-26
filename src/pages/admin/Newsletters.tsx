@@ -18,6 +18,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ChevronDown,
+  ChevronUp,
   Copy,
   GripVertical,
   ImageUp,
@@ -50,6 +52,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -64,6 +67,7 @@ const createModuleId = () => {
 const createCustomModule = (): NewsletterCustomModule => ({
   id: createModuleId(),
   type: "custom",
+  label: "",
   title: "",
   imageUrl: "",
   bodyHtml: "",
@@ -74,15 +78,16 @@ const createCustomModule = (): NewsletterCustomModule => ({
 const createEventsModule = (): NewsletterEventsModule => ({
   id: createModuleId(),
   type: "events",
+  label: "",
   title: "Upcoming Events",
   eventIds: [],
-  maxEvents: 3,
   buttonText: "Get Tickets",
 });
 
 const createDividerModule = (): NewsletterDividerModule => ({
   id: createModuleId(),
   type: "divider",
+  label: "",
   dividerStyle: "line",
 });
 
@@ -117,11 +122,13 @@ const parseModuleList = (raw: unknown): NewsletterModule[] => {
       if (!item || typeof item !== "object") return null;
       const row = item as Record<string, unknown>;
       const id = typeof row.id === "string" ? row.id : createModuleId();
+      const label = typeof row.label === "string" ? row.label : "";
 
       if (row.type === "custom") {
         return {
           id,
           type: "custom",
+          label,
           title: typeof row.title === "string" ? row.title : "",
           imageUrl: typeof row.imageUrl === "string" ? row.imageUrl : "",
           bodyHtml: typeof row.bodyHtml === "string" ? row.bodyHtml : "",
@@ -134,12 +141,9 @@ const parseModuleList = (raw: unknown): NewsletterModule[] => {
         return {
           id,
           type: "events",
+          label,
           title: typeof row.title === "string" ? row.title : "Upcoming Events",
           eventIds: Array.isArray(row.eventIds) ? row.eventIds.filter((v) => typeof v === "string") : [],
-          maxEvents:
-            typeof row.maxEvents === "number" && Number.isFinite(row.maxEvents)
-              ? Math.min(12, Math.max(1, Math.round(row.maxEvents)))
-              : 3,
           buttonText: typeof row.buttonText === "string" ? row.buttonText : "Get Tickets",
         } as NewsletterEventsModule;
       }
@@ -148,6 +152,7 @@ const parseModuleList = (raw: unknown): NewsletterModule[] => {
         return {
           id,
           type: "divider",
+          label,
           dividerStyle: row.dividerStyle === "spacer" ? "spacer" : "line",
         } as NewsletterDividerModule;
       }
@@ -161,11 +166,23 @@ interface SortableModuleCardProps {
   moduleId: string;
   title: string;
   subtitle: string;
+  summary?: string;
+  isOpen: boolean;
+  onToggle: () => void;
   children: React.ReactNode;
   onDelete: () => void;
 }
 
-const SortableModuleCard = ({ moduleId, title, subtitle, children, onDelete }: SortableModuleCardProps) => {
+const SortableModuleCard = ({
+  moduleId,
+  title,
+  subtitle,
+  summary,
+  isOpen,
+  onToggle,
+  children,
+  onDelete,
+}: SortableModuleCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: moduleId });
 
   return (
@@ -176,21 +193,43 @@ const SortableModuleCard = ({ moduleId, title, subtitle, children, onDelete }: S
         transition,
         opacity: isDragging ? 0.55 : 1,
       }}
-      className={isDragging ? "border-primary/40" : ""}
+      className={cn(
+        "overflow-hidden border-border/70 bg-gradient-to-b from-card to-card/90 shadow-sm",
+        isDragging ? "border-primary/40 shadow-md" : "",
+      )}
     >
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-base">{title}</CardTitle>
-            <CardDescription>{subtitle}</CardDescription>
-          </div>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="text-left flex-1 space-y-1 rounded-md px-1 py-0.5 hover:bg-muted/40 transition-colors"
+            aria-label={isOpen ? "Collapse module" : "Expand module"}
+          >
+            <CardTitle className="text-[15px] font-medium tracking-tight">{title}</CardTitle>
+            <CardDescription className="text-xs">{subtitle}</CardDescription>
+            {!isOpen && summary ? <p className="text-xs text-muted-foreground truncate pt-1">{summary}</p> : null}
+          </button>
 
           <div className="flex items-center gap-1">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="cursor-grab active:cursor-grabbing touch-none"
+              className="h-8 w-8"
+              onClick={onToggle}
+              aria-label={isOpen ? "Collapse module" : "Expand module"}
+            >
+              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 pl-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 cursor-grab active:cursor-grabbing touch-none"
               aria-label="Drag to reorder module"
               {...attributes}
               {...listeners}
@@ -198,13 +237,13 @@ const SortableModuleCard = ({ moduleId, title, subtitle, children, onDelete }: S
               <GripVertical className="h-4 w-4" />
             </Button>
 
-            <Button type="button" variant="ghost" size="icon" onClick={onDelete} aria-label="Delete module">
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete} aria-label="Delete module">
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      {isOpen ? <CardContent className="pt-0">{children}</CardContent> : null}
     </Card>
   );
 };
@@ -226,6 +265,7 @@ const NewslettersPage = () => {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
+  const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -256,6 +296,20 @@ const NewslettersPage = () => {
     setDirty(true);
     setNewsletterStatus("draft");
     setGeneratedHtml("");
+  };
+
+  const toggleModuleOpen = (moduleId: string) => {
+    setExpandedModuleIds((current) =>
+      current.includes(moduleId) ? current.filter((id) => id !== moduleId) : [...current, moduleId],
+    );
+  };
+
+  const expandAllModules = () => {
+    setExpandedModuleIds(modules.map((module) => module.id));
+  };
+
+  const collapseAllModules = () => {
+    setExpandedModuleIds([]);
   };
 
   const loadNewsletters = async () => {
@@ -338,12 +392,18 @@ const NewslettersPage = () => {
     loadEvents();
   }, []);
 
+  useEffect(() => {
+    setExpandedModuleIds((current) => current.filter((id) => modules.some((module) => module.id === id)));
+  }, [modules]);
+
   const resetToNewNewsletter = () => {
     setSelectedNewsletterId(null);
     setNewsletterTitle("New Newsletter");
     setNewsletterSubject("");
     setNewsletterStatus("draft");
-    setModules([createCustomModule()]);
+    const starter = createCustomModule();
+    setModules([starter]);
+    setExpandedModuleIds([starter.id]);
     setGeneratedHtml("");
     setDirty(false);
   };
@@ -353,7 +413,9 @@ const NewslettersPage = () => {
     setNewsletterTitle(record.title || "Untitled Newsletter");
     setNewsletterSubject(record.subject || "");
     setNewsletterStatus(record.status || "draft");
-    setModules(record.content.length > 0 ? record.content : [createCustomModule()]);
+    const nextModules = record.content.length > 0 ? record.content : [createCustomModule()];
+    setModules(nextModules);
+    setExpandedModuleIds([]);
     setGeneratedHtml(record.generated_html || "");
     setDirty(false);
   };
@@ -528,8 +590,13 @@ const NewslettersPage = () => {
       if (next.length > 0) {
         return next;
       }
-      return [createCustomModule()];
+
+      const fallback = createCustomModule();
+      setExpandedModuleIds([fallback.id]);
+      return [fallback];
     });
+
+    setExpandedModuleIds((current) => current.filter((id) => id !== moduleId));
     markDirty();
   };
 
@@ -587,7 +654,7 @@ const NewslettersPage = () => {
         </header>
 
         <section className="grid gap-6 lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr]">
-          <Card className="h-fit">
+          <Card className="h-fit border-border/70 bg-gradient-to-b from-card to-card/90 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Saved Drafts</CardTitle>
               <CardDescription>Open, continue editing, or remove old drafts.</CardDescription>
@@ -607,8 +674,10 @@ const NewslettersPage = () => {
                   newsletters.map((entry) => (
                     <div
                       key={entry.id}
-                      className={`rounded-md border p-3 transition-colors ${
-                        selectedNewsletterId === entry.id ? "border-primary/50 bg-primary/10" : "border-border"
+                      className={`rounded-lg border p-3 transition-colors ${
+                        selectedNewsletterId === entry.id
+                          ? "border-primary/45 bg-primary/10 shadow-[0_6px_20px_-14px_hsl(var(--primary))]"
+                          : "border-border/70 bg-card/70 hover:bg-muted/30"
                       }`}
                     >
                       <button
@@ -643,7 +712,7 @@ const NewslettersPage = () => {
           </Card>
 
           <div className="space-y-6">
-            <Card>
+            <Card className="border-border/70 bg-gradient-to-b from-card to-card/95 shadow-sm">
               <CardHeader>
                 <CardTitle>Newsletter Setup</CardTitle>
                 <CardDescription>
@@ -679,7 +748,7 @@ const NewslettersPage = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/20 p-2">
                   <Button type="button" onClick={() => saveNewsletter("draft")} disabled={saving}>
                     <Save className="h-4 w-4 mr-2" />
                     {saving ? "Saving..." : "Save Draft"}
@@ -713,7 +782,7 @@ const NewslettersPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/70 bg-gradient-to-b from-card to-card/95 shadow-sm">
               <CardHeader>
                 <CardTitle>Content Builder</CardTitle>
                 <CardDescription>
@@ -721,12 +790,15 @@ const NewslettersPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
+                    className="border-primary/30 bg-primary/5 hover:bg-primary/10"
                     onClick={() => {
-                      setModules((current) => [...current, createCustomModule()]);
+                      const module = createCustomModule();
+                      setModules((current) => [...current, module]);
+                      setExpandedModuleIds((current) => [...current, module.id]);
                       markDirty();
                     }}
                   >
@@ -737,8 +809,11 @@ const NewslettersPage = () => {
                   <Button
                     type="button"
                     variant="outline"
+                    className="border-primary/30 bg-primary/5 hover:bg-primary/10"
                     onClick={() => {
-                      setModules((current) => [...current, createEventsModule()]);
+                      const module = createEventsModule();
+                      setModules((current) => [...current, module]);
+                      setExpandedModuleIds((current) => [...current, module.id]);
                       markDirty();
                     }}
                     disabled={loadingEvents}
@@ -750,30 +825,58 @@ const NewslettersPage = () => {
                   <Button
                     type="button"
                     variant="outline"
+                    className="border-primary/30 bg-primary/5 hover:bg-primary/10"
                     onClick={() => {
-                      setModules((current) => [...current, createDividerModule()]);
+                      const module = createDividerModule();
+                      setModules((current) => [...current, module]);
+                      setExpandedModuleIds((current) => [...current, module.id]);
                       markDirty();
                     }}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Divider
                   </Button>
+
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={expandAllModules}>
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                      Expand all
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={collapseAllModules}>
+                      <ChevronUp className="h-4 w-4 mr-1" />
+                      Collapse all
+                    </Button>
+                  </div>
                 </div>
 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={modules.map((module) => module.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-4">
                       {modules.map((module, index) => {
+                        const isOpen = expandedModuleIds.includes(module.id);
+
                         if (module.type === "custom") {
                           return (
                             <SortableModuleCard
                               key={module.id}
                               moduleId={module.id}
-                              title={`Custom Block ${index + 1}`}
-                              subtitle="H2, image, rich text, and CTA button"
+                              title={module.label.trim() || `Custom Block ${index + 1}`}
+                              subtitle="H2, image, rich text and CTA button"
+                              summary={module.title || "No content title yet"}
+                              isOpen={isOpen}
+                              onToggle={() => toggleModuleOpen(module.id)}
                               onDelete={() => deleteModule(module.id)}
                             >
                               <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                  <Label>Internal Block Name</Label>
+                                  <Input
+                                    value={module.label}
+                                    onChange={(event) => updateModule<"custom">(module.id, { label: event.target.value })}
+                                    placeholder="Example: Hero intro / May launch / Testimonials"
+                                  />
+                                </div>
+
                                 <div className="space-y-1.5">
                                   <Label>Title (H2)</Label>
                                   <Input
@@ -807,6 +910,7 @@ const NewslettersPage = () => {
                                     </label>
 
                                     <Input
+                                      className="min-w-[260px] flex-1"
                                       value={module.imageUrl}
                                       onChange={(event) => updateModule<"custom">(module.id, { imageUrl: event.target.value })}
                                       placeholder="Or paste image URL"
@@ -865,13 +969,25 @@ const NewslettersPage = () => {
                             <SortableModuleCard
                               key={module.id}
                               moduleId={module.id}
-                              title={`Events Module ${index + 1}`}
-                              subtitle="Select existing events and display count"
+                              title={module.label.trim() || `Events Module ${index + 1}`}
+                              subtitle="Select one or multiple existing events"
+                              summary={`${module.eventIds.length} event(s) selected`}
+                              isOpen={isOpen}
+                              onToggle={() => toggleModuleOpen(module.id)}
                               onDelete={() => deleteModule(module.id)}
                             >
                               <div className="space-y-4">
-                                <div className="grid gap-3 md:grid-cols-3">
-                                  <div className="space-y-1.5 md:col-span-2">
+                                <div className="space-y-1.5">
+                                  <Label>Internal Block Name</Label>
+                                  <Input
+                                    value={module.label}
+                                    onChange={(event) => updateModule<"events">(module.id, { label: event.target.value })}
+                                    placeholder="Example: Upcoming Orange County Events"
+                                  />
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  <div className="space-y-1.5">
                                     <Label>Module Title</Label>
                                     <Input
                                       value={module.title}
@@ -881,28 +997,13 @@ const NewslettersPage = () => {
                                   </div>
 
                                   <div className="space-y-1.5">
-                                    <Label>How Many Events</Label>
+                                    <Label>Button Label (fallback)</Label>
                                     <Input
-                                      type="number"
-                                      min={1}
-                                      max={12}
-                                      value={module.maxEvents}
-                                      onChange={(event) =>
-                                        updateModule<"events">(module.id, {
-                                          maxEvents: Math.max(1, Math.min(12, Number(event.target.value) || 1)),
-                                        })
-                                      }
+                                      value={module.buttonText}
+                                      onChange={(event) => updateModule<"events">(module.id, { buttonText: event.target.value })}
+                                      placeholder="Get Tickets"
                                     />
                                   </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                  <Label>Button Label (fallback)</Label>
-                                  <Input
-                                    value={module.buttonText}
-                                    onChange={(event) => updateModule<"events">(module.id, { buttonText: event.target.value })}
-                                    placeholder="Get Tickets"
-                                  />
                                 </div>
 
                                 <div className="space-y-2">
@@ -939,7 +1040,7 @@ const NewslettersPage = () => {
                                     )}
                                   </div>
                                   <p className="text-xs text-muted-foreground">
-                                    Selected: {module.eventIds.length} event(s). The module will show up to {module.maxEvents}.
+                                    Selected: {module.eventIds.length} event(s). All selected events will be rendered.
                                   </p>
                                 </div>
                               </div>
@@ -951,11 +1052,24 @@ const NewslettersPage = () => {
                           <SortableModuleCard
                             key={module.id}
                             moduleId={module.id}
-                            title={`Divider ${index + 1}`}
+                            title={module.label.trim() || `Divider ${index + 1}`}
                             subtitle="Optional visual separator between sections"
+                            summary={module.dividerStyle === "spacer" ? "Spacer" : "Line divider"}
+                            isOpen={isOpen}
+                            onToggle={() => toggleModuleOpen(module.id)}
                             onDelete={() => deleteModule(module.id)}
                           >
-                            <div className="space-y-1.5 max-w-xs">
+                            <div className="space-y-3 max-w-sm">
+                              <div className="space-y-1.5">
+                                <Label>Internal Block Name</Label>
+                                <Input
+                                  value={module.label}
+                                  onChange={(event) => updateModule<"divider">(module.id, { label: event.target.value })}
+                                  placeholder="Example: Soft break before footer"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5">
                               <Label>Divider Type</Label>
                               <Select
                                 value={module.dividerStyle}
@@ -973,6 +1087,7 @@ const NewslettersPage = () => {
                                   <SelectItem value="spacer">Spacer</SelectItem>
                                 </SelectContent>
                               </Select>
+                              </div>
                             </div>
                           </SortableModuleCard>
                         );
@@ -983,7 +1098,7 @@ const NewslettersPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/70 bg-gradient-to-b from-card to-card/95 shadow-sm">
               <CardHeader>
                 <CardTitle>Newsletter Preview</CardTitle>
                 <CardDescription>
@@ -1013,7 +1128,7 @@ const NewslettersPage = () => {
                   </Button>
                 </div>
 
-                <div className="rounded-md border bg-muted/20 p-3 overflow-x-auto">
+                <div className="rounded-lg border border-border/70 bg-muted/20 p-3 overflow-x-auto">
                   <div
                     className="mx-auto"
                     style={{
@@ -1032,7 +1147,7 @@ const NewslettersPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/70 bg-gradient-to-b from-card to-card/95 shadow-sm">
               <CardHeader>
                 <CardTitle>Generated HTML</CardTitle>
                 <CardDescription>

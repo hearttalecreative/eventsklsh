@@ -3,6 +3,7 @@ export type NewsletterModuleType = "custom" | "events" | "divider";
 export interface NewsletterBaseModule {
   id: string;
   type: NewsletterModuleType;
+  label: string;
 }
 
 export interface NewsletterCustomModule extends NewsletterBaseModule {
@@ -18,7 +19,6 @@ export interface NewsletterEventsModule extends NewsletterBaseModule {
   type: "events";
   title: string;
   eventIds: string[];
-  maxEvents: number;
   buttonText: string;
 }
 

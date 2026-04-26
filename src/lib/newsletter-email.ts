@@ -18,7 +18,7 @@ const BRAND = {
 };
 
 const HEADER_LOGO_URL =
-  "https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-2logo-horizontal-color.svg";
+  "https://kylelamsoundhealing.com/wp-content/uploads/2024/12/Recurso-3logo-horizontal-blanco.svg";
 
 const SOCIAL_LINKS = [
   { label: "IG", name: "Instagram", href: "http://www.instagram.com/kylelamsoundhealing" },
@@ -214,20 +214,20 @@ function renderCustomModule(module: NewsletterCustomModule) {
 
   return `
     <tr>
-      <td style="padding:30px 34px 8px 34px;background:${BRAND.paper};">
+      <td style="padding:34px 38px 10px 38px;background:${BRAND.paper};">
         ${
           module.title
-            ? `<h2 style="margin:0 0 14px 0;color:${BRAND.dark};font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;font-weight:500;letter-spacing:0.3px;">${escapeHtml(module.title)}</h2>`
+            ? `<h2 style="margin:0 0 16px 0;color:${BRAND.dark};font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.15;font-weight:500;letter-spacing:0.2px;">${escapeHtml(module.title)}</h2>`
             : ""
         }
 
         ${
           module.imageUrl
-            ? `<img src="${escapeHtml(module.imageUrl)}" alt="Newsletter section image" width="572" style="display:block;width:100%;max-width:572px;height:auto;border:0;border-radius:14px;margin:0 0 16px 0;"/>`
+            ? `<img src="${escapeHtml(module.imageUrl)}" alt="Newsletter section image" width="564" style="display:block;width:100%;max-width:564px;height:auto;border:0;border-radius:18px;margin:0 0 18px 0;"/>`
             : ""
         }
 
-        ${bodyHtml ? `<div style="margin:0 0 16px 0;">${bodyHtml}</div>` : ""}
+        ${bodyHtml ? `<div style="margin:0 0 18px 0;">${bodyHtml}</div>` : ""}
         ${buttonHtml}
       </td>
     </tr>
@@ -237,8 +237,7 @@ function renderCustomModule(module: NewsletterCustomModule) {
 function renderEventsModule(module: NewsletterEventsModule, eventsById: Map<string, NewsletterEventItem>, siteUrl: string) {
   const selectedEvents = module.eventIds
     .map((eventId) => eventsById.get(eventId))
-    .filter(Boolean)
-    .slice(0, Math.max(1, module.maxEvents || 1)) as NewsletterEventItem[];
+    .filter(Boolean) as NewsletterEventItem[];
 
   const title = module.title || "Upcoming Events";
 
@@ -252,19 +251,19 @@ function renderEventsModule(module: NewsletterEventsModule, eventsById: Map<stri
       const safeVenueLine = escapeHtml(venueLine || "Venue TBA");
 
       return `
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid ${BRAND.border};border-radius:10px;background:#ffffff;margin:0 0 14px 0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid ${BRAND.border};border-radius:12px;background:#fcfbf9;margin:0 0 18px 0;">
           <tr>
             <td class="event-image-col" width="196" style="padding:0;vertical-align:top;">
               ${
                 event.image_url
-                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="196" style="display:block;width:196px;max-width:196px;height:auto;border:0;border-radius:10px 0 0 10px;"/>`
+                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="196" style="display:block;width:196px;max-width:196px;height:auto;border:0;border-radius:12px 0 0 12px;"/>`
                   : `<div style="width:196px;background:${BRAND.bg};height:100%;min-height:170px;"></div>`
               }
             </td>
-            <td class="event-copy-col" style="padding:16px 16px 16px 18px;vertical-align:top;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.05;font-weight:700;color:${BRAND.copper};margin:0 0 8px 0;">${escapeHtml(eventDate)}</div>
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.2;color:${BRAND.dark};margin:0 0 8px 0;">${escapeHtml(event.title)}</div>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.muted};margin:0 0 12px 0;">${escapeHtml(eventTime)}<br/>${safeVenueLine}</div>
+            <td class="event-copy-col" style="padding:18px 18px 18px 20px;vertical-align:top;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:27px;line-height:1.05;font-weight:700;color:${BRAND.copper};margin:0 0 10px 0;letter-spacing:0.4px;">${escapeHtml(eventDate)}</div>
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.22;color:${BRAND.dark};margin:0 0 10px 0;">${escapeHtml(event.title)}</div>
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:${BRAND.muted};margin:0 0 14px 0;">${escapeHtml(eventTime)}<br/>${safeVenueLine}</div>
               ${renderButton(buttonText, purchaseLink)}
             </td>
           </tr>
@@ -285,8 +284,8 @@ function renderEventsModule(module: NewsletterEventsModule, eventsById: Map<stri
 
   return `
     <tr>
-      <td style="padding:30px 34px 8px 34px;background:${BRAND.paper};">
-        <h2 style="margin:0 0 14px 0;color:${BRAND.dark};font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;font-weight:500;letter-spacing:0.3px;">
+      <td style="padding:34px 38px 10px 38px;background:${BRAND.paper};">
+        <h2 style="margin:0 0 16px 0;color:${BRAND.dark};font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.15;font-weight:500;letter-spacing:0.2px;">
           ${escapeHtml(title)}
         </h2>
         ${rows || emptyState}
@@ -347,7 +346,7 @@ export function buildNewsletterHtml({
   const socialBadges = SOCIAL_LINKS.map(
     (social) => `
       <a href="${escapeHtml(social.href)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 4px 8px 4px;text-decoration:none;">
-        <span style="display:inline-block;background:${BRAND.dark};color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;line-height:1;padding:8px 9px;border-radius:999px;letter-spacing:0.4px;">${social.label}</span>
+        <span style="display:inline-block;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.28);color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;line-height:1;padding:8px 10px;border-radius:999px;letter-spacing:0.4px;">${social.label}</span>
       </a>
     `,
   ).join("");
@@ -377,14 +376,14 @@ export function buildNewsletterHtml({
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.bg};">
     <tr>
       <td align="center" style="padding:22px 10px;">
-        <table role="presentation" class="newsletter-shell" width="640" cellspacing="0" cellpadding="0" border="0" style="width:640px;max-width:640px;background:${BRAND.paper};border-radius:16px;overflow:hidden;">
+        <table role="presentation" class="newsletter-shell" width="640" cellspacing="0" cellpadding="0" border="0" style="width:640px;max-width:640px;background:${BRAND.paper};border-radius:24px;overflow:hidden;box-shadow:0 8px 24px rgba(59,48,38,0.07);">
           <tr>
-            <td class="newsletter-pad" style="padding:26px 34px 24px 34px;background:linear-gradient(120deg, #151920 0%, #2e3443 58%, #a56f3a 100%);text-align:center;">
-              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="265" style="display:inline-block;width:265px;max-width:100%;height:auto;margin:0 auto 18px auto;" />
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;color:#ffffff;letter-spacing:0.6px;margin:0 0 8px 0;">
+            <td class="newsletter-pad" style="padding:28px 34px 30px 34px;background:linear-gradient(118deg, #111827 0%, #2f3446 56%, #a97643 100%);text-align:center;">
+              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="292" style="display:inline-block;width:292px;max-width:100%;height:auto;margin:0 auto 20px auto;opacity:0.97;" />
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;color:#ffffff;letter-spacing:0.5px;margin:0 0 10px 0;">
                 ${escapeHtml(title || "Kyle Lam Sound Healing")}
               </div>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#ede6dc;max-width:490px;margin:0 auto;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.65;color:#eee5d8;max-width:490px;margin:0 auto;">
                 Sound healing experiences, upcoming events, and intentional updates from Kyle Lam.
               </div>
             </td>
@@ -393,18 +392,18 @@ export function buildNewsletterHtml({
           ${contentRows}
 
           <tr>
-            <td class="newsletter-pad" style="padding:30px 34px;background:${BRAND.dark};text-align:center;">
-              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="210" style="display:inline-block;width:210px;max-width:100%;height:auto;margin:0 auto 14px auto;" />
+            <td class="newsletter-pad" style="padding:34px 34px;background:${BRAND.dark};text-align:center;">
+              <img src="${HEADER_LOGO_URL}" alt="Kyle Lam Sound Healing" width="230" style="display:inline-block;width:230px;max-width:100%;height:auto;margin:0 auto 16px auto;opacity:0.95;" />
 
-              <div style="font-family:Arial,Helvetica,sans-serif;color:#f5f2ed;font-size:14px;line-height:1.7;margin:0 0 14px 0;">
+              <div style="font-family:Arial,Helvetica,sans-serif;color:#f4efe7;font-size:14px;line-height:1.78;margin:0 0 16px 0;">
                 <a href="mailto:info@kylelamsoundhealing.com" style="color:#f5f2ed;text-decoration:none;">info@kylelamsoundhealing.com</a><br/>
                 (949) 342-4076<br/>
                 <a href="https://www.kylelamsoundhealing.com" target="_blank" rel="noopener noreferrer" style="color:#f5f2ed;text-decoration:none;">www.kylelamsoundhealing.com</a>
               </div>
 
-              <div style="margin:0 0 8px 0;">${socialBadges}</div>
+              <div style="margin:0 0 10px 0;">${socialBadges}</div>
 
-              <div style="font-family:Arial,Helvetica,sans-serif;color:#d8c9b7;font-size:11px;line-height:1.6;letter-spacing:0.2px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;color:#d7cab9;font-size:11px;line-height:1.6;letter-spacing:0.25px;">
                 You are receiving this message from Kyle Lam Sound Healing.
               </div>
             </td>
