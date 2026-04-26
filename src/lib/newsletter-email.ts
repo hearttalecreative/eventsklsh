@@ -224,6 +224,22 @@ function renderButton(buttonText: string, buttonUrl: string) {
   `;
 }
 
+function renderEventButton(buttonText: string, buttonUrl: string) {
+  if (!buttonText || !isSafeUrl(buttonUrl)) return "";
+
+  return `
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="left" style="margin:0;">
+      <tr>
+        <td style="border-radius:4px;background:${BRAND.dark};">
+          <a class="event-cta" href="${escapeHtml(buttonUrl.trim())}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:8px 14px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3px;">
+            ${escapeHtml(buttonText)}
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
 function renderCustomModule(module: NewsletterCustomModule) {
   const buttonHtml = renderButton(module.buttonText, module.buttonUrl);
   const bodyHtml = styleNewsletterRichHtml(module.bodyHtml);
@@ -267,20 +283,20 @@ function renderEventsModule(module: NewsletterEventsModule, eventsById: Map<stri
       const safeVenueLine = escapeHtml(venueLine || "Venue TBA");
 
       return `
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e3dcd4;border-radius:14px;background:#ffffff;margin:0 0 16px 0;">
+        <table class="event-card" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #dfd7cf;border-radius:8px;background:#ffffff;margin:0 0 12px 0;">
           <tr>
-            <td class="event-image-col" width="244" style="padding:0;vertical-align:top;">
+            <td class="event-image-col" width="208" style="padding:0;vertical-align:top;">
               ${
                 event.image_url
-                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="244" style="display:block;width:244px;max-width:244px;height:auto;border:0;border-radius:14px 0 0 14px;"/>`
-                  : `<div style="width:244px;background:${BRAND.bg};height:100%;min-height:206px;"></div>`
+                  ? `<img src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}" width="208" style="display:block;width:208px;max-width:208px;height:auto;border:0;border-radius:8px 0 0 8px;"/>`
+                  : `<div style="width:208px;background:${BRAND.bg};height:100%;min-height:154px;"></div>`
               }
             </td>
-            <td class="event-copy-col" style="padding:20px 22px 20px 24px;vertical-align:top;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;font-weight:600;color:${BRAND.copperDark};margin:0 0 10px 0;letter-spacing:0.25px;">${escapeHtml(eventDate)}</div>
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.24;color:${BRAND.dark};margin:0 0 11px 0;">${escapeHtml(event.title)}</div>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:${BRAND.muted};margin:0 0 15px 0;">${escapeHtml(eventTime)}<br/>${safeVenueLine}</div>
-              ${renderButton(buttonText, purchaseLink)}
+            <td class="event-copy-col" style="padding:14px 16px 14px 18px;vertical-align:top;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.45;font-weight:600;color:${BRAND.copperDark};margin:0 0 6px 0;letter-spacing:0.2px;">${escapeHtml(eventDate)}</div>
+              <div class="event-title" style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.23;color:${BRAND.dark};margin:0 0 7px 0;">${escapeHtml(event.title)}</div>
+              <div class="event-meta" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:${BRAND.muted};margin:0 0 10px 0;">${escapeHtml(eventTime)}<br/>${safeVenueLine}</div>
+              ${renderEventButton(buttonText, purchaseLink)}
             </td>
           </tr>
         </table>
@@ -300,8 +316,8 @@ function renderEventsModule(module: NewsletterEventsModule, eventsById: Map<stri
 
   return `
     <tr>
-      <td style="padding:34px 38px 10px 38px;background:${BRAND.paper};">
-        <h2 style="margin:0 0 16px 0;color:${BRAND.dark};font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.15;font-weight:500;letter-spacing:0.2px;">
+      <td style="padding:26px 30px 8px 30px;background:${BRAND.paper};">
+        <h2 style="margin:0 0 12px 0;color:${BRAND.dark};font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.16;font-weight:500;letter-spacing:0.16px;">
           ${escapeHtml(title)}
         </h2>
         ${rows || emptyState}
@@ -382,9 +398,14 @@ export function buildNewsletterHtml({
     @media screen and (max-width: 620px) {
       .newsletter-shell { width: 100% !important; }
       .newsletter-pad { padding-left: 18px !important; padding-right: 18px !important; }
+      .event-card { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; }
       .event-image-col,
       .event-copy-col { display: block !important; width: 100% !important; max-width: 100% !important; }
-      .event-image-col img { width: 100% !important; max-width: 100% !important; border-radius: 14px 14px 0 0 !important; }
+      .event-copy-col { padding: 12px 14px 14px 14px !important; box-sizing: border-box !important; }
+      .event-image-col img { width: 100% !important; max-width: 100% !important; border-radius: 8px 8px 0 0 !important; }
+      .event-title { font-size: 17px !important; line-height: 1.24 !important; overflow-wrap: anywhere !important; word-break: break-word !important; }
+      .event-meta { overflow-wrap: anywhere !important; word-break: break-word !important; }
+      .event-cta { max-width: 100% !important; box-sizing: border-box !important; }
     }
   </style>
 </head>
