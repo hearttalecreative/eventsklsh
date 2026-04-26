@@ -25,9 +25,9 @@ type RequestBody =
 interface BrevoListRow {
   id: number;
   name: string;
-  totalBlacklisted: number;
-  totalSubscribers: number;
-  uniqueSubscribers: number;
+  totalBlacklisted?: number;
+  totalSubscribers?: number;
+  uniqueSubscribers?: number;
 }
 
 async function readJsonSafely(response: Response) {
@@ -130,6 +130,19 @@ async function listBrevoLists() {
   return lists;
 }
 
+async function getBrevoListSubscriberCount(listId: number) {
+  try {
+    const payload = (await callBrevo(`/v3/contacts/lists/${listId}/contacts?limit=1&offset=0`)) as {
+      count?: number;
+    };
+
+    return typeof payload.count === "number" && Number.isFinite(payload.count) ? payload.count : null;
+  } catch (error) {
+    console.warn(`[brevo-newsletters] could not load contacts count for list ${listId}`, error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -152,18 +165,50 @@ serve(async (req) => {
 
     if (body.action === "lists") {
       const lists = await listBrevoLists();
+      const enrichedLists: Array<{
+        id: number;
+        name: string;
+        totalSubscribers: number;
+        uniqueSubscribers: number;
+        totalBlacklisted: number;
+        subscriberCount: number;
+      }> = [];
+
+      for (const list of lists) {
+        const fallbackCount =
+          (typeof list.uniqueSubscribers === "number" && Number.isFinite(list.uniqueSubscribers)
+            ? list.uniqueSubscribers
+            : null) ??
+          (typeof list.totalSubscribers === "number" && Number.isFinite(list.totalSubscribers)
+            ? list.totalSubscribers
+            : null) ??
+          0;
+
+        const subscriberCount = (await getBrevoListSubscriberCount(list.id)) ?? fallbackCount;
+
+        enrichedLists.push({
+          id: list.id,
+          name: list.name,
+          totalSubscribers:
+            typeof list.totalSubscribers === "number" && Number.isFinite(list.totalSubscribers)
+              ? list.totalSubscribers
+              : 0,
+          uniqueSubscribers:
+            typeof list.uniqueSubscribers === "number" && Number.isFinite(list.uniqueSubscribers)
+              ? list.uniqueSubscribers
+              : 0,
+          totalBlacklisted:
+            typeof list.totalBlacklisted === "number" && Number.isFinite(list.totalBlacklisted)
+              ? list.totalBlacklisted
+              : 0,
+          subscriberCount,
+        });
+      }
+
       return new Response(
         JSON.stringify({
           ok: true,
-          lists: lists
-            .map((list) => ({
-              id: list.id,
-              name: list.name,
-              totalSubscribers: list.totalSubscribers,
-              uniqueSubscribers: list.uniqueSubscribers,
-              totalBlacklisted: list.totalBlacklisted,
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name)),
+          lists: enrichedLists.sort((a, b) => a.name.localeCompare(b.name)),
         }),
         {
           status: 200,

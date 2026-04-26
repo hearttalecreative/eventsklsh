@@ -277,6 +277,7 @@ const getEdgeFunctionErrorMessage = async (error: any, fallback: string) => {
 interface BrevoList {
   id: number;
   name: string;
+  subscriberCount: number;
   totalSubscribers: number;
   uniqueSubscribers: number;
   totalBlacklisted: number;
@@ -498,6 +499,9 @@ const NewslettersPage = () => {
         .map((item: any) => ({
           id: Number(item?.id),
           name: typeof item?.name === "string" ? item.name : `List ${item?.id}`,
+          subscriberCount: Number(
+            item?.subscriberCount ?? item?.uniqueSubscribers ?? item?.totalSubscribers ?? 0,
+          ),
           totalSubscribers: Number(item?.totalSubscribers || 0),
           uniqueSubscribers: Number(item?.uniqueSubscribers || 0),
           totalBlacklisted: Number(item?.totalBlacklisted || 0),
@@ -1037,7 +1041,7 @@ const NewslettersPage = () => {
                           <span className="text-sm leading-relaxed">
                             <span className="font-medium block">{list.name}</span>
                             <span className="text-muted-foreground text-xs block">
-                              ID {list.id} | {list.totalSubscribers} subscribers
+                              ID {list.id} | {list.subscriberCount} subscribers
                             </span>
                           </span>
                         </label>
