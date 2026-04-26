@@ -486,6 +486,42 @@ export type Database = {
           },
         ]
       }
+      newsletters: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string | null
+          generated_html: string | null
+          id: string
+          status: string
+          subject: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          generated_html?: string | null
+          id?: string
+          status?: string
+          subject?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          generated_html?: string | null
+          id?: string
+          status?: string
+          subject?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           addon_id: string | null

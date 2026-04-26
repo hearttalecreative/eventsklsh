@@ -30,6 +30,7 @@ import TrainingDetail from "./pages/TrainingDetail";
 import TrainingSuccess from "./pages/TrainingSuccess";
 import AdminTrainingPrograms from "./pages/admin/TrainingPrograms";
 import PeopleDashboard from "./pages/admin/PeopleDashboard";
+import NewslettersPage from "./pages/admin/Newsletters";
 
 
 const queryClient = new QueryClient();
@@ -107,6 +108,7 @@ const App = () => (
              <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="/admin/people" element={<AdminRoute><PeopleDashboard /></AdminRoute>} />
             <Route path="/admin/training-programs" element={<AdminRoute><AdminTrainingPrograms /></AdminRoute>} />
+            <Route path="/admin/newsletters" element={<AdminRoute><NewslettersPage /></AdminRoute>} />
 
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />

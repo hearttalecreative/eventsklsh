@@ -14,7 +14,8 @@ import {
   Shield,
   Home,
   FileWarning,
-  GraduationCap
+  GraduationCap,
+  Mail
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -74,6 +75,7 @@ const AdminHeader = () => {
     { path: "/admin/ticket-sales", label: "Sales", icon: BarChart3 },
     { path: "/admin/system-logs", label: "Logs", icon: FileWarning },
     { path: "/admin/training-programs", label: "Trainings", icon: GraduationCap },
+    { path: "/admin/newsletters", label: "Newsletters", icon: Mail },
     { path: "/admin/manage-admins", label: "Admins", icon: Shield },
   ];
 
