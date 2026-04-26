@@ -374,21 +374,21 @@ function renderHighlightButtonModule(module: NewsletterHighlightButtonModule) {
   }
 
   const cellStylesByVariant = {
-    solid: `border-radius:999px;background:${BRAND.copper};border:1px solid ${BRAND.copperDark};box-shadow:0 8px 20px rgba(141,94,48,0.26);`,
-    outline: `border-radius:999px;background:#f4efe7;border:2px solid ${BRAND.copper};box-shadow:0 6px 16px rgba(141,94,48,0.14);`,
-    dark: `border-radius:999px;background:${BRAND.dark};border:1px solid ${BRAND.copper};box-shadow:0 8px 22px rgba(47,52,67,0.28);`,
+    solid: `border-radius:999px;background:${BRAND.copper};box-shadow:0 8px 20px rgba(141,94,48,0.26);overflow:hidden;`,
+    outline: `border-radius:999px;background:#f4efe7;box-shadow:0 6px 16px rgba(141,94,48,0.14);overflow:hidden;`,
+    dark: `border-radius:999px;background:${BRAND.dark};box-shadow:0 8px 22px rgba(47,52,67,0.28);overflow:hidden;`,
   } as const;
 
   const linkStylesByVariant = {
-    solid: "display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;text-align:center;",
-    outline: `display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:${BRAND.dark};text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.3px;text-align:center;`,
-    dark: "display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;text-align:center;",
+    solid: `display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;text-align:center;border-radius:999px;border:1px solid ${BRAND.copperDark};background:${BRAND.copper};`,
+    outline: `display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:${BRAND.dark};text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.3px;text-align:center;border-radius:999px;border:2px solid ${BRAND.copper};background:#f4efe7;`,
+    dark: `display:block;width:100%;box-sizing:border-box;padding:12px 22px;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.2;letter-spacing:0.35px;text-align:center;border-radius:999px;border:1px solid ${BRAND.copper};background:${BRAND.dark};`,
   } as const;
 
   return `
     <tr>
       <td style="padding:12px 30px 18px 30px;background:${BRAND.paper};text-align:center;">
-        <table class="highlight-cta-wrap" role="presentation" width="50%" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;width:50%;max-width:100%;">
+        <table class="highlight-cta-wrap" role="presentation" width="50%" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;width:50%;max-width:100%;border-collapse:separate;border-spacing:0;">
           <tr>
             <td style="${cellStylesByVariant[styleVariant]}">
               <a class="highlight-cta" href="${escapeHtml(buttonUrl)}" target="_blank" rel="noopener noreferrer" style="${linkStylesByVariant[styleVariant]}">
